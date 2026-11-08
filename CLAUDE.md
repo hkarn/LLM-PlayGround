@@ -19,5 +19,5 @@ A web playground for LLM providers and routers, plus a place for small LLM-based
 Found by testing with a real key; keep handling both shapes.
 - Decision `score` answers: `probabilities` is an object keyed by index (`"0"`…), with a `legend` mapping index → label. `score` is the expected index.
 - Only chat models have `input_price`/`output_price`/`context_window`. Others have a `pricing` object of per-unit keys (`input_character`, `input_second`, `output_image`, …). Chat `pricing` is an array of tiers.
-- Speech: non-OpenAI models (e.g. DeepInfra MiMo) return `500 [provider]` for OpenAI voice names like `alloy`. Leaving the voice out works. `/models/all` has no voice names, so `SPEECH_VOICES` in `app.js` lists them per model, taken from each provider's docs. Update it when Requesty adds speech models.
+- Speech: non-OpenAI models (e.g. DeepInfra MiMo) return `500 [provider]` for OpenAI voice names like `alloy`. Leaving the voice out works. `/models/all` has no voice names, so `SPEECH_VOICES` in `public/js/testers.js` lists them per model, taken from each provider's docs. Update it when Requesty adds speech models.
 - Transcriptions also return `language`, `duration` and `segments`. DeepInfra models can take about a minute on a cold start.

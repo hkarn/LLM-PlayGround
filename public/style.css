@@ -211,3 +211,7 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .scene-refs input { font-size: 12px; padding: 4px 6px; }
 .scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
 .notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
+
+.settings-bar { align-items: center; }
+.tool-settings { display: flex; flex-direction: column; gap: 10px; }
+.tool-settings[hidden] { display: none; }

@@ -38,6 +38,9 @@ jobs:
           V=${GITHUB_SHA::7}
           sed -i -E "s/(js\/main\.js|style\.css)\"/\1?v=$V\"/g" public/index.html
           find public/js -name '*.js' -exec sed -i -E "s/(from '[^']+\.js)'/\1?v=$V'/g" {} +
+          # Data files (providers/*.json) are fetched with ?v=ASSET_VERSION; give it the commit too.
+          sed -i -E "s/^export const ASSET_VERSION = 'dev';/export const ASSET_VERSION = '$V';/" public/js/core.js
+          grep -n "ASSET_VERSION = " public/js/core.js
           grep -nE "main\.js|style\.css" public/index.html
           grep -rn "^import" public/js | head -20
 

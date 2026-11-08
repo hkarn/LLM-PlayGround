@@ -20,11 +20,18 @@ const path = require('node:path');
 const PORT = process.env.PORT || 3000;
 const IS_TCP_PORT = /^\d+$/.test(String(PORT));
 const HOST = process.env.HOST || '127.0.0.1';
-// Server-side keys per provider. A key is only sent to hosts under that provider's domain.
-const PROVIDERS = {
-  requesty: { domain: 'requesty.ai', envVar: 'REQUESTY_API_KEY' },
-  openrouter: { domain: 'openrouter.ai', envVar: 'OPENROUTER_API_KEY' },
-};
+// Server-side keys per provider, from the same public/providers/<id>.json files the page uses:
+// keyEnv names the env var, server.domain the only hosts the key is ever sent to. Providers
+// without a server.domain (e.g. custom) get no server key.
+const PROVIDERS = {};
+{
+  const dir = path.join(__dirname, 'public', 'providers');
+  const { providers: ids } = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const id of ids) {
+    const p = JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), 'utf8'));
+    if (p.server?.domain && p.keyEnv) PROVIDERS[id] = { domain: p.server.domain, envVar: p.keyEnv };
+  }
+}
 for (const p of Object.values(PROVIDERS)) p.key = process.env[p.envVar] || '';
 const onDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);
 // The UI can point at any URL (a custom or local endpoint). On a public server that would let
@@ -43,6 +50,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.ogg': 'audio/ogg',
+  '.json': 'application/json; charset=utf-8',
 };
 
 // Request headers we pass on upstream.

@@ -7,55 +7,46 @@ export const CATEGORY_LABEL = {
   chat: 'Chat', decision: 'Decision', embedding: 'Embeddings', rerank: 'Rerank', image: 'Image', video: 'Video',
   speech: 'Speech', transcription: 'Transcription',
 };
-// Default paths, relative to the base URL. Providers can override them in PROVIDERS[...].endpoints.
+// Default paths, relative to the base URL. A provider file can override them under endpoints.
 export const ENDPOINT = {
   chat: '/chat/completions', decision: '/decisions', embeddings: '/embeddings', rerank: '/rerank',
   image: '/images/generations', imageEdit: '/images/edits', video: '/videos', speech: '/audio/speech', transcription: '/audio/transcriptions',
 };
 
-// Endpoints in the picker. `baseUrl` is only a suggestion: the URL field can be edited.
-// `modelsPaths` are fetched and merged. `keyEnv` is the server.js env var and the name used in cURL.
-// `unsupported` lists tabs the provider has no endpoint for; they stay usable but are dimmed.
-// `endpoints` overrides a tab's path (relative to the base URL), its base (a function of the
-// base URL) or its request style (`json` for image edits sent as input_references).
-export const PROVIDERS = {
-  requesty: {
-    label: 'Requesty', baseUrl: 'https://router.requesty.ai/v1', modelsPaths: ['/models/all'],
-    keyEnv: 'REQUESTY_API_KEY', keyHint: 'sk-…', signup: { href: 'https://app.requesty.ai/join?ref=b1f2b1e1', text: 'No key? Sign up for Requesty' },
-    unsupported: ['rerank', 'video'],
-    // Hardcoded choices for options the model list doesn't describe. Speech voices are in SPEECH_VOICES.
-    // OpenAI-style image API: size, not aspect_ratio or resolution.
-    suggest: {
-      image: { aspect_ratio: false, resolution: false },
-      imageEdit: { aspect_ratio: false, resolution: false },
-    },
-  },
-  openrouter: {
-    // output_modalities=all lists every model group (chat, image, embeddings, rerank, video,
-    // speech, transcription, decisions); without it /models only returns text models.
-    label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelsPaths: ['/models?output_modalities=all', '/images/models', '/videos/models'],
-    keyEnv: 'OPENROUTER_API_KEY', keyHint: 'sk-or-…', signup: { href: 'https://openrouter.ai/keys', text: 'No key? Get one at OpenRouter' },
-    endpoints: {
-      decision: { base: (b) => b.replace(/\/v1$/, '/alpha') }, // https://openrouter.ai/api/alpha/decisions
-      image: { path: '/images' },
-      imageEdit: { path: '/images', json: true },
-    },
-    // Image and video options come per model from /images/models and /videos/models; these
-    // cover what no list gives. /audio/speech only returns mp3 or pcm (pcm doesn't play in the page).
-    suggest: {
-      speech: { response_format: ['mp3', 'pcm'] },
-    },
-  },
-  custom: {
-    // Only OpenAI's standard endpoints; decisions, rerank and video have no common format.
-    label: 'Custom (OpenAI-compatible)', baseUrl: '', modelsPaths: ['/models'], keyEnv: 'API_KEY', keyHint: 'if needed',
-    unsupported: ['decision', 'rerank', 'video'],
-    suggest: {
-      image: { aspect_ratio: false, resolution: false },
-      imageEdit: { aspect_ratio: false, resolution: false },
-    },
-  },
-};
+// The asset version: "dev" locally; pages.yml writes the commit here so data files fetched at
+// start-up (providers/*.json) are never an old cached copy next to new code.
+export const ASSET_VERSION = 'dev';
+
+// Endpoints in the picker, loaded from public/providers/<id>.json by loadProviders() (the list and
+// order are in providers/index.json; server.js reads the same files). Each file has: label,
+// baseUrl (only a suggestion: the URL field can be edited), modelsPaths (fetched and merged),
+// keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
+// server key may be sent), unsupported (tabs that stay usable but are dimmed), endpoints (per tab:
+// path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, json for
+// image edits sent as input_references), suggest (hardcoded option lists, false = not supported)
+// and speechVoices (a voice list file in providers/). "_notes" hold the comments.
+export const PROVIDERS = {};
+
+async function fetchData(file) {
+  const res = await fetch(`providers/${file}?v=${ASSET_VERSION}`);
+  if (!res.ok) throw new Error(`Could not load providers/${file}: ${res.status}`);
+  return res.json();
+}
+
+// Loads every provider file once. Voice lists are shared between files that name the same one.
+export async function loadProviders() {
+  const { providers: ids } = await fetchData('index.json');
+  const lists = {};
+  for (const id of ids) {
+    const p = await fetchData(`${id}.json`);
+    if (p.speechVoices) {
+      lists[p.speechVoices] ??= fetchData(p.speechVoices).then((d) => d.voices.map((v) => ({ ...v, match: new RegExp(v.match, v.flags || '') })));
+      p.speechVoices = await lists[p.speechVoices];
+    }
+    PROVIDERS[id] = p;
+  }
+  return PROVIDERS;
+}
 
 export const state = {
   models: [],         // raw model objects from the provider's model list
@@ -69,7 +60,8 @@ export const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
 // Where a tab sends its request on the current provider: { path, base, json }.
 export function ep(kind) {
   const o = provider().endpoints?.[kind] || {};
-  return { path: o.path || ENDPOINT[kind], base: o.base ? o.base(baseUrl()) : baseUrl(), json: Boolean(o.json) };
+  const base = o.base?.replace ? baseUrl().replace(new RegExp(o.base.replace[0]), o.base.replace[1]) : baseUrl();
+  return { path: o.path || ENDPOINT[kind], base, json: Boolean(o.json) };
 }
 
 // Use the server.js proxy when it serves the page. On a static host (e.g. GitHub Pages)

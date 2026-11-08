@@ -1,0 +1,28 @@
+{
+  "_notes": [
+    "Only OpenAI standard endpoints; decisions, rerank and video have no common format."
+  ],
+  "label": "Custom (OpenAI-compatible)",
+  "baseUrl": "",
+  "modelsPaths": [
+    "/models"
+  ],
+  "keyEnv": "API_KEY",
+  "keyHint": "if needed",
+  "unsupported": [
+    "decision",
+    "rerank",
+    "video"
+  ],
+  "speechVoices": "speech-voices.json",
+  "suggest": {
+    "image": {
+      "aspect_ratio": false,
+      "resolution": false
+    },
+    "imageEdit": {
+      "aspect_ratio": false,
+      "resolution": false
+    }
+  }
+}

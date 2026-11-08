@@ -1,0 +1,50 @@
+{
+  "_notes": [
+    "output_modalities=all lists every model group (chat, image, embeddings, rerank, video, speech, transcription, decisions); without it /models only returns text models.",
+    "Decisions are at /api/alpha/decisions: the base URL with /v1 replaced by /alpha.",
+    "Images and image edits both POST /images; edits send the pictures as data URLs in input_references (json: true), no mask.",
+    "Image and video options come per model from /images/models and /videos/models; suggest covers what no list gives. /audio/speech only returns mp3 or pcm (pcm does not play in the page)."
+  ],
+  "label": "OpenRouter",
+  "baseUrl": "https://openrouter.ai/api/v1",
+  "modelsPaths": [
+    "/models?output_modalities=all",
+    "/images/models",
+    "/videos/models"
+  ],
+  "keyEnv": "OPENROUTER_API_KEY",
+  "keyHint": "sk-or-…",
+  "signup": {
+    "href": "https://openrouter.ai/keys",
+    "text": "No key? Get one at OpenRouter"
+  },
+  "server": {
+    "domain": "openrouter.ai"
+  },
+  "speechVoices": "speech-voices.json",
+  "endpoints": {
+    "decision": {
+      "base": {
+        "replace": [
+          "/v1$",
+          "/alpha"
+        ]
+      }
+    },
+    "image": {
+      "path": "/images"
+    },
+    "imageEdit": {
+      "path": "/images",
+      "json": true
+    }
+  },
+  "suggest": {
+    "speech": {
+      "response_format": [
+        "mp3",
+        "pcm"
+      ]
+    }
+  }
+}

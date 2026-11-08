@@ -1192,6 +1192,8 @@ List every character visible in the picture, the player's character included whe
 - Name each visible character and describe them where they first appear, for example "Mara Ellison, a wiry woman in her forties with cropped grey hair and a patched oilskin coat, leans over the chart table". The description must work on its own when no portrait is attached, and must not fight a portrait when one is.
 - Appearance comes from the cards, updated by the Session: what they wear now, rain, mud, wounds, costumes, what they carry. Where the Session and a card disagree, the Session wins. Fill gaps plainly and in keeping with the world; contradict neither.
 - Say where each character is and what they are doing, then the setting, light and time of day, weather, mood and camera framing. Show the player's character in the frame, in the third person, unless the user's note asks for their point of view.
+- Real places and landmarks: describe what they look like (shape, size, material, what surrounds them) instead of relying on the name, because image models rarely know local places and draw a generic stand-in. Say what is not there when a guess is likely to be wrong, for example "a low pair of stone arches in an old town wall, not a bridge". Keep to what the story says can and cannot be seen from there.
+- Someone who has just left or vanished: make the absence visible and specific, such as the empty place where they were, a dent in a cushion, a cup still steaming, the other characters' eyes on that spot. Never draw the absent person.
 - Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
 

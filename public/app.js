@@ -1192,6 +1192,8 @@ List every character visible in the picture, the player's character included whe
 - Name each visible character and describe them where they first appear, for example "Mara Ellison, a wiry woman in her forties with cropped grey hair and a patched oilskin coat, leans over the chart table". The description must work on its own when no portrait is attached, and must not fight a portrait when one is.
 - Appearance comes from the cards, updated by the Session: what they wear now, rain, mud, wounds, costumes, what they carry. Where the Session and a card disagree, the Session wins. Fill gaps plainly and in keeping with the world; contradict neither.
 - Say where each character is and what they are doing, then the setting, light and time of day, weather, mood and camera framing. Show the player's character in the frame, in the third person, unless the user's note asks for their point of view.
+- Real places and landmarks: describe what they look like (shape, size, material, what surrounds them) instead of relying on the name, because image models rarely know local places and draw a generic stand-in. Say what is not there when a guess is likely to be wrong, for example "a low pair of stone arches in an old town wall, not a bridge". Keep to what the story says can and cannot be seen from there.
+- Someone who has just left or vanished: make the absence visible and specific, such as the empty place where they were, a dent in a cushion, a cup still steaming, the other characters' eyes on that spot. Never draw the absent person.
 - Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
 
@@ -1315,11 +1317,15 @@ function renderDreamGenScene(root) {
   const undo = []; // earlier versions of the box, newest last
   const undoBtn = el('button', { type: 'button', class: 'secondary', text: 'Undo', disabled: '', onclick: () => { if (undo.length) setExport(undo.pop(), { keepUndo: true }); } });
   const trimNote = el('div', { class: 'muted small' });
-  const promptForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
+  const chatSettings = el('div', { class: 'tool-settings' },
     el('div', { class: 'model-picker', 'data-category': 'chat' }),
     el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
       el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { promptForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })),
+    el('div', { class: 'grid3' },
+      el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' }))));
+  const promptForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
+    chatSettings,
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
       'The whole export is sent, so a long game costs many tokens. To save tokens, edit it down here before sending: ',
@@ -1332,8 +1338,6 @@ function renderDreamGenScene(root) {
       undoBtn,
       el('button', { type: 'button', class: 'secondary', text: 'Restore the full export', onclick: () => { if (st.session) setExport(st.session.text); } })),
     trimNote,
-    el('div', { class: 'grid3' },
-      el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' }))),
     el('label', {}, 'Note for this picture (optional)', el('input', { name: 'focus', placeholder: 'e.g. focus on the moment she opens the letter; wide shot' })),
     el('button', { type: 'submit', class: 'primary', text: 'Write image prompt' }));
   const promptOut = el('div', { class: 'result' });
@@ -1365,9 +1369,24 @@ function renderDreamGenScene(root) {
   const refGrid = el('div', { class: 'scene-refs' });
   const refPicker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
   const addNames = el('input', { type: 'checkbox', checked: '' });
+  const copyNote = el('span', { class: 'muted small', text: 'Or copy it to use somewhere else, such as the DreamGen image generator, instead of step 4.' });
+  // The prompt as written; the reference-name lines are only for step 4, where the portraits go too.
+  async function copyPrompt() {
+    const text = promptBox.value.trim();
+    if (!text) { copyNote.textContent = 'There is no prompt to copy yet.'; return; }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Older browsers, or a page without clipboard permission: copy from the selected text.
+      promptBox.focus();
+      promptBox.select();
+      if (!document.execCommand('copy')) { copyNote.textContent = 'Could not copy: select the text and copy it by hand.'; return; }
+    }
+    copyNote.textContent = 'Copied. Paste it into the DreamGen image generator, or wherever you like.';
+  }
 
   // 4. Image
-  const imageForm = el('form', { class: 'tool-form', 'data-kind': 'image' },
+  const imageSettings = el('div', { class: 'tool-settings' },
     el('div', { class: 'model-picker', 'data-category': 'image' }),
     el('div', { class: 'grid3' },
       el('label', {}, 'Size', el('select', { name: 'size' }, el('option', { value: '', text: 'default' }),
@@ -1377,7 +1396,9 @@ function renderDreamGenScene(root) {
       el('label', {}, 'Resolution', el('select', { name: 'resolution' }, el('option', { value: '', text: 'default' }),
         ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
       el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
-        ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))),
+        ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))));
+  const imageForm = el('form', { class: 'tool-form', 'data-kind': 'image' },
+    imageSettings,
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
@@ -1388,12 +1409,22 @@ function renderDreamGenScene(root) {
         el('li', { text: 'Load a session export from DreamGen (Markdown or JSON). Nothing leaves the browser until you press a button.' }),
         el('li', { text: 'A chat model reads the export, works out where the last scene begins, and writes an image prompt with the characters in it named and described.' }),
         el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Portraits embedded in the export are attached for the characters in the scene.' }),
-        el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' }))),
+        el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' })),
+      el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
+        'Run at ', el('a', { href: 'https://hkarn.github.io/LLM-PlayGround/', target: '_blank', rel: 'noopener', text: 'https://hkarn.github.io/LLM-PlayGround/' }),
+        ' or in your own Docker or node server.js, this tool sends nothing to us or to any third party and saves nothing anywhere but your browser. ',
+        'GitHub Pages only serves the page files; your export, prompts and pictures stay in this browser. Your own server only forwards your requests and logs no content. ',
+        'What reaches a third party is what you send with your own key to the provider you chose (Requesty, OpenRouter or your custom endpoint), and what that provider and its models do with it is between you and them. ',
+        'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage.'),
+      el('p', { class: 'small' }, el('strong', { text: 'Feedback. ' }), 'Send ideas and problems with this tool to Zorander on the DreamGen Discord.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
       sceneLine,
       el('label', {}, 'Image prompt', promptBox),
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: 'secondary', text: 'Copy prompt', onclick: () => copyPrompt() }),
+        copyNote),
       charList,
       el('div', { class: 'row' },
         el('label', { class: 'inline' }, 'Add portraits ', refPicker),
@@ -1403,6 +1434,13 @@ function renderDreamGenScene(root) {
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   setupModelOptions(imageForm);
+  // The chosen models are remembered per provider, and each step's settings fold away once
+  // its model is chosen, so a second run is: load the export, write the prompt, draw.
+  rememberModel(promptForm, 'chat', ['max_tokens']);
+  rememberModel(imageForm, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
+  settingsToggle(promptForm, chatSettings, 'chat', () => `Chat model: ${chosenModel(promptForm)}`);
+  settingsToggle(imageForm, imageSettings, 'image', () => [`Image model: ${chosenModel(imageForm)}`,
+    ...['size', 'aspect_ratio', 'resolution', 'quality'].map((n) => str(imageForm, n) && `${n.replace('_', ' ')} ${str(imageForm, n)}`)].filter(Boolean).join(' · '));
 
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -1536,6 +1574,73 @@ function renderDreamGenScene(root) {
       renderResult(imageOut, { resp: shown, request: fields, curl: curlFor(path, { base, json: fields }), rendered });
     });
   });
+}
+
+// Remembers the model chosen in a tool form, and the step's other `fields`, per provider, and
+// picks them again whenever the model list is refilled (page load, model reload, provider switch).
+function rememberModel(form, key, fields = []) {
+  const k = () => `dgscene_model_${key}_${state.provider}`;
+  const picker = $('.model-picker', form);
+  const select = form.elements.model;
+  const custom = form.elements.model_custom;
+  const fill = picker._fill;
+  let filling = false; // a refill selects the first model; that is not the user's choice
+  picker._fill = () => {
+    const saved = store.get(k());
+    filling = true;
+    fill();
+    filling = false;
+    if (saved && [...select.options].some((o) => o.value === saved) && select.value !== saved) {
+      select.value = saved;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    // Then the step's other settings, where the chosen model still offers that value.
+    for (const name of fields) {
+      const f = form.elements[name];
+      const v = store.get(`${k()}_${name}`);
+      if (!f || f.disabled || v == null) continue;
+      if (f.tagName !== 'SELECT' || [...f.options].some((o) => o.value === v)) f.value = v;
+    }
+  };
+  select.addEventListener('change', () => { if (!filling && select.value) store.set(k(), select.value); });
+  for (const name of fields) {
+    form.elements[name]?.addEventListener('change', (e) => {
+      if (!filling && !e.target.disabled) store.set(`${k()}_${name}`, e.target.value);
+    });
+  }
+  custom.value = store.get(`${k()}_custom`) || '';
+  custom.addEventListener('input', () => {
+    if (custom.value.trim()) store.set(`${k()}_custom`, custom.value.trim());
+    else store.del(`${k()}_custom`);
+  });
+  picker._fill();
+}
+
+// A Hide/Show settings button for a tool step. Hiding is possible only once the step's
+// mandatory choice (its model) is made; the choice to hide is remembered.
+function settingsToggle(form, body, key, describe) {
+  const k = `dgscene_hide_${key}`;
+  const btn = el('button', { type: 'button', class: 'secondary' });
+  const summary = el('span', { class: 'muted small' });
+  body.before(el('div', { class: 'row settings-bar' }, btn, summary));
+  let hide = store.get(k) === '1';
+  const sync = () => {
+    const ready = Boolean(chosenModel(form));
+    const hidden = hide && ready;
+    body.hidden = hidden;
+    btn.textContent = hidden ? 'Show settings' : 'Hide settings';
+    btn.disabled = !hidden && !ready;
+    summary.textContent = hidden ? describe() : (ready ? '' : 'Choose a model; then the settings can be hidden.');
+  };
+  btn.addEventListener('click', () => {
+    hide = !body.hidden;
+    if (hide) store.set(k, '1');
+    else store.del(k);
+    sync();
+  });
+  form.addEventListener('change', sync);
+  form.addEventListener('input', sync);
+  sync();
 }
 
 // Busy button, elapsed time and error display for a tool form, like the endpoint tabs.

@@ -1369,6 +1369,21 @@ function renderDreamGenScene(root) {
   const refGrid = el('div', { class: 'scene-refs' });
   const refPicker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
   const addNames = el('input', { type: 'checkbox', checked: '' });
+  const copyNote = el('span', { class: 'muted small', text: 'Or copy it to use somewhere else, such as the DreamGen image generator, instead of step 4.' });
+  // The prompt as written; the reference-name lines are only for step 4, where the portraits go too.
+  async function copyPrompt() {
+    const text = promptBox.value.trim();
+    if (!text) { copyNote.textContent = 'There is no prompt to copy yet.'; return; }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Older browsers, or a page without clipboard permission: copy from the selected text.
+      promptBox.focus();
+      promptBox.select();
+      if (!document.execCommand('copy')) { copyNote.textContent = 'Could not copy: select the text and copy it by hand.'; return; }
+    }
+    copyNote.textContent = 'Copied. Paste it into the DreamGen image generator, or wherever you like.';
+  }
 
   // 4. Image
   const imageSettings = el('div', { class: 'tool-settings' },
@@ -1407,6 +1422,9 @@ function renderDreamGenScene(root) {
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
       sceneLine,
       el('label', {}, 'Image prompt', promptBox),
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: 'secondary', text: 'Copy prompt', onclick: () => copyPrompt() }),
+        copyNote),
       charList,
       el('div', { class: 'row' },
         el('label', { class: 'inline' }, 'Add portraits ', refPicker),

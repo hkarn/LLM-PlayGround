@@ -20,10 +20,21 @@ Each endpoint keeps its own key, so switching back and forth doesn't lose it.
 
 Option dropdowns follow the chosen model. On OpenRouter, image options (aspect ratio, resolution, quality, …) come from `/images/models` and video options (durations, resolutions, aspect ratios) from `/videos/models`, and speech voices from each model's `supported_voices`. Options a model doesn't take are greyed out and left out of the request. Where no list gives the choices, the page uses hardcoded suggestions per router (`suggest` and `SPEECH_VOICES` in `app.js`).
 
+## Games and Tools
+
+The first two tabs open a launcher of icon cards. Picking one fills the page under the tab bar, and **← All games** / **← All tools** goes back. The page remembers which one was open.
+
+| Tab | App | Status |
+| --- | --- | --- |
+| **Games** | AI Group Chat: several AI characters, each on its own model, chat with you and each other | Placeholder layout |
+| **Tools** | Video Generator: only video models we have tested, with the options each one really supports | Placeholder layout |
+
+The other tabs are the endpoint testers: one per API, with the raw request and response.
+
 ## Plans
 
 - More providers and routers (e.g. OpenAI, Anthropic, Google, local Ollama) as presets in the endpoint picker.
-- Small LLM-based games and other experiments, each on its own page or tab.
+- Build out AI Group Chat and Video Generator, and add more games and tools.
 
 ## Two ways it runs
 

@@ -1016,6 +1016,132 @@ function setupRecorder(form) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Games and Tools                                                     */
+/* ------------------------------------------------------------------ */
+// Each hub tab shows a launcher of icon cards. Opening one fills the page under the tab bar.
+// An app is { id, title, blurb, icon (inline SVG), status?, render(container) }.
+const svgIcon = (paths) => {
+  const wrap = document.createElement('span');
+  wrap.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  return wrap.firstElementChild;
+};
+const ICONS = {
+  groupChat: '<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-4a2 2 0 0 1-2-2v-1"/>',
+  video: '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/>',
+};
+
+const HUBS = {
+  games: { title: 'Games', blurb: 'Small games and experiments played with LLMs.' },
+  tools: { title: 'Tools', blurb: 'Focused tools built on the endpoints, with only the options we have checked.' },
+};
+
+const APPS = {
+  games: [
+    { id: 'group-chat', title: 'AI Group Chat', icon: ICONS.groupChat, status: 'Coming soon',
+      blurb: 'Several AI characters, each on its own model, chat with you and with each other.', render: renderGroupChatPlaceholder },
+  ],
+  tools: [
+    { id: 'video-generator', title: 'Video Generator', icon: ICONS.video, status: 'Coming soon',
+      blurb: 'Make videos with models whose options we have tested, with the right settings for each.', render: renderVideoGeneratorPlaceholder },
+  ],
+};
+
+function setupHubs() {
+  for (const panel of $$('.panel.hub')) {
+    const hub = panel.dataset.hub;
+    const showLauncher = () => {
+      store.del(`app_${hub}`);
+      panel.replaceChildren(
+        el('div', { class: 'hub-head' }, el('h2', { text: HUBS[hub].title }), el('span', { class: 'muted', text: HUBS[hub].blurb })),
+        el('div', { class: 'launcher' },
+          ...APPS[hub].map((app) => el('button', { type: 'button', class: 'app-card', onclick: () => openApp(app) },
+            el('span', { class: 'app-icon' }, svgIcon(app.icon)),
+            el('strong', { text: app.title }),
+            el('span', { class: 'muted small', text: app.blurb }),
+            app.status ? el('span', { class: 'tag', text: app.status }) : null)),
+          el('div', { class: 'app-card soon' }, el('strong', { text: 'More to come' }), el('span', { class: 'small', text: 'New ideas land here.' }))));
+    };
+    const openApp = (app) => {
+      store.set(`app_${hub}`, app.id);
+      const body = el('div', { class: 'app-view' });
+      panel.replaceChildren(
+        el('div', { class: 'hub-head' },
+          el('button', { type: 'button', class: 'secondary', text: `← All ${HUBS[hub].title.toLowerCase()}`, onclick: showLauncher }),
+          el('h2', { text: app.title }),
+          app.status ? el('span', { class: 'tag', text: app.status }) : null),
+        body);
+      app.render(body);
+    };
+    const saved = APPS[hub].find((a) => a.id === store.get(`app_${hub}`));
+    if (saved) openApp(saved); else showLauncher();
+  }
+}
+
+// Placeholder: the layout the group chat will have, with nothing wired up yet.
+function renderGroupChatPlaceholder(root) {
+  const people = [
+    { name: 'Ada', color: '#7c5cd6', role: 'curious scientist', model: 'pick a chat model' },
+    { name: 'Bram', color: '#d6705c', role: 'grumpy pirate', model: 'pick a chat model' },
+    { name: 'Cleo', color: '#3f9e7a', role: 'quiz host', model: 'pick a chat model' },
+  ];
+  const avatar = (p) => el('span', { class: 'gc-avatar', style: `background:${p.color}`, text: p.name[0] });
+  const msg = (p, text) => el('div', { class: `gc-msg${p ? '' : ' me'}` },
+    p ? avatar(p) : el('span', { class: 'gc-avatar', style: 'background:var(--accent)', text: 'You'[0] }),
+    el('div', { class: 'bubble' }, el('div', { class: 'small muted', text: p ? p.name : 'You' }), text));
+  root.append(
+    el('div', { class: 'placeholder-note' },
+      el('strong', { text: 'What this will be' }),
+      el('ul', {},
+        el('li', { text: 'Add 2–6 AI characters, each with a name, a personality and any chat model from the chosen endpoint.' }),
+        el('li', { text: 'They take turns answering you and each other, so different models talk in one conversation.' }),
+        el('li', { text: 'Modes such as free chat, a debate or a guessing game, and a cost counter per character.' }))),
+    el('div', { class: 'groupchat mock' },
+      el('div', { class: 'gc-side' },
+        el('strong', { text: 'Characters' }),
+        ...people.map((p) => el('div', { class: 'gc-person' }, avatar(p),
+          el('div', {}, el('div', { text: `${p.name} · ${p.role}` }), el('div', { class: 'muted small', text: p.model })))),
+        el('button', { type: 'button', class: 'secondary', disabled: '', text: '+ Add character' })),
+      el('div', { class: 'gc-main' },
+        el('div', { class: 'gc-log' },
+          msg(null, 'Hi all! What should we play?'),
+          msg(people[2], 'A quiz! First question: which planet has the most moons?'),
+          msg(people[0], 'Saturn, last I checked. The count keeps changing as new ones are found.'),
+          msg(people[1], 'Arr, I only count the ones I can see from the deck.')),
+        el('div', { class: 'row' },
+          el('input', { disabled: '', placeholder: 'Coming soon', style: 'flex:1' }),
+          el('button', { type: 'button', class: 'primary', disabled: '', text: 'Send' })))));
+}
+
+// Placeholder: a curated video tool. The Video tab stays as the raw endpoint tester.
+function renderVideoGeneratorPlaceholder(root) {
+  root.append(
+    el('div', { class: 'placeholder-note' },
+      el('strong', { text: 'What this will be' }),
+      el('ul', {},
+        el('li', { text: 'Only video models we have tested, each with the options it really supports (duration, resolution, aspect ratio, audio, first and last frame).' }),
+        el('li', { text: 'Price shown before you start, from the model\'s per-second pricing.' }),
+        el('li', { text: 'Jobs keep running while you do other things, and finished videos are listed in a gallery.' })),
+      el('div', { class: 'muted small', text: 'For any video model with raw request and response details, use the Video tab.' })),
+    el('div', { class: 'vidgen mock' },
+      el('div', {},
+        el('strong', { text: 'Model' }),
+        el('div', { class: 'vg-models' },
+          ...['Tested model 1', 'Tested model 2', 'Tested model 3'].map((t) => el('div', { class: 'vg-model' },
+            el('div', { text: t }), el('div', { class: 'muted small', text: 'durations · resolutions · price/s' })))),
+        el('label', {}, 'Prompt', el('textarea', { rows: 3, disabled: '', placeholder: 'Describe the video…' })),
+        el('div', { class: 'grid3' },
+          el('label', {}, 'Duration', el('select', { disabled: '' }, el('option', { text: '—' }))),
+          el('label', {}, 'Resolution', el('select', { disabled: '' }, el('option', { text: '—' }))),
+          el('label', {}, 'Aspect ratio', el('select', { disabled: '' }, el('option', { text: '—' })))),
+        el('button', { type: 'button', class: 'primary', disabled: '', text: 'Generate' })),
+      el('div', {},
+        el('strong', { text: 'Preview' }),
+        el('div', { class: 'vg-stage', text: 'Your video will play here' }),
+        el('strong', { text: 'Gallery' }),
+        el('div', { class: 'muted small', text: 'Finished videos will be listed here.' }))));
+}
+
+/* ------------------------------------------------------------------ */
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
 function init() {
@@ -1027,6 +1153,7 @@ function init() {
   }));
   const savedTab = store.get('tab');
   if (savedTab) $(`.tabs button[data-tab="${savedTab}"]`)?.click();
+  setupHubs();
 
   // Endpoint and key. Keys are remembered per provider.
   const keyName = () => `key_${state.provider}`;

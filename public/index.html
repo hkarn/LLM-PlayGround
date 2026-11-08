@@ -38,6 +38,9 @@
 </header>
 
 <nav class="tabs" role="tablist">
+  <button role="tab" data-tab="games" class="hub-tab">Games</button>
+  <button role="tab" data-tab="tools" class="hub-tab">Tools</button>
+  <span class="tab-sep" aria-hidden="true"></span>
   <button role="tab" data-tab="chat" class="active">Chat</button>
   <button role="tab" data-tab="decision">Decision</button>
   <button role="tab" data-tab="embeddings">Embeddings</button>
@@ -51,6 +54,10 @@
 </nav>
 
 <main>
+  <!-- GAMES and TOOLS: an icon launcher; the chosen app fills the page. Apps are in APPS in app.js. -->
+  <section class="panel hub" data-panel="games" data-hub="games"></section>
+  <section class="panel hub" data-panel="tools" data-hub="tools"></section>
+
   <!-- CHAT -->
   <section class="panel active" data-panel="chat">
     <form class="request-form" data-kind="chat">

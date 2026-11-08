@@ -46,8 +46,9 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .topbar h1 { font-size: 17px; margin: 0; }
 .key-form { display: flex; gap: 8px; align-items: center; flex: 1 1 420px; }
 .key-form input[type=password], .key-form input[type=text] { flex: 1; min-width: 0; }
-.endpoint-picker { display: flex; gap: 6px; align-items: center; flex: 1 1 380px; }
-.endpoint-picker select { flex: 0 0 auto; }
+.endpoint-picker { display: flex; gap: 6px; align-items: center; flex: 1 1 300px; min-width: 0; max-width: 100%; }
+.endpoint-picker select { flex: 0 1 auto; min-width: 0; max-width: 45%; }
+.endpoint-picker button { flex: none; }
 .endpoint-picker input { flex: 1; min-width: 0; }
 .tabs button.unsupported { opacity: .45; }
 .topbar-links { display: flex; gap: 16px; margin-left: auto; }
@@ -144,3 +145,50 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .ref-images img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--border); border-radius: 6px; display: block; }
 .ref-images figcaption { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ref-images button { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 12px; }
+
+/* Games and Tools: icon launcher, and the open app filling the page */
+.tab-sep { flex: 0 0 1px; background: var(--border); margin: 8px 6px; }
+.panel.hub.active { display: block; }
+.hub-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.hub-head h2 { margin: 0; font-size: 18px; }
+.launcher { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.app-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left;
+  padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); cursor: pointer; font: inherit;
+}
+.app-card:hover, .app-card:focus-visible { border-color: var(--accent); background: var(--highlight); }
+.app-card .app-icon {
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px;
+  background: var(--highlight); color: var(--accent);
+}
+.app-card .app-icon svg { width: 26px; height: 26px; }
+.app-card strong { font-size: 15px; }
+.app-card.soon { border-style: dashed; cursor: default; color: var(--muted); background: none; }
+.app-card.soon:hover { border-color: var(--border); }
+.tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--highlight); color: var(--accent); font-weight: 600; }
+.app-view { display: flex; flex-direction: column; gap: 16px; }
+.placeholder-note { background: var(--surface); border: 1px dashed var(--border); border-radius: 10px; padding: 14px 18px; }
+.placeholder-note ul { margin: 6px 0 0; padding-left: 20px; }
+.mock { opacity: .75; }
+.mock [disabled] { cursor: not-allowed; }
+
+/* AI Group Chat mock */
+.groupchat { display: grid; grid-template-columns: 240px 1fr; gap: 16px; min-height: 420px; }
+@media (max-width: 760px) { .groupchat { grid-template-columns: 1fr; } }
+.gc-side, .gc-main { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.gc-person { display: flex; gap: 10px; align-items: center; }
+.gc-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; flex: none; }
+.gc-log { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.gc-msg { display: flex; gap: 10px; align-items: flex-start; }
+.gc-msg .bubble { background: var(--code-bg); border-radius: 10px; padding: 8px 12px; max-width: 70ch; }
+.gc-msg.me { flex-direction: row-reverse; }
+.gc-msg.me .bubble { background: var(--highlight); }
+
+/* Video Generator mock */
+.vidgen { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.4fr); gap: 16px; }
+@media (max-width: 900px) { .vidgen { grid-template-columns: 1fr; } }
+.vidgen > div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.vg-models { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.vg-model { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.vg-stage { aspect-ratio: 16 / 9; border-radius: 8px; background: var(--code-bg); display: grid; place-items: center; color: var(--muted); }

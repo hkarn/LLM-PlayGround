@@ -2,7 +2,7 @@
 
 A web playground for LLM providers and routers. Pick a model, fill in a short form, send it, and see exactly what came back: the rendered answer, the raw JSON, the headers and a ready-to-run `curl` command. It's also a place for small LLM-based experiments, such as games.
 
-It grew out of [requesty-tester](https://github.com/hkarn/requesty-tester). It covers chat, decisions, embeddings, image generation and editing, text-to-speech and speech-to-text.
+It grew out of [requesty-tester](https://github.com/hkarn/requesty-tester). It covers chat, decisions, embeddings, rerank, image generation and editing, video, text-to-speech and speech-to-text.
 
 **Try it at <https://hkarn.github.io/LLM-PlayGround/>.** You need an API key for the endpoint you pick.
 
@@ -12,11 +12,13 @@ Pick an endpoint at the top of the page. Its base URL is filled in for you, and 
 
 | Endpoint | Default base URL | Key | Notes |
 | --- | --- | --- | --- |
-| **Requesty** | `https://router.requesty.ai/v1` | [Sign up through my referral link](https://app.requesty.ai/join?ref=b1f2b1e1) or at [requesty.ai](https://requesty.ai) | Every tab works |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | No Decision or Image edit endpoint, so those tabs are dimmed. Models come from `/models` plus `/embeddings/models` |
-| **Custom** | (empty) | If the endpoint needs one | Any OpenAI-compatible API, e.g. a local Ollama at `http://localhost:11434/v1` |
+| **Requesty** | `https://router.requesty.ai/v1` | [Sign up through my referral link](https://app.requesty.ai/join?ref=b1f2b1e1) or at [requesty.ai](https://requesty.ai) | Every tab except Rerank and Video, which are greyed out |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | Every tab. Decisions go to `/api/alpha/decisions`, images and image edits to `/v1/images` (reference images as `input_references`) |
+| **Custom** | (empty) | If the endpoint needs one | Any OpenAI-compatible API, e.g. a local Ollama at `http://localhost:11434/v1`. Decision, Rerank and Video are greyed out, since OpenAI has no standard format for them |
 
 Each endpoint keeps its own key, so switching back and forth doesn't lose it.
+
+Option dropdowns follow the chosen model. On OpenRouter, image options (aspect ratio, resolution, quality, …) come from `/images/models` and video options (durations, resolutions, aspect ratios) from `/videos/models`, and speech voices from each model's `supported_voices`. Options a model doesn't take are greyed out and left out of the request. Where no list gives the choices, the page uses hardcoded suggestions per router (`suggest` and `SPEECH_VOICES` in `app.js`).
 
 ## Plans
 
@@ -42,15 +44,17 @@ In both modes the key stays in that browser tab, unless you tick **Remember**, w
 | Tab | Endpoint | What you get |
 | --- | --- | --- |
 | **Chat** | `POST /v1/chat/completions` | Multi-turn message builder (system + user/assistant), temperature/max_tokens/top_p, extra JSON fields |
-| **Decision** | `POST /v1/decisions` | Content (`state`, optionally with an image) plus typed questions (`noul` yes/no, `choice`, `score`), with calibrated answers and probability bars |
+| **Decision** | `POST /v1/decisions` (OpenRouter: `/api/alpha/decisions`) | Content (`state`, optionally with an image) plus typed questions (`noul` yes/no, `choice`, `score`), with calibrated answers and probability bars |
 | **Embeddings** | `POST /v1/embeddings` | One input per line, shows vector previews and a cosine-similarity matrix |
+| **Rerank** | `POST /v1/rerank` | A query and one document per line, ranked by relevance score |
 | **Image** | `POST /v1/images/generations` | Size, n, quality, background and output format. Renders the returned images |
-| **Image edit** | `POST /v1/images/edits` | Up to 16 reference images (sent as repeated `image[]` multipart fields), an optional mask, size and quality. Renders the returned images |
+| **Image edit** | `POST /v1/images/edits` (OpenRouter: `POST /v1/images`) | Up to 16 reference images (multipart `image[]` fields, or `input_references` data URLs on OpenRouter), an optional mask (Requesty only), size and quality. Renders the returned images |
+| **Video** | `POST /v1/videos` | Prompt, duration, resolution, aspect ratio, audio and an optional first frame. Polls the job every 5 s and plays the video when it's done |
 | **Speech** | `POST /v1/audio/speech` | Plays the audio in the browser and lets you download it |
 | **Transcriptions** | `POST /v1/audio/transcriptions` | Upload a file (≤ 32 MB) or record from your mic, with optional language |
-| **All models** | `GET /v1/models/all` (Requesty), `GET /v1/models` (others) | Searchable table plus the raw response |
+| **All models** | `GET /v1/models/all` (Requesty), `GET /v1/models?output_modalities=all` (OpenRouter), `GET /v1/models` (custom) | Searchable table plus the raw response |
 
-Paste your API key and click **Load models**. On Requesty, `GET /v1/models/all` only returns the models approved for your key's organization, and each tab's dropdown is filtered by the model's `api` field (`chat`, `decision`, `embedding`, `image`, `speech`, `transcription`). On OpenRouter the filter uses each model's `endpoints` list. Tick **show all** or type any model ID to override that.
+Paste your API key and click **Load models**. On Requesty, `GET /v1/models/all` only returns the models approved for your key's organization, and each tab's dropdown is filtered by the model's `api` field (`chat`, `decision`, `embedding`, `image`, `speech`, `transcription`). On OpenRouter the filter uses each model's `endpoints` list; without `output_modalities=all`, OpenRouter's `/models` only returns text models. Tick **show all** or type any model ID to override that.
 
 Every response shows the status, latency, rendered output, raw response, request body, response headers and a ready-to-run `curl` command.
 

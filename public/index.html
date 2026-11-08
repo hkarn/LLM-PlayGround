@@ -41,8 +41,10 @@
   <button role="tab" data-tab="chat" class="active">Chat</button>
   <button role="tab" data-tab="decision">Decision</button>
   <button role="tab" data-tab="embeddings">Embeddings</button>
+  <button role="tab" data-tab="rerank">Rerank</button>
   <button role="tab" data-tab="image">Image</button>
   <button role="tab" data-tab="image-edit">Image edit</button>
+  <button role="tab" data-tab="video">Video</button>
   <button role="tab" data-tab="speech">Speech</button>
   <button role="tab" data-tab="transcription">Transcriptions</button>
   <button role="tab" data-tab="models">All models</button>
@@ -112,6 +114,25 @@
     <div class="result"></div>
   </section>
 
+  <!-- RERANK -->
+  <section class="panel" data-panel="rerank">
+    <form class="request-form" data-kind="rerank">
+      <p class="muted small">Order documents by how well they answer a query (<code>POST /v1/rerank</code>).</p>
+      <div class="model-picker" data-category="rerank"></div>
+      <label>Query
+        <input name="query" required value="What is the capital of France?">
+      </label>
+      <label>Documents (one per line)
+        <textarea name="documents" rows="5" required>Berlin is the capital of Germany.&#10;Paris is the capital and largest city of France.&#10;France is known for its wine and cheese.&#10;The Eiffel Tower was finished in 1889.</textarea>
+      </label>
+      <div class="grid3">
+        <label>Top n <input name="top_n" type="number" min="1" placeholder="all"></label>
+      </div>
+      <button type="submit" class="primary">Rerank</button>
+    </form>
+    <div class="result"></div>
+  </section>
+
   <!-- IMAGE -->
   <section class="panel" data-panel="image">
     <form class="request-form" data-kind="image">
@@ -125,6 +146,12 @@
             <option value="">default</option><option>auto</option>
             <option selected>1024x1024</option><option>1024x1536</option><option>1536x1024</option>
           </select>
+        </label>
+        <label>Aspect ratio
+          <select name="aspect_ratio"><option value="">default</option><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option><option>3:2</option><option>2:3</option><option>21:9</option></select>
+        </label>
+        <label>Resolution
+          <select name="resolution"><option value="">default</option><option>1K</option><option>2K</option><option>4K</option></select>
         </label>
         <label>Count (n) <input name="n" type="number" min="1" max="10" value="1"></label>
         <label>Quality
@@ -145,7 +172,7 @@
   <!-- IMAGE EDIT -->
   <section class="panel" data-panel="image-edit">
     <form class="request-form" data-kind="imageEdit">
-      <p class="muted small">Edit or combine images from a prompt (<code>POST /v1/images/edits</code>). GPT image models take up to 16 reference images.</p>
+      <p class="muted small">Edit or combine images from a prompt. Requesty uses <code>POST /v1/images/edits</code> (multipart). OpenRouter sends the images as <code>input_references</code> to <code>POST /v1/images</code>. Up to 16 reference images; how many a model accepts varies.</p>
       <div class="model-picker" data-category="image"></div>
       <label>Prompt
         <textarea name="prompt" rows="3" required>Combine these into one photo of the items arranged on a wooden table</textarea>
@@ -158,7 +185,7 @@
         <span class="ref-count muted small">No images chosen.</span>
         <button type="button" class="secondary clear-images">Clear images</button>
       </div>
-      <label>Mask (optional – transparent pixels mark the area to regenerate)
+      <label>Mask (optional, Requesty only – transparent pixels mark the area to regenerate)
         <input name="mask" type="file" accept="image/png">
       </label>
       <div class="row mask-row" hidden>
@@ -172,6 +199,12 @@
             <option>1024x1024</option><option>1024x1536</option><option>1536x1024</option>
           </select>
         </label>
+        <label>Aspect ratio
+          <select name="aspect_ratio"><option value="">default</option><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option><option>3:2</option><option>2:3</option><option>21:9</option></select>
+        </label>
+        <label>Resolution
+          <select name="resolution"><option value="">default</option><option>1K</option><option>2K</option><option>4K</option></select>
+        </label>
         <label>Quality
           <select name="quality"><option value="">default</option><option>auto</option><option>low</option><option>medium</option><option>high</option></select>
         </label>
@@ -181,12 +214,40 @@
     <div class="result"></div>
   </section>
 
+  <!-- VIDEO -->
+  <section class="panel" data-panel="video">
+    <form class="request-form" data-kind="video">
+      <p class="muted small">Generate a video (<code>POST /v1/videos</code>). It runs as a job: the page checks its status every few seconds and shows the video when it's done, which can take minutes.</p>
+      <div class="model-picker" data-category="video"></div>
+      <label>Prompt
+        <textarea name="prompt" rows="3" required>A paper boat drifting down a rain-soaked city street, slow motion</textarea>
+      </label>
+      <div class="grid3">
+        <label>Duration (s)
+          <select name="duration"><option value="">default</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select>
+        </label>
+        <label>Resolution
+          <select name="resolution"><option value="">default</option><option>480p</option><option>720p</option><option>1080p</option><option>4K</option></select>
+        </label>
+        <label>Aspect ratio
+          <select name="aspect_ratio"><option value="">default</option><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option><option>21:9</option></select>
+        </label>
+        <label class="inline"><input name="generate_audio" type="checkbox"> Audio</label>
+      </div>
+      <label>First frame (optional, image-to-video)
+        <input name="first_frame" type="file" accept="image/*">
+      </label>
+      <button type="submit" class="primary">Generate video</button>
+    </form>
+    <div class="result"></div>
+  </section>
+
   <!-- SPEECH -->
   <section class="panel" data-panel="speech">
     <form class="request-form" data-kind="speech">
       <div class="model-picker" data-category="speech"></div>
       <label>Text
-        <textarea name="input" rows="3" maxlength="4096" required>Hello! This is a quick text-to-speech test through Requesty.</textarea>
+        <textarea name="input" rows="3" maxlength="4096" required>Hello! This is a quick text-to-speech test from the LLM PlayGround.</textarea>
       </label>
       <div class="voice-picker">
         <label>Voice <select name="voice_preset"></select></label>
@@ -195,7 +256,7 @@
       </div>
       <div class="grid3">
         <label>Format
-          <select name="response_format"><option>mp3</option><option>wav</option><option>opus</option><option>aac</option><option>flac</option><option>pcm</option></select>
+          <select name="response_format"><option>mp3</option><option>pcm</option><option>wav</option><option>opus</option><option>aac</option><option>flac</option></select>
         </label>
         <label>Speed <input name="speed" type="number" step="0.05" min="0.25" max="4" placeholder="1.0"></label>
       </div>

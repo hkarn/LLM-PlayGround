@@ -18,28 +18,56 @@ const el = (tag, attrs = {}, ...children) => {
 // Category keys match the `api` field Requesty returns from GET /v1/models/all.
 // Other providers are mapped onto them in categorize().
 const CATEGORY_LABEL = {
-  chat: 'Chat', decision: 'Decision', embedding: 'Embeddings', image: 'Image', speech: 'Speech', transcription: 'Transcription',
+  chat: 'Chat', decision: 'Decision', embedding: 'Embeddings', rerank: 'Rerank', image: 'Image', video: 'Video',
+  speech: 'Speech', transcription: 'Transcription',
 };
+// Default paths, relative to the base URL. Providers can override them in PROVIDERS[...].endpoints.
 const ENDPOINT = {
-  chat: '/chat/completions', decision: '/decisions', embeddings: '/embeddings',
-  image: '/images/generations', imageEdit: '/images/edits', speech: '/audio/speech', transcription: '/audio/transcriptions',
+  chat: '/chat/completions', decision: '/decisions', embeddings: '/embeddings', rerank: '/rerank',
+  image: '/images/generations', imageEdit: '/images/edits', video: '/videos', speech: '/audio/speech', transcription: '/audio/transcriptions',
 };
 
 // Endpoints in the picker. `baseUrl` is only a suggestion: the URL field can be edited.
 // `modelsPaths` are fetched and merged. `keyEnv` is the server.js env var and the name used in cURL.
 // `unsupported` lists tabs the provider has no endpoint for; they stay usable but are dimmed.
+// `endpoints` overrides a tab's path (relative to the base URL), its base (a function of the
+// base URL) or its request style (`json` for image edits sent as input_references).
 const PROVIDERS = {
   requesty: {
     label: 'Requesty', baseUrl: 'https://router.requesty.ai/v1', modelsPaths: ['/models/all'],
     keyEnv: 'REQUESTY_API_KEY', keyHint: 'sk-…', signup: { href: 'https://app.requesty.ai/join?ref=b1f2b1e1', text: 'No key? Sign up for Requesty' },
+    unsupported: ['rerank', 'video'],
+    // Hardcoded choices for options the model list doesn't describe. Speech voices are in SPEECH_VOICES.
+    // OpenAI-style image API: size, not aspect_ratio or resolution.
+    suggest: {
+      image: { aspect_ratio: false, resolution: false },
+      imageEdit: { aspect_ratio: false, resolution: false },
+    },
   },
   openrouter: {
-    label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelsPaths: ['/models', '/embeddings/models'],
+    // output_modalities=all lists every model group (chat, image, embeddings, rerank, video,
+    // speech, transcription, decisions); without it /models only returns text models.
+    label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelsPaths: ['/models?output_modalities=all', '/images/models', '/videos/models'],
     keyEnv: 'OPENROUTER_API_KEY', keyHint: 'sk-or-…', signup: { href: 'https://openrouter.ai/keys', text: 'No key? Get one at OpenRouter' },
-    unsupported: ['decision', 'image-edit'],
+    endpoints: {
+      decision: { base: (b) => b.replace(/\/v1$/, '/alpha') }, // https://openrouter.ai/api/alpha/decisions
+      image: { path: '/images' },
+      imageEdit: { path: '/images', json: true },
+    },
+    // Image and video options come per model from /images/models and /videos/models; these
+    // cover what no list gives. /audio/speech only returns mp3 or pcm (pcm doesn't play in the page).
+    suggest: {
+      speech: { response_format: ['mp3', 'pcm'] },
+    },
   },
   custom: {
+    // Only OpenAI's standard endpoints; decisions, rerank and video have no common format.
     label: 'Custom (OpenAI-compatible)', baseUrl: '', modelsPaths: ['/models'], keyEnv: 'API_KEY', keyHint: 'if needed',
+    unsupported: ['decision', 'rerank', 'video'],
+    suggest: {
+      image: { aspect_ratio: false, resolution: false },
+      imageEdit: { aspect_ratio: false, resolution: false },
+    },
   },
 };
 
@@ -52,6 +80,11 @@ const state = {
 };
 const provider = () => PROVIDERS[state.provider];
 const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
+// Where a tab sends its request on the current provider: { path, base, json }.
+function ep(kind) {
+  const o = provider().endpoints?.[kind] || {};
+  return { path: o.path || ENDPOINT[kind], base: o.base ? o.base(baseUrl()) : baseUrl(), json: Boolean(o.json) };
+}
 
 // Use the server.js proxy when it serves the page. On a static host (e.g. GitHub Pages)
 // there is no `config`, so call the provider directly. Requesty and OpenRouter allow CORS
@@ -82,9 +115,13 @@ const store = {
 function categorize(model) {
   if (model.api && CATEGORY_LABEL[model.api]) return model.api;
   if (Array.isArray(model.endpoints)) {
-    if (model.endpoints.some((e) => e.endsWith('/embeddings'))) return 'embedding';
-    if (model.endpoints.some((e) => e.endsWith('/images'))) return 'image';
-    return 'chat';
+    const has = (suffix) => model.endpoints.some((e) => e.endsWith(suffix));
+    // Most specific first: image models also serve /chat/completions.
+    for (const [suffix, cat] of [['/decisions', 'decision'], ['/rerank', 'rerank'], ['/embeddings', 'embedding'], ['/videos', 'video'],
+      ['/audio/speech', 'speech'], ['/audio/transcriptions', 'transcription'], ['/images', 'image'], ['/chat/completions', 'chat']]) {
+      if (has(suffix)) return cat;
+    }
+    return 'other'; // e.g. batch-only or extraction models
   }
   const id = String(model.id || '').toLowerCase();
   if (/embed/.test(id)) return 'embedding';
@@ -101,9 +138,8 @@ const modelsIn = (category) => state.models.filter((m) => m._category === catego
 /* ------------------------------------------------------------------ */
 function apiKey() { return $('#api-key').value.trim(); }
 
-async function callApi(path, { method = 'POST', json, formData } = {}) {
+async function callApi(path, { method = 'POST', json, formData, base = baseUrl() } = {}) {
   await serverConfig;
-  const base = baseUrl();
   if (!/^https?:\/\/./.test(base)) throw new Error('Enter a base URL that starts with http:// or https://.');
   const headers = {};
   const key = apiKey();
@@ -151,8 +187,8 @@ function errorMessage(resp) {
 /* cURL rendering                                                      */
 /* ------------------------------------------------------------------ */
 const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
-function curlFor(path, { json, formFields }) {
-  const lines = [`curl ${baseUrl()}${path}`, `  -H "Authorization: Bearer $${provider().keyEnv}"`];
+function curlFor(path, { json, formFields, base = baseUrl() }) {
+  const lines = [`curl ${base}${path}`,`  -H "Authorization: Bearer $${provider().keyEnv}"`];
   if (json !== undefined) {
     lines.push(`  -H "Content-Type: application/json"`, `  -d ${shq(JSON.stringify(json, null, 2))}`);
   }
@@ -296,7 +332,16 @@ async function loadModels() {
         skipped.push(`${path} (${errorMessage(resp)})`);
         continue;
       }
-      list.push(...(Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.models || [])));
+      const items = Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.models || []);
+      if (i === 0) { list.push(...items); continue; }
+      // Later lists add detail to models already listed (e.g. OpenRouter's /images/models has
+      // per-model supported_parameters, /videos/models has durations and resolutions).
+      const byId = new Map(list.map((m) => [m.id, m]));
+      for (const m of items) {
+        const known = byId.get(m.id);
+        if (known) Object.assign(known, { ...m, ...known, supported_parameters: m.supported_parameters ?? known.supported_parameters });
+        else list.push(m);
+      }
     }
     if (forProvider !== state.provider) return; // switched provider while loading
     $('#models-raw').textContent = JSON.stringify(Object.keys(raw).length === 1 ? Object.values(raw)[0] : raw, null, 2);
@@ -374,7 +419,11 @@ function setupVoicePicker(form) {
   const note = $('.voice-note', form);
   const update = () => {
     const model = chosenModel(form);
-    const entry = SPEECH_VOICES.find((v) => v.match.test(model));
+    // OpenRouter lists each speech model's voices in `supported_voices`; otherwise use SPEECH_VOICES.
+    const listed = state.models.find((m) => m.id === model)?.supported_voices;
+    const entry = listed?.length
+      ? { required: true, groups: { '': listed }, note: `${listed.length} voices from the model list.` }
+      : SPEECH_VOICES.find((v) => v.match.test(model));
     const groups = Object.entries(entry?.groups || {});
     select.replaceChildren(
       ...(entry?.required ? [] : [el('option', { value: '', text: entry?.def ? `model default (${entry.def})` : 'model default' })]),
@@ -393,13 +442,79 @@ function setupVoicePicker(form) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Per-model option lists                                              */
+/* ------------------------------------------------------------------ */
+// A dropdown's choices come from, in order: the chosen model's own metadata, the provider's
+// `suggest` list for that form, then the options written in index.html. `false` from either
+// source greys the field out, and disabled fields are not sent.
+const VIDEO_META = { duration: 'supported_durations', resolution: 'supported_resolutions', aspect_ratio: 'supported_aspect_ratios' };
+function optionsFromModel(kind, name, m) {
+  if (!m) return undefined;
+  if ((kind === 'image' || kind === 'imageEdit') && m.supported_parameters && !Array.isArray(m.supported_parameters)) {
+    // OpenRouter /images/models: a missing key means the model doesn't take that parameter.
+    const p = m.supported_parameters[name];
+    if (!p) return false;
+    return p.type === 'enum' ? p.values.map(String) : undefined;
+  }
+  if (kind === 'video' && VIDEO_META[name] && Array.isArray(m[VIDEO_META[name]])) {
+    return m[VIDEO_META[name]].length ? m[VIDEO_META[name]].map(String) : false;
+  }
+  return undefined;
+}
+
+function setupModelOptions(form) {
+  const kind = form.dataset.kind;
+  const selects = $$('select', form).filter((s) => !['model', 'voice_preset'].includes(s.name) && !s.closest('.model-picker'));
+  // Remember the options from index.html as the last fallback.
+  for (const s of selects) {
+    s._orig = [...s.options].filter((o) => o.value !== '').map((o) => o.value);
+    s._origSelected = s.value;
+    s._hasDefault = [...s.options].some((o) => o.value === '');
+  }
+  const update = () => {
+    const m = state.models.find((x) => x.id === chosenModel(form));
+    // With per-model metadata, start from "default" rather than the page's preset (e.g. size 1024x1024).
+    const hasMeta = Boolean(m && ((m.supported_parameters && !Array.isArray(m.supported_parameters)) || m.supported_durations));
+    for (const s of selects) {
+      let values = optionsFromModel(kind, s.name, m);
+      if (values === undefined) values = provider().suggest?.[kind]?.[s.name];
+      if (values === undefined) values = s._orig;
+      const prev = s.value;
+      s.disabled = values === false;
+      const list = values || [];
+      s.replaceChildren(...(s._hasDefault ? [el('option', { value: '', text: s.disabled ? 'not supported' : 'default' })] : []),
+        ...list.map((v) => el('option', { value: v, text: v })));
+      const preset = !hasMeta && list.includes(s._origSelected) ? s._origSelected : (s._hasDefault ? '' : list[0] ?? '');
+      s.value = list.includes(prev) && !(hasMeta && prev === s._origSelected && s._hasDefault) ? prev : preset;
+    }
+    if (kind === 'video') {
+      // Some video models list which frame images and whether audio they take.
+      const frames = m?.supported_frame_images;
+      form.elements.first_frame.disabled = Array.isArray(frames) && !frames.includes('first_frame');
+      form.elements.generate_audio.disabled = m?.generate_audio === false;
+    }
+    if (kind === 'image' || kind === 'imageEdit') {
+      const n = m?.supported_parameters?.n;
+      if (form.elements.n) form.elements.n.max = n?.type === 'range' ? n.max : 10;
+    }
+  };
+  form.addEventListener('change', (e) => { if (e.target.name === 'model') update(); });
+  form.addEventListener('input', (e) => { if (e.target.name === 'model_custom') update(); });
+  form._updateOptions = update;
+  update();
+}
+
+/* ------------------------------------------------------------------ */
 /* Form helpers                                                        */
 /* ------------------------------------------------------------------ */
+// Disabled fields are settings the chosen model doesn't support, so they are left out.
 function num(form, name) {
+  if (form.elements[name]?.disabled) return undefined;
   const v = form.elements[name]?.value;
   return v === '' || v == null ? undefined : Number(v);
 }
 function str(form, name) {
+  if (form.elements[name]?.disabled) return undefined;
   const v = form.elements[name]?.value?.trim();
   return v ? v : undefined;
 }
@@ -429,7 +544,7 @@ const handlers = {
       model: chosenModel(form), messages,
       temperature: num(form, 'temperature'), max_tokens: num(form, 'max_tokens'), top_p: num(form, 'top_p'), ...extra,
     });
-    const resp = await callApi(ENDPOINT.chat, { json: body });
+    const resp = await callApi(ep('chat').path, { base: ep('chat').base, json: body });
     let rendered;
     if (resp.ok && resp.data?.choices) {
       const choice = resp.data.choices[0] || {};
@@ -444,7 +559,7 @@ const handlers = {
         })),
       );
     }
-    renderResult(out, { resp, request: body, curl: curlFor(ENDPOINT.chat, { json: body }), rendered });
+    renderResult(out, { resp, request: body, curl: curlFor(ep('chat').path, { base: ep('chat').base, json: body }), rendered });
   },
 
   async decision(form, out) {
@@ -474,7 +589,7 @@ const handlers = {
     if (!Object.keys(questions).length) throw new Error('Add at least one question with an id.');
 
     const body = { model: chosenModel(form), state: stateValue, questions };
-    const resp = await callApi(ENDPOINT.decision, { json: body });
+    const resp = await callApi(ep('decision').path, { base: ep('decision').base, json: body });
     let rendered;
     if (resp.ok && resp.data?.answers) {
       rendered = el('div', {},
@@ -482,7 +597,7 @@ const handlers = {
         el('div', { class: 'muted small', text: usageLine(resp.data) }));
     }
     const shownReq = image ? { ...body, state: [body.state[0], { type: 'image_url', image_url: { url: `<${image.name} as base64 data URL>` } }] } : body;
-    renderResult(out, { resp, request: shownReq, curl: curlFor(ENDPOINT.decision, { json: shownReq }), rendered });
+    renderResult(out, { resp, request: shownReq, curl: curlFor(ep('decision').path, { base: ep('decision').base, json: shownReq }), rendered });
   },
 
   async embeddings(form, out) {
@@ -494,7 +609,7 @@ const handlers = {
       dimensions: num(form, 'dimensions'),
       encoding_format: str(form, 'encoding_format'),
     });
-    const resp = await callApi(ENDPOINT.embeddings, { json: body });
+    const resp = await callApi(ep('embeddings').path, { base: ep('embeddings').base, json: body });
     let rendered;
     if (resp.ok && Array.isArray(resp.data?.data)) {
       const vectors = resp.data.data.map((d) => (Array.isArray(d.embedding) ? d.embedding : decodeB64Floats(d.embedding)));
@@ -511,18 +626,19 @@ const handlers = {
     const shown = resp.ok && Array.isArray(resp.data?.data)
       ? { ...resp, data: { ...resp.data, data: resp.data.data.map((d) => ({ ...d, embedding: Array.isArray(d.embedding) ? [...d.embedding.slice(0, 16), `… ${d.embedding.length - 16} more`] : d.embedding })) } }
       : resp;
-    renderResult(out, { resp: shown, request: body, curl: curlFor(ENDPOINT.embeddings, { json: body }), rendered });
+    renderResult(out, { resp: shown, request: body, curl: curlFor(ep('embeddings').path, { base: ep('embeddings').base, json: body }), rendered });
   },
 
   async image(form, out) {
     const body = compact({
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
-      size: str(form, 'size'), n: num(form, 'n'), quality: str(form, 'quality'),
+      size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'),
+      n: num(form, 'n'), quality: str(form, 'quality'),
       background: str(form, 'background'), output_format: str(form, 'output_format'),
     });
-    const resp = await callApi(ENDPOINT.image, { json: body });
+    const resp = await callApi(ep('image').path, { base: ep('image').base, json: body });
     const { rendered, shown } = renderImages(resp, body.output_format);
-    renderResult(out, { resp: shown, request: body, curl: curlFor(ENDPOINT.image, { json: body }), rendered });
+    renderResult(out, { resp: shown, request: body, curl: curlFor(ep('image').path, { base: ep('image').base, json: body }), rendered });
   },
 
   // Multipart, with one image[] field per reference image (up to 16 for GPT image models).
@@ -533,17 +649,29 @@ const handlers = {
     const mask = form.elements.mask.files[0];
     const fields = compact({
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
-      size: str(form, 'size'), quality: str(form, 'quality'),
+      size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'), quality: str(form, 'quality'),
     });
+    const { path, base, json } = ep('imageEdit');
+    if (json) {
+      // OpenRouter: JSON to /images, with the pictures as data URLs in input_references. No mask.
+      const refs = await Promise.all(images.map(async (f) => ({ type: 'image_url', image_url: { url: await fileToDataUrl(f) } })));
+      const body = { ...fields, input_references: refs };
+      const resp = await callApi(path, { base, json: body });
+      const { rendered, shown } = renderImages(resp);
+      const request = { ...fields, input_references: images.map((f) => ({ type: 'image_url', image_url: { url: `<${f.name} as base64 data URL>` } })) };
+      const note = mask ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
+      renderResult(out, { resp: shown, request, curl: curlFor(path, { base, json: request }), rendered: rendered && el('div', {}, note, rendered) });
+      return;
+    }
     const fd = new FormData();
     for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
     for (const img of images) fd.append('image[]', img, img.name);
     if (mask) fd.append('mask', mask, mask.name);
-    const resp = await callApi(ENDPOINT.imageEdit, { formData: fd });
+    const resp = await callApi(ep('imageEdit').path, { base: ep('imageEdit').base, formData: fd });
     const { rendered, shown } = renderImages(resp);
     const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 1024).toFixed(1)} KB)`;
     const request = { ...fields, 'image[]': images.map(describe), ...(mask ? { mask: describe(mask) } : {}) };
-    const curl = curlFor(ENDPOINT.imageEdit, { formFields: [
+    const curl = curlFor(ep('imageEdit').path, { base: ep('imageEdit').base, formFields: [
       ...Object.entries(fields), ...images.map((f) => ['image[]', `@${f.name}`]), ...(mask ? [['mask', `@${mask.name}`]] : []),
     ] });
     renderResult(out, { resp: shown, request, curl, rendered });
@@ -555,7 +683,7 @@ const handlers = {
       model: chosenModel(form), input: form.elements.input.value.trim(), voice: str(form, 'voice') || str(form, 'voice_preset'),
       response_format: str(form, 'response_format'), speed: num(form, 'speed'), instructions: str(form, 'instructions'),
     });
-    const resp = await callApi(ENDPOINT.speech, { json: body });
+    const resp = await callApi(ep('speech').path, { base: ep('speech').base, json: body });
     let rendered;
     if (resp.ok && resp.blob) {
       const url = URL.createObjectURL(resp.blob);
@@ -565,7 +693,7 @@ const handlers = {
     } else if (resp.ok) {
       rendered = el('div', { class: 'output error', text: 'Expected audio but got a non-binary response – see raw response.' });
     }
-    renderResult(out, { resp, request: body, curl: curlFor(ENDPOINT.speech, { json: body }) + ' \\\n  --output speech.' + (body.response_format || 'mp3'), rendered });
+    renderResult(out, { resp, request: body, curl: curlFor(ep('speech').path, { base: ep('speech').base, json: body }) + ' \\\n  --output speech.' + (body.response_format || 'mp3'), rendered });
   },
 
   async transcription(form, out) {
@@ -575,7 +703,7 @@ const handlers = {
     const fd = new FormData();
     fd.append('file', file, file.name || 'recording.webm');
     for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-    const resp = await callApi(ENDPOINT.transcription, { formData: fd });
+    const resp = await callApi(ep('transcription').path, { base: ep('transcription').base, formData: fd });
     let rendered;
     if (resp.ok) {
       const text = typeof resp.data === 'string' ? resp.data : resp.data?.text;
@@ -585,8 +713,75 @@ const handlers = {
       );
     }
     const request = { file: `${file.name || 'recording.webm'} (${file.type || 'unknown type'}, ${(file.size / 1024).toFixed(1)} KB)`, ...fields };
-    const curl = curlFor(ENDPOINT.transcription, { formFields: [['file', `@${file.name || 'recording.webm'}`], ...Object.entries(fields)] });
+    const curl = curlFor(ep('transcription').path, { base: ep('transcription').base, formFields: [['file', `@${file.name || 'recording.webm'}`], ...Object.entries(fields)] });
     renderResult(out, { resp, request, curl, rendered });
+  },
+
+  async rerank(form, out) {
+    const documents = lines(form.elements.documents.value);
+    if (!documents.length) throw new Error('Enter at least one document line.');
+    const body = compact({ model: chosenModel(form), query: form.elements.query.value.trim(), documents, top_n: num(form, 'top_n') });
+    const { path, base } = ep('rerank');
+    const resp = await callApi(path, { base, json: body });
+    let rendered;
+    if (resp.ok && Array.isArray(resp.data?.results)) {
+      const results = [...resp.data.results].sort((a, b) => b.relevance_score - a.relevance_score);
+      rendered = el('div', {},
+        el('div', { class: 'output rerank' }, ...results.map((r, rank) => el('div', {},
+          el('span', { class: 'small muted', text: `${rank + 1}. #${r.index} ` }), meter(r.relevance_score),
+          el('span', { class: 'small', text: ` ${Number(r.relevance_score).toFixed(3)}  ` }),
+          el('span', { text: r.document?.text ?? documents[r.index] ?? '' })))),
+        el('div', { class: 'muted small', text: usageLine(resp.data) }));
+    }
+    renderResult(out, { resp, request: body, curl: curlFor(path, { base, json: body }), rendered });
+  },
+
+  // Async: submit a job, poll its status, then download the video from /videos/{id}/content.
+  async video(form, out) {
+    const frame = form.elements.first_frame.files[0];
+    const body = compact({
+      model: chosenModel(form), prompt: form.elements.prompt.value.trim(), duration: num(form, 'duration'),
+      resolution: str(form, 'resolution'), aspect_ratio: str(form, 'aspect_ratio'),
+      generate_audio: (!form.elements.generate_audio.disabled && form.elements.generate_audio.checked) || undefined,
+    });
+    if (frame && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
+    if (frame) body.frame_images = [{ type: 'image_url', image_url: { url: await fileToDataUrl(frame) }, frame_type: 'first_frame' }];
+    const shownReq = frame ? { ...body, frame_images: [{ ...body.frame_images[0], image_url: { url: `<${frame.name} as base64 data URL>` } }] } : body;
+    const { path, base } = ep('video');
+    const curl = curlFor(path, { base, json: shownReq });
+    const t0 = Date.now();
+    let resp = await callApi(path, { base, json: body });
+    const id = resp.data?.id;
+    if (!resp.ok || !id) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
+
+    const progress = el('div', { class: 'muted' });
+    out.replaceChildren(progress);
+    const done = ['completed', 'failed', 'cancelled', 'expired'];
+    let status = resp.data.status;
+    while (!done.includes(status)) {
+      progress.textContent = `Job ${id}: ${status || 'submitted'} · ${Math.round((Date.now() - t0) / 1000)} s. Checking every 5 s…`;
+      if (Date.now() - t0 > 20 * 60 * 1000) throw new Error(`Gave up after 20 minutes. Job ${id} was still ${status}.`);
+      await new Promise((r) => setTimeout(r, 5000));
+      resp = await callApi(`${path}/${encodeURIComponent(id)}`, { base, method: 'GET' });
+      if (!resp.ok) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
+      status = resp.data?.status;
+    }
+    let rendered;
+    if (status === 'completed') {
+      const video = await callApi(`${path}/${encodeURIComponent(id)}/content?index=0`, { base, method: 'GET' });
+      if (video.ok && video.blob) {
+        const url = URL.createObjectURL(video.blob);
+        rendered = el('div', { class: 'output' },
+          el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '' }),
+          el('div', {}, el('a', { href: url, download: `video-${id}.mp4`, text: `Download (${(video.blob.size / 1024 / 1024).toFixed(1)} MB)` })),
+          el('div', { class: 'muted small', text: `Took ${Math.round((Date.now() - t0) / 1000)} s.${resp.data.usage?.cost != null ? ` Cost $${resp.data.usage.cost}.` : ''}` }));
+      } else {
+        rendered = el('div', { class: 'output error', text: `The job finished but the video download failed: ${errorMessage(video)}` });
+      }
+    } else {
+      rendered = el('div', { class: 'output error', text: `Job ${status}${resp.data?.error ? `: ${resp.data.error}` : ''}` });
+    }
+    renderResult(out, { resp, request: shownReq, curl, rendered });
   },
 };
 
@@ -686,7 +881,7 @@ function renderAnswer(id, a, q) {
 function renderImages(resp, format = 'png') {
   if (!resp.ok || !Array.isArray(resp.data?.data)) return { rendered: undefined, shown: resp };
   const rendered = el('div', { class: 'output' }, ...resp.data.data.map((img, i) => {
-    const src = img.b64_json ? `data:image/${format};base64,${img.b64_json}` : img.url;
+    const src = img.b64_json ? `data:${img.media_type || `image/${format}`};base64,${img.b64_json}` : img.url;
     return el('div', {},
       src ? el('img', { src, alt: `Generated image ${i + 1}` }) : el('div', { text: '(no image data)' }),
       img.revised_prompt ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised_prompt}` }) : null,
@@ -873,6 +1068,7 @@ function init() {
   setupRecorder($('form[data-kind=transcription]'));
   setupVoicePicker($('form[data-kind=speech]'));
   setupRefImages($('form[data-kind=imageEdit]'));
+  for (const kind of ['image', 'imageEdit', 'video', 'speech']) setupModelOptions($(`form[data-kind=${kind}]`));
   const decisionForm = $('form[data-kind=decision]');
   addQuestion(decisionForm, { id: 'positive', type: 'noul', instructions: 'The review is positive.' });
   addQuestion(decisionForm, { id: 'genre', type: 'choice', instructions: 'Which genre is the book?', criteria: 'fantasy: Magic, myth or invented worlds\nmystery: A crime or puzzle to solve\nromance: A love story' });

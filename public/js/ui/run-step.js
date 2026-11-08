@@ -44,7 +44,9 @@ export async function runStep(form, out, fn) {
 export function wait(ms, signal) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+    const onAbort = () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); };
+    // Remove the abort listener when the wait ends normally, so long polls don't pile them up.
+    const t = setTimeout(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }

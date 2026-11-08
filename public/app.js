@@ -1059,6 +1059,8 @@ function setupHubs() {
     const hub = panel.dataset.hub;
     const showLauncher = () => {
       store.del(`app_${hub}`);
+      panel._app = null;
+      setHash(hub);
       panel.replaceChildren(
         el('div', { class: 'hub-head' }, el('h2', { text: HUBS[hub].title }), el('span', { class: 'muted', text: HUBS[hub].blurb })),
         el('div', { class: 'launcher' },
@@ -1071,6 +1073,9 @@ function setupHubs() {
     };
     const openApp = (app) => {
       store.set(`app_${hub}`, app.id);
+      setHash(`${hub}/${app.id}`);
+      if (panel._app === app.id) return; // already open: keep its state
+      panel._app = app.id;
       const body = el('div', { class: 'app-view' });
       panel.replaceChildren(
         el('div', { class: 'hub-head' },
@@ -1080,8 +1085,47 @@ function setupHubs() {
         body);
       app.render(body);
     };
+    // Route to "#hub" (launcher) or "#hub/app-id" (that app).
+    panel._show = (appId) => {
+      const app = APPS[hub].find((a) => a.id === appId);
+      if (app) openApp(app); else showLauncher();
+    };
     const saved = APPS[hub].find((a) => a.id === store.get(`app_${hub}`));
+    const quiet = hashLock++;
     if (saved) openApp(saved); else showLauncher();
+    hashLock = quiet;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Direct links                                                        */
+/* ------------------------------------------------------------------ */
+// "#chat", "#image" … open a tab; "#tools" or "#games" a hub's launcher; "#tools/<app-id>"
+// opens that app. The hash follows clicks, and the browser's back button works through it.
+let hashLock = 0; // while > 0, navigation does not write the hash (start-up, routing)
+function setHash(h) {
+  if (hashLock || location.hash === `#${h}`) return;
+  location.hash = h;
+}
+function showTab(tab) {
+  const btn = $(`.tabs button[data-tab="${tab}"]`);
+  if (!btn) return false;
+  $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+  $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
+  store.set('tab', tab);
+  return true;
+}
+function route() {
+  const [tab, appId] = decodeURIComponent(location.hash.slice(1)).split('/');
+  if (!tab) return false;
+  hashLock += 1;
+  try {
+    if (!showTab(tab)) return false;
+    const hub = $(`.panel.hub[data-hub="${tab}"]`);
+    if (hub?._show) hub._show(appId);
+    return true;
+  } finally {
+    hashLock -= 1;
   }
 }
 
@@ -1773,12 +1817,13 @@ function keepRows(form, scope, container, { read, rebuild }) {
 function init() {
   // Tabs
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
-    $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
-    $$('.panel').forEach((p) => p.classList.toggle('active', p.dataset.panel === btn.dataset.tab));
-    store.set('tab', btn.dataset.tab);
+    const tab = btn.dataset.tab;
+    showTab(tab);
+    const app = $(`.panel.hub[data-hub="${tab}"]`)?._app;
+    setHash(app ? `${tab}/${app}` : tab);
   }));
   const savedTab = store.get('tab');
-  if (savedTab) $(`.tabs button[data-tab="${savedTab}"]`)?.click();
+  if (savedTab) showTab(savedTab);
 
   // Endpoint and key. Keys are remembered per provider.
   const keyName = () => `key_${state.provider}`;
@@ -1828,6 +1873,9 @@ function init() {
   $('.add-question', decisionForm).addEventListener('click', () => addQuestion(decisionForm));
   // After the tab pickers: an open app sets up its own pickers.
   setupHubs();
+  // A link with a hash wins over the remembered tab and app.
+  route();
+  window.addEventListener('hashchange', route);
 
   $$('form.request-form').forEach((form) => form.addEventListener('submit', async (e) => {
     e.preventDefault();

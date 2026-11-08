@@ -1,7 +1,7 @@
 /* LLM PlayGround: Games and Tools hubs (icon launcher, apps list) and direct links (#tab, #hub, #hub/app-id). */
 import { renderDreamGenScene } from './apps/dreamgen-scene.js';
 import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
-import { renderGroupChatPlaceholder } from './apps/group-chat.js';
+import { renderGroupChat } from './apps/group-chat.js';
 import { renderVideoGeneratorPlaceholder } from './apps/video-generator.js';
 import { $, $$, el, store } from './core.js';
 
@@ -29,8 +29,8 @@ export const HUBS = {
 
 export const APPS = {
   games: [
-    { id: 'group-chat', title: 'AI Group Chat', icon: ICONS.groupChat, status: 'Coming soon',
-      blurb: 'Several AI characters, each on its own model, chat with you and with each other.', render: renderGroupChatPlaceholder },
+    { id: 'group-chat', title: 'AI Group Chat', icon: ICONS.groupChat, status: 'Prototype',
+      blurb: 'Several AI characters, each on its own model, chat with you and with each other.', render: renderGroupChat },
   ],
   tools: [
     { id: 'dreamgen-scene', title: 'Draw the DreamGen Scene', icon: ICONS.scene,

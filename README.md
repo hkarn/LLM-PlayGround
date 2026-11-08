@@ -18,7 +18,21 @@ Pick an endpoint at the top of the page. Its base URL is filled in for you, and 
 
 Each endpoint keeps its own key, so switching back and forth doesn't lose it.
 
-Option dropdowns follow the chosen model. On OpenRouter, image options (aspect ratio, resolution, quality, …) come from `/images/models` and video options (durations, resolutions, aspect ratios) from `/videos/models`, and speech voices from each model's `supported_voices`. Options a model doesn't take are greyed out and left out of the request. Where no list gives the choices, the page uses hardcoded suggestions per router (`suggest` and `SPEECH_VOICES` in `app.js`).
+Option dropdowns follow the chosen model. On OpenRouter, image options (aspect ratio, resolution, quality, …) come from `/images/models` and video options (durations, resolutions, aspect ratios) from `/videos/models`, and speech voices from each model's `supported_voices`. Options a model doesn't take are greyed out and left out of the request. Where no list gives the choices, the page uses hardcoded suggestions per router (`suggest` in `public/js/core.js` and `SPEECH_VOICES` in `public/js/testers.js`).
+
+## Code map
+
+Plain JavaScript modules, no build step. `public/index.html` loads `public/js/main.js`.
+
+| File | What is in it |
+| --- | --- |
+| `public/js/core.js` | Shared by everything: the providers list, sending requests (`callApi`), the result panel, model pickers and option lists, form helpers, the Send/Cancel helper, and what is kept across reloads |
+| `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): one handler per tab and the helpers only they use |
+| `public/js/hubs.js` | The Games and Tools launchers, the list of apps, and direct links (`#tools/…`) |
+| `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `group-chat.js`, `video-generator.js` |
+| `public/js/main.js` | Start-up: wires the tabs, the endpoint picker and the forms |
+| `public/style.css` | All styles, with light and dark colours as variables at the top |
+| `server.js` | Optional local server: serves `public/` and forwards `/api/*` to the chosen endpoint |
 
 ## Privacy
 

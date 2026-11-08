@@ -1,7 +1,7 @@
 name: GitHub Pages
 
 # Publishes public/ as a static site at https://<owner>.github.io/<repo>/.
-# Without server.js the app calls Requesty directly from the browser.
+# Without server.js the app calls the chosen provider directly from the browser.
 # Enable once under Settings -> Pages -> Source: GitHub Actions.
 
 on:
@@ -30,10 +30,16 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      # Pages lets browsers cache files for 10 minutes. Tag app.js and style.css with the
-      # commit so a new index.html never runs with an old cached script.
+      # Pages lets browsers cache files for 10 minutes. Tag the entry script, style.css and
+      # every module import with the commit, so a new index.html never runs with an old
+      # cached module (all imports of one module must carry the same tag).
       - name: Cache-bust assets
-        run: sed -i -E "s/(app\.js|style\.css)\"/\1?v=${GITHUB_SHA::7}\"/g" public/index.html && grep -nE "app\.js|style\.css" public/index.html
+        run: |
+          V=${GITHUB_SHA::7}
+          sed -i -E "s/(js\/main\.js|style\.css)\"/\1?v=$V\"/g" public/index.html
+          find public/js -name '*.js' -exec sed -i -E "s/(from '[^']+\.js)'/\1?v=$V'/g" {} +
+          grep -nE "main\.js|style\.css" public/index.html
+          grep -rn "^import" public/js | head -20
 
       - uses: actions/upload-pages-artifact@v3
         with:

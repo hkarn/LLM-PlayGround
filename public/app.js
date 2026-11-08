@@ -1107,8 +1107,12 @@ function setHash(h) {
   if (hashLock || location.hash === `#${h}`) return;
   location.hash = h;
 }
+// The hash is whatever the user typed or linked, so tabs and hubs are found by comparing
+// values, never by building a selector from it.
+const tabButton = (tab) => $$('.tabs button').find((b) => b.dataset.tab === tab);
+const hubPanel = (hub) => $$('.panel.hub').find((x) => x.dataset.hub === hub);
 function showTab(tab) {
-  const btn = $(`.tabs button[data-tab="${tab}"]`);
+  const btn = tabButton(tab);
   if (!btn) return false;
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
@@ -1116,12 +1120,14 @@ function showTab(tab) {
   return true;
 }
 function route() {
-  const [tab, appId] = decodeURIComponent(location.hash.slice(1)).split('/');
+  let path;
+  try { path = decodeURIComponent(location.hash.slice(1)); } catch { return false; } // e.g. "#%": not one of our links
+  const [tab, appId] = path.split('/');
   if (!tab) return false;
   hashLock += 1;
   try {
     if (!showTab(tab)) return false;
-    const hub = $(`.panel.hub[data-hub="${tab}"]`);
+    const hub = hubPanel(tab);
     if (hub?._show) hub._show(appId);
     return true;
   } finally {
@@ -1819,7 +1825,7 @@ function init() {
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
     showTab(tab);
-    const app = $(`.panel.hub[data-hub="${tab}"]`)?._app;
+    const app = hubPanel(tab)?._app;
     setHash(app ? `${tab}/${app}` : tab);
   }));
   const savedTab = store.get('tab');

@@ -1,5 +1,9 @@
 /* LLM PlayGround: The endpoint testers: one handler per API tab, and the helpers only those tabs use. */
-import { $, $$, callApi, chosenModel, compact, curlFor, el, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, pre, renderImages, renderResult, sendImageEdit, state, str, truncate, usageLine, wait } from './core.js';
+import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, sendImageEdit, state, str, truncate, usageLine } from './core.js';
+import { $, $$, el } from './ui/dom.js';
+import { chosenModel } from './ui/model-picker.js';
+import { pre, renderImages, renderResult } from './ui/result.js';
+import { wait } from './ui/run-step.js';
 
 /* ------------------------------------------------------------------ */
 /* Speech voices                                                       */

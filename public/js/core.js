@@ -1,18 +1,5 @@
-/* LLM PlayGround: Shared core: providers, requests, results, model pickers, form helpers, drafts and the busy/Cancel helper. */
-
-export const $ = (sel, root = document) => root.querySelector(sel);
-export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-export const el = (tag, attrs = {}, ...children) => {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
-    else if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v);
-  }
-  for (const c of children.flat()) if (c != null) node.append(c instanceof Node ? c : String(c));
-  return node;
-};
+/* LLM PlayGround: Shared core: providers, requests (callApi, cURL), the models list (loading, status line, All models table), storage and small helpers. Imports only ui/dom.js. */
+import { $, el } from './ui/dom.js';
 
 // Category keys match the `api` field Requesty returns from GET /v1/models/all.
 // Other providers are mapped onto them in categorize().
@@ -198,112 +185,6 @@ export function curlFor(path, { json, formFields, base = baseUrl() }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Result panel                                                        */
-/* ------------------------------------------------------------------ */
-export function pre(obj) {
-  return el('pre', { class: 'mono' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
-}
-
-export function renderResult(container, { resp, request, curl, rendered }) {
-  container.replaceChildren();
-  container.append(el('div', { class: 'status-line' },
-    el('span', { class: `badge ${resp.ok ? 'ok' : 'err'}`, text: `${resp.status} ${resp.statusText || ''}`.trim() }),
-    el('span', { class: 'muted', text: `${resp.ms} ms round-trip` }),
-    resp.headers['x-tester-upstream-ms'] ? el('span', { class: 'muted', text: `(${resp.headers['x-tester-upstream-ms']} ms upstream)` }) : null,
-    resp.contentType ? el('span', { class: 'muted', text: resp.contentType }) : null,
-  ));
-
-  if (!resp.ok) {
-    container.append(el('div', { class: 'output error', text: errorMessage(resp) }));
-  } else if (rendered) {
-    container.append(rendered);
-  }
-
-  const rawResponse = resp.blob ? `<binary ${resp.blob.type || 'data'}, ${resp.blob.size.toLocaleString()} bytes>` : resp.data;
-  container.append(
-    el('details', { open: !resp.ok || undefined }, el('summary', { text: 'Raw response' }), pre(rawResponse ?? '')),
-    el('details', {}, el('summary', { text: 'Request body' }), pre(request)),
-    el('details', {}, el('summary', { text: 'Response headers' }), pre(resp.headers)),
-    el('details', {}, el('summary', { text: 'cURL' }), pre(curl)),
-  );
-}
-
-export function renderException(container, err) {
-  container.replaceChildren(el('div', { class: 'output error', text: `Request failed: ${err.message}` }));
-}
-
-/* ------------------------------------------------------------------ */
-/* Model pickers                                                       */
-/* ------------------------------------------------------------------ */
-export function setupPicker(picker) {
-  const category = picker.dataset.category;
-  const select = el('select', { name: 'model' });
-  const custom = el('input', { name: 'model_custom', placeholder: 'or type a model id, e.g. openai/gpt-4o-mini', spellcheck: 'false' });
-  const showAll = el('input', { type: 'checkbox' });
-  const info = el('div', { class: 'model-info' });
-
-  picker.replaceChildren(
-    el('label', { text: `Model (${CATEGORY_LABEL[category]})` }),
-    el('div', { class: 'row' }, select, el('label', { class: 'inline small' }, showAll, 'show all')),
-    custom,
-    info,
-  );
-
-  const fill = () => {
-    const prev = select.value;
-    const list = showAll.checked ? state.models : modelsIn(category);
-    select.replaceChildren(
-      ...(list.length ? [] : [el('option', { value: '', text: state.models.length ? `No ${category} models detected – tick "show all"` : 'Load models first' })]),
-      ...list.map((m) => el('option', { value: m.id, text: showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
-    );
-    // Keep the current choice; otherwise the first model in the list stays selected.
-    if (list.some((m) => m.id === prev)) select.value = prev;
-    // Bubbles so the form can react to the new model, e.g. the speech voice list.
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  };
-  const showInfo = () => {
-    const m = state.models.find((x) => x.id === select.value);
-    info.replaceChildren();
-    if (!m) return;
-    const bits = [];
-    const ctx = m.context_window ?? m.context_length ?? m.max_context_length;
-    if (ctx) bits.push(`context ${Number(ctx).toLocaleString()}`);
-    const perM = (x) => `$${+(Number(x) * 1e6).toPrecision(4)}/M`;
-    // Requesty: input_price/output_price. OpenRouter: pricing.prompt/completion, as strings.
-    const inP = m.input_price ?? m.pricing?.input ?? m.pricing?.prompt;
-    const outP = m.output_price ?? m.pricing?.output ?? m.pricing?.completion;
-    if (inP != null) bits.push(`in ${perM(inP)}`);
-    if (outP != null) bits.push(`out ${perM(outP)}`);
-    // Non-chat models only have per-unit keys in `pricing`, e.g. input_character, input_second, output_image.
-    if (inP == null && outP == null && m.pricing && !Array.isArray(m.pricing)) {
-      for (const [k, v] of Object.entries(m.pricing)) {
-        if (typeof v !== 'number') continue;
-        bits.push(k === 'input_second' ? `${k} $${+(v * 60).toPrecision(4)}/min` : `${k} ${perM(v)}`);
-      }
-    }
-    if (m.geolocation) bits.push(m.geolocation);
-    if (m.owned_by) bits.push(`by ${m.owned_by}`);
-    if (m.description) bits.push(String(m.description).slice(0, 140));
-    info.append(bits.join(' · '), ' ', el('details', {}, el('summary', { class: 'small', text: 'model metadata' }), pre(stripPrivate(m))));
-  };
-  select.addEventListener('change', showInfo);
-  showAll.addEventListener('change', fill);
-  picker._fill = fill;
-  fill();
-}
-
-export function stripPrivate(m) {
-  const { _category, ...rest } = m;
-  return rest;
-}
-
-export function chosenModel(form) {
-  return form.elements.model_custom.value.trim() || form.elements.model.value;
-}
-
-export function refreshPickers() { $$('.model-picker').forEach((p) => p._fill && p._fill()); }
-
-/* ------------------------------------------------------------------ */
 /* Loading models                                                      */
 /* ------------------------------------------------------------------ */
 export async function loadModels() {
@@ -352,7 +233,8 @@ export async function loadModels() {
       .sort((a, b) => a.id.localeCompare(b.id));
     const counts = Object.keys(CATEGORY_LABEL).map((c) => `${modelsIn(c).length} ${c}`).join(', ');
     status.textContent = `${state.models.length} models (${counts})${skipped.length ? `. Skipped ${skipped.join(', ')}` : ''}`;
-    refreshPickers();
+    // The model pickers (ui/model-picker.js) refill themselves on this event.
+    document.dispatchEvent(new Event('models-changed'));
     renderModelsTable();
   } catch (err) {
     if (forProvider === state.provider) status.textContent = `Could not load models: ${err.message}`;
@@ -377,69 +259,6 @@ export function renderModelsTable() {
     ...cols.map((c) => el('td', { text: m[c] == null ? '' : String(m[c]) })),
   )));
   $('#model-count').textContent = `${rows.length} of ${state.models.length}`;
-}
-
-/* ------------------------------------------------------------------ */
-/* Per-model option lists                                              */
-/* ------------------------------------------------------------------ */
-// A dropdown's choices come from, in order: the chosen model's own metadata, the provider's
-// `suggest` list for that form, then the options written in index.html. `false` from either
-// source greys the field out, and disabled fields are not sent.
-export const VIDEO_META = { duration: 'supported_durations', resolution: 'supported_resolutions', aspect_ratio: 'supported_aspect_ratios' };
-export function optionsFromModel(kind, name, m) {
-  if (!m) return undefined;
-  if ((kind === 'image' || kind === 'imageEdit') && m.supported_parameters && !Array.isArray(m.supported_parameters)) {
-    // OpenRouter /images/models: a missing key means the model doesn't take that parameter.
-    const p = m.supported_parameters[name];
-    if (!p) return false;
-    return p.type === 'enum' ? p.values.map(String) : undefined;
-  }
-  if (kind === 'video' && VIDEO_META[name] && Array.isArray(m[VIDEO_META[name]])) {
-    return m[VIDEO_META[name]].length ? m[VIDEO_META[name]].map(String) : false;
-  }
-  return undefined;
-}
-
-export function setupModelOptions(form) {
-  const kind = form.dataset.kind;
-  const selects = $$('select', form).filter((s) => !['model', 'voice_preset'].includes(s.name) && !s.closest('.model-picker'));
-  // Remember the options from index.html as the last fallback.
-  for (const s of selects) {
-    s._orig = [...s.options].filter((o) => o.value !== '').map((o) => o.value);
-    s._origSelected = s.value;
-    s._hasDefault = [...s.options].some((o) => o.value === '');
-  }
-  const update = () => {
-    const m = state.models.find((x) => x.id === chosenModel(form));
-    // With per-model metadata, start from "default" rather than the page's preset (e.g. size 1024x1024).
-    const hasMeta = Boolean(m && ((m.supported_parameters && !Array.isArray(m.supported_parameters)) || m.supported_durations));
-    for (const s of selects) {
-      let values = optionsFromModel(kind, s.name, m);
-      if (values === undefined) values = provider().suggest?.[kind]?.[s.name];
-      if (values === undefined) values = s._orig;
-      const prev = s.value;
-      s.disabled = values === false;
-      const list = values || [];
-      s.replaceChildren(...(s._hasDefault ? [el('option', { value: '', text: s.disabled ? 'not supported' : 'default' })] : []),
-        ...list.map((v) => el('option', { value: v, text: v })));
-      const preset = !hasMeta && list.includes(s._origSelected) ? s._origSelected : (s._hasDefault ? '' : list[0] ?? '');
-      s.value = list.includes(prev) && !(hasMeta && prev === s._origSelected && s._hasDefault) ? prev : preset;
-    }
-    if (kind === 'video') {
-      // Some video models list which frame images and whether audio they take.
-      const frames = m?.supported_frame_images;
-      form.elements.first_frame.disabled = Array.isArray(frames) && !frames.includes('first_frame');
-      form.elements.generate_audio.disabled = m?.generate_audio === false;
-    }
-    if (kind === 'image' || kind === 'imageEdit') {
-      const n = m?.supported_parameters?.n;
-      if (form.elements.n) form.elements.n.max = n?.type === 'range' ? n.max : 10;
-    }
-  };
-  form.addEventListener('change', (e) => { if (e.target.name === 'model') update(); });
-  form.addEventListener('input', (e) => { if (e.target.name === 'model_custom') update(); });
-  form._updateOptions = update;
-  update();
 }
 
 /* ------------------------------------------------------------------ */
@@ -492,20 +311,6 @@ export function parseJsonLoose(text) {
 }
 export const truncate = (s = '', n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-// Shared by image generation and edits. `shown` shortens b64_json for the raw view.
-export function renderImages(resp, format = 'png') {
-  if (!resp.ok || !Array.isArray(resp.data?.data)) return { rendered: undefined, shown: resp };
-  const rendered = el('div', { class: 'output' }, ...resp.data.data.map((img, i) => {
-    const src = img.b64_json ? `data:${img.media_type || `image/${format}`};base64,${img.b64_json}` : img.url;
-    return el('div', {},
-      src ? el('img', { src, alt: `Generated image ${i + 1}` }) : el('div', { text: '(no image data)' }),
-      img.revised_prompt ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised_prompt}` }) : null,
-      src ? el('a', { href: src, download: `image-${i + 1}.${format}`, target: '_blank', text: 'Download / open' }) : null);
-  }), resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
-  const shown = { ...resp, data: { ...resp.data, data: resp.data.data.map((d) => (d.b64_json ? { ...d, b64_json: `<${d.b64_json.length.toLocaleString()} base64 chars>` } : d)) } };
-  return { rendered, shown };
-}
-
 /* ------------------------------------------------------------------ */
 /* Reference images for image edits                                    */
 /* ------------------------------------------------------------------ */
@@ -541,164 +346,4 @@ export function fileToDataUrl(file) {
     r.onerror = () => reject(r.error);
     r.readAsDataURL(file);
   });
-}
-
-// Remembers the model chosen in a tool form, and the step's other `fields`, per provider, and
-// picks them again whenever the model list is refilled (page load, model reload, provider switch).
-export function rememberModel(form, key, fields = []) {
-  const k = () => `dgscene_model_${key}_${state.provider}`;
-  const picker = $('.model-picker', form);
-  const select = form.elements.model;
-  const custom = form.elements.model_custom;
-  const fill = picker._fill;
-  let filling = false; // a refill selects the first model; that is not the user's choice
-  picker._fill = () => {
-    const saved = store.get(k());
-    filling = true;
-    fill();
-    filling = false;
-    if (saved && [...select.options].some((o) => o.value === saved) && select.value !== saved) {
-      select.value = saved;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    // Then the step's other settings, where the chosen model still offers that value.
-    for (const name of fields) {
-      const f = form.elements[name];
-      const v = store.get(`${k()}_${name}`);
-      if (!f || f.disabled || v == null) continue;
-      if (f.tagName !== 'SELECT' || [...f.options].some((o) => o.value === v)) f.value = v;
-    }
-  };
-  select.addEventListener('change', () => { if (!filling && select.value) store.set(k(), select.value); });
-  for (const name of fields) {
-    form.elements[name]?.addEventListener('change', (e) => {
-      if (!filling && !e.target.disabled) store.set(`${k()}_${name}`, e.target.value);
-    });
-  }
-  custom.value = store.get(`${k()}_custom`) || '';
-  custom.addEventListener('input', () => {
-    if (custom.value.trim()) store.set(`${k()}_custom`, custom.value.trim());
-    else store.del(`${k()}_custom`);
-  });
-  picker._fill();
-}
-
-// A Hide/Show settings button for a tool step. Hiding is possible only once the step's
-// mandatory choice (its model) is made; the choice to hide is remembered.
-export function settingsToggle(form, body, key, describe) {
-  const k = `dgscene_hide_${key}`;
-  const btn = el('button', { type: 'button', class: 'secondary' });
-  const summary = el('span', { class: 'muted small' });
-  body.before(el('div', { class: 'row settings-bar' }, btn, summary));
-  let hide = store.get(k) === '1';
-  const sync = () => {
-    const ready = Boolean(chosenModel(form));
-    const hidden = hide && ready;
-    body.hidden = hidden;
-    btn.textContent = hidden ? 'Show settings' : 'Hide settings';
-    btn.disabled = !hidden && !ready;
-    summary.textContent = hidden ? describe() : (ready ? '' : 'Choose a model; then the settings can be hidden.');
-  };
-  btn.addEventListener('click', () => {
-    hide = !body.hidden;
-    if (hide) store.set(k, '1');
-    else store.del(k);
-    sync();
-  });
-  form.addEventListener('change', sync);
-  form.addEventListener('input', sync);
-  sync();
-}
-
-// Runs one request for a form: busy button, elapsed time, a Cancel button and error display.
-// Used by every endpoint tab and tool. Cancel aborts the fetch (and any polling between calls)
-// through `form._abort`, so the form is usable again without reloading the page.
-export async function runStep(form, out, fn) {
-  const btn = $('button[type=submit]', form);
-  if (!form._cancelBtn) {
-    form._cancelBtn = el('button', { type: 'button', class: 'secondary cancel-btn', text: 'Cancel', hidden: '',
-      onclick: () => form._abort?.abort() });
-    btn.after(form._cancelBtn);
-  }
-  form._abort = new AbortController();
-  const label = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  form._cancelBtn.hidden = false;
-  const waiting = el('div', { class: 'muted', text: 'Waiting for response…' });
-  out.replaceChildren(waiting);
-  // Show elapsed time, since cold-starting provider models can take a minute.
-  const t0 = Date.now();
-  const timer = setInterval(() => { waiting.textContent = `Waiting for response… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
-  try {
-    await fn();
-  } catch (err) {
-    if (err?.name === 'AbortError') {
-      out.replaceChildren(el('div', { class: 'output', text: `Cancelled after ${Math.round((Date.now() - t0) / 1000)} s. The page stopped waiting; the provider may still finish the request and charge for it.` }));
-    } else {
-      renderException(out, err);
-    }
-  } finally {
-    clearInterval(timer);
-    btn.disabled = false;
-    btn.textContent = label;
-    form._cancelBtn.hidden = true;
-    form._abort = null;
-  }
-}
-
-// A pause that ends early, with an AbortError, when the signal is aborted.
-export function wait(ms, signal) {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Drafts: typed text survives a reload                                */
-/* ------------------------------------------------------------------ */
-// Text the user typed is kept in sessionStorage (this browser tab only; cleared when the tab
-// closes) and put back after a reload. Choices of model and options are kept by rememberModel.
-export const drafts = {
-  get(k) { try { return sessionStorage.getItem(`draft:${k}`); } catch { return null; } },
-  set(k, v) { try { sessionStorage.setItem(`draft:${k}`, v); } catch { /* full or blocked: skip */ } },
-};
-// Saves after a short pause in typing, so a large export is not rewritten on every key.
-export function debounce(fn, ms = 400) {
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-// Text, number and checkbox fields with a name, inside `root`, keyed by `scope` and name.
-export function keepDrafts(root, scope, { skip = [] } = {}) {
-  const fields = $$('input[name], textarea[name]', root)
-    .filter((f) => !['file', 'password', 'hidden'].includes(f.type) && !skip.includes(f.name) && !['model', 'model_custom'].includes(f.name));
-  for (const f of fields) {
-    const key = `${scope}:${f.name}`;
-    const saved = drafts.get(key);
-    if (saved != null) {
-      if (f.type === 'checkbox') f.checked = saved === '1';
-      else f.value = saved;
-      f.dispatchEvent(new Event(f.type === 'checkbox' ? 'change' : 'input', { bubbles: true }));
-    }
-    const save = debounce(() => drafts.set(key, f.type === 'checkbox' ? (f.checked ? '1' : '0') : f.value));
-    f.addEventListener(f.type === 'checkbox' ? 'change' : 'input', save);
-  }
-}
-
-// Rows added on the page (chat messages, decision questions): saved as a list, rebuilt on load.
-export function keepRows(form, scope, container, { read, rebuild }) {
-  const saved = drafts.get(scope);
-  if (saved) {
-    try {
-      const rows = JSON.parse(saved);
-      if (Array.isArray(rows)) { container.replaceChildren(); rows.forEach((r) => rebuild(r)); }
-    } catch { /* ignore a broken draft */ }
-  }
-  const save = debounce(() => drafts.set(scope, JSON.stringify(read())));
-  container.addEventListener('input', save);
-  container.addEventListener('change', save);
-  new MutationObserver(save).observe(container, { childList: true });
 }

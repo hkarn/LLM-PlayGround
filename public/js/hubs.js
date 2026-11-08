@@ -3,7 +3,8 @@ import { renderDreamGenScene } from './apps/dreamgen-scene.js';
 import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';
 import { renderVideoGeneratorPlaceholder } from './apps/video-generator.js';
-import { $, $$, el, store } from './core.js';
+import { store } from './core.js';
+import { $$, el } from './ui/dom.js';
 
 /* ------------------------------------------------------------------ */
 /* Games and Tools                                                     */

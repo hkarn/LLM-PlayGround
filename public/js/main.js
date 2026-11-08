@@ -1,7 +1,14 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
-import { $, $$, apiKey, baseUrl, chosenModel, el, keepDrafts, keepRows, loadModels, provider, PROVIDERS, refreshPickers, rememberModel, renderException, renderModelsTable, runStep, serverConfig, setupModelOptions, setupPicker, state, store } from './core.js';
+import { apiKey, baseUrl, loadModels, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
+import { $, $$, el } from './ui/dom.js';
+import { keepDrafts, keepRows } from './ui/drafts.js';
+import { setupModelOptions } from './ui/model-options.js';
+import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
+import { rememberModel } from './ui/remember.js';
+import { renderException } from './ui/result.js';
+import { runStep } from './ui/run-step.js';
 
 /* ------------------------------------------------------------------ */
 /* Wiring                                                              */

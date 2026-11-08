@@ -1,5 +1,6 @@
 /* LLM PlayGround: Game: AI Group Chat. */
-import { $, callApi, compact, el, ep, errorMessage, messageText, modelsIn, store } from '../core.js';
+import { callApi, compact, ep, errorMessage, messageText, modelsIn, store } from '../core.js';
+import { $, el } from '../ui/dom.js';
 
 // Each character is a persona on its own chat model. A round works like this: the active
 // characters are put in a queue by the chosen turn-order strategy, then each one in the queue

@@ -1,5 +1,5 @@
 /* LLM PlayGround: Tool placeholder: Video Generator. */
-import { el } from '../core.js';
+import { el } from '../ui/dom.js';
 
 // Placeholder: a curated video tool. The Video tab stays as the raw endpoint tester.
 export function renderVideoGeneratorPlaceholder(root) {

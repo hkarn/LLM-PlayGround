@@ -26,10 +26,12 @@ Plain JavaScript modules, no build step. `public/index.html` loads `public/js/ma
 
 | File | What is in it |
 | --- | --- |
-| `public/js/core.js` | Shared by everything: the providers list, sending requests (`callApi`), the result panel, model pickers and option lists, form helpers, the Send/Cancel helper, and what is kept across reloads |
-| `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): one handler per tab and the helpers only they use |
-| `public/js/hubs.js` | The Games and Tools launchers, the list of apps, and direct links (`#tools/…`) |
+| `public/js/ui/dom.js` | `el()`, `$()`, `$$()`: building and finding page elements. Everything uses these |
+| `public/js/core.js` | Shared by everything, no screens of its own: the providers list, sending requests (`callApi`) and cURL, loading the models list, storage and small text helpers |
+| `public/js/ui/*.js` | Reusable pieces that apps put together: result panel, model picker, option dropdowns that follow the model, Send/Cancel, drafts kept across reloads, remembered choices, hide-settings toggle, copy button, named reference portraits |
+| `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `group-chat.js`, `video-generator.js` |
+| `public/js/hubs.js` | The Games and Tools launchers, the list of apps, and direct links (`#tools/…`) |
 | `public/js/main.js` | Start-up: wires the tabs, the endpoint picker and the forms |
 | `public/style.css` | All styles, with light and dark colours as variables at the top |
 | `server.js` | Optional local server: serves `public/` and forwards `/api/*` to the chosen endpoint |

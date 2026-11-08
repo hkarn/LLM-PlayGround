@@ -1,5 +1,5 @@
 /* LLM PlayGround: Tool placeholder: Animate the DreamGen Scene. */
-import { el } from '../core.js';
+import { el } from '../ui/dom.js';
 
 // Placeholder: the layout of the scene-to-video tool, with nothing wired up yet. It will take its
 // first frame from Draw the DreamGen Scene, and its motion from the same session export.

@@ -208,8 +208,10 @@ button.danger { color: var(--err); }
 .gc-msg.failed .bubble { border: 1px solid var(--err); background: none; }
 .gc-msg.failed .gc-text { color: var(--err); }
 .gc-msg.typing .bubble { opacity: .7; }
-.gc-msg .icon-btn { visibility: hidden; margin-left: 4px; }
-.gc-msg:hover .icon-btn { visibility: visible; }
+/* Delete stays focusable: faded until hover or keyboard focus, always shown on touch screens. */
+.gc-msg .icon-btn { opacity: 0; margin-left: 4px; }
+.gc-msg:hover .icon-btn, .gc-msg:focus-within .icon-btn { opacity: 1; }
+@media (hover: none) { .gc-msg .icon-btn { opacity: .7; } }
 .gc-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .gc-note { align-self: center; font-size: 12px; color: var(--err); }
 .dots { letter-spacing: 2px; animation: gc-blink 1.2s infinite; }

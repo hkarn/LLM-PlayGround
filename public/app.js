@@ -138,7 +138,9 @@ const modelsIn = (category) => state.models.filter((m) => m._category === catego
 /* ------------------------------------------------------------------ */
 function apiKey() { return $('#api-key').value.trim(); }
 
-async function callApi(path, { method = 'POST', json, formData, base = baseUrl() } = {}) {
+// `signal` lets the page stop waiting (the Cancel button). There is no timeout: slow or silent
+// providers are part of what this page tests.
+async function callApi(path, { method = 'POST', json, formData, base = baseUrl(), signal } = {}) {
   await serverConfig;
   if (!/^https?:\/\/./.test(base)) throw new Error('Enter a base URL that starts with http:// or https://.');
   const headers = {};
@@ -158,7 +160,7 @@ async function callApi(path, { method = 'POST', json, formData, base = baseUrl()
   const t0 = performance.now();
   // no-store: through server.js every endpoint shares the same /api/* URLs, so a cached
   // GET /api/models from one provider would otherwise be reused for another.
-  const res = await fetch(`${state.viaServer ? 'api' : base}${path}`, { method, headers, body, cache: 'no-store' });
+  const res = await fetch(`${state.viaServer ? 'api' : base}${path}`, { method, headers, body, cache: 'no-store', signal });
   const ms = Math.round(performance.now() - t0);
   const contentType = res.headers.get('content-type') || '';
   const respHeaders = Object.fromEntries(res.headers.entries());
@@ -544,7 +546,7 @@ const handlers = {
       model: chosenModel(form), messages,
       temperature: num(form, 'temperature'), max_tokens: num(form, 'max_tokens'), top_p: num(form, 'top_p'), ...extra,
     });
-    const resp = await callApi(ep('chat').path, { base: ep('chat').base, json: body });
+    const resp = await callApi(ep('chat').path, { signal: form._abort?.signal, base: ep('chat').base, json: body });
     let rendered;
     if (resp.ok && resp.data?.choices) {
       const choice = resp.data.choices[0] || {};
@@ -589,7 +591,7 @@ const handlers = {
     if (!Object.keys(questions).length) throw new Error('Add at least one question with an id.');
 
     const body = { model: chosenModel(form), state: stateValue, questions };
-    const resp = await callApi(ep('decision').path, { base: ep('decision').base, json: body });
+    const resp = await callApi(ep('decision').path, { signal: form._abort?.signal, base: ep('decision').base, json: body });
     let rendered;
     if (resp.ok && resp.data?.answers) {
       rendered = el('div', {},
@@ -609,7 +611,7 @@ const handlers = {
       dimensions: num(form, 'dimensions'),
       encoding_format: str(form, 'encoding_format'),
     });
-    const resp = await callApi(ep('embeddings').path, { base: ep('embeddings').base, json: body });
+    const resp = await callApi(ep('embeddings').path, { signal: form._abort?.signal, base: ep('embeddings').base, json: body });
     let rendered;
     if (resp.ok && Array.isArray(resp.data?.data)) {
       const vectors = resp.data.data.map((d) => (Array.isArray(d.embedding) ? d.embedding : decodeB64Floats(d.embedding)));
@@ -636,7 +638,7 @@ const handlers = {
       n: num(form, 'n'), quality: str(form, 'quality'),
       background: str(form, 'background'), output_format: str(form, 'output_format'),
     });
-    const resp = await callApi(ep('image').path, { base: ep('image').base, json: body });
+    const resp = await callApi(ep('image').path, { signal: form._abort?.signal, base: ep('image').base, json: body });
     const { rendered, shown } = renderImages(resp, body.output_format);
     renderResult(out, { resp: shown, request: body, curl: curlFor(ep('image').path, { base: ep('image').base, json: body }), rendered });
   },
@@ -651,7 +653,7 @@ const handlers = {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
       size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'), quality: str(form, 'quality'),
     });
-    const { resp, request, curl, maskDropped } = await sendImageEdit(fields, images, mask);
+    const { resp, request, curl, maskDropped } = await sendImageEdit(fields, images, mask, form._abort?.signal);
     const { rendered, shown } = renderImages(resp);
     const note = maskDropped ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
     renderResult(out, { resp: shown, request, curl, rendered: rendered && el('div', {}, note, rendered) });
@@ -663,7 +665,7 @@ const handlers = {
       model: chosenModel(form), input: form.elements.input.value.trim(), voice: str(form, 'voice') || str(form, 'voice_preset'),
       response_format: str(form, 'response_format'), speed: num(form, 'speed'), instructions: str(form, 'instructions'),
     });
-    const resp = await callApi(ep('speech').path, { base: ep('speech').base, json: body });
+    const resp = await callApi(ep('speech').path, { signal: form._abort?.signal, base: ep('speech').base, json: body });
     let rendered;
     if (resp.ok && resp.blob) {
       const url = URL.createObjectURL(resp.blob);
@@ -683,7 +685,7 @@ const handlers = {
     const fd = new FormData();
     fd.append('file', file, file.name || 'recording.webm');
     for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-    const resp = await callApi(ep('transcription').path, { base: ep('transcription').base, formData: fd });
+    const resp = await callApi(ep('transcription').path, { signal: form._abort?.signal, base: ep('transcription').base, formData: fd });
     let rendered;
     if (resp.ok) {
       const text = typeof resp.data === 'string' ? resp.data : resp.data?.text;
@@ -702,7 +704,7 @@ const handlers = {
     if (!documents.length) throw new Error('Enter at least one document line.');
     const body = compact({ model: chosenModel(form), query: form.elements.query.value.trim(), documents, top_n: num(form, 'top_n') });
     const { path, base } = ep('rerank');
-    const resp = await callApi(path, { base, json: body });
+    const resp = await callApi(path, { signal: form._abort?.signal, base, json: body });
     let rendered;
     if (resp.ok && Array.isArray(resp.data?.results)) {
       const results = [...resp.data.results].sort((a, b) => b.relevance_score - a.relevance_score);
@@ -730,7 +732,7 @@ const handlers = {
     const { path, base } = ep('video');
     const curl = curlFor(path, { base, json: shownReq });
     const t0 = Date.now();
-    let resp = await callApi(path, { base, json: body });
+    let resp = await callApi(path, { signal: form._abort?.signal, base, json: body });
     const id = resp.data?.id;
     if (!resp.ok || !id) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
 
@@ -740,15 +742,14 @@ const handlers = {
     let status = resp.data.status;
     while (!done.includes(status)) {
       progress.textContent = `Job ${id}: ${status || 'submitted'} · ${Math.round((Date.now() - t0) / 1000)} s. Checking every 5 s…`;
-      if (Date.now() - t0 > 20 * 60 * 1000) throw new Error(`Gave up after 20 minutes. Job ${id} was still ${status}.`);
-      await new Promise((r) => setTimeout(r, 5000));
-      resp = await callApi(`${path}/${encodeURIComponent(id)}`, { base, method: 'GET' });
+      await wait(5000, form._abort?.signal);
+      resp = await callApi(`${path}/${encodeURIComponent(id)}`, { signal: form._abort?.signal, base, method: 'GET' });
       if (!resp.ok) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
       status = resp.data?.status;
     }
     let rendered;
     if (status === 'completed') {
-      const video = await callApi(`${path}/${encodeURIComponent(id)}/content?index=0`, { base, method: 'GET' });
+      const video = await callApi(`${path}/${encodeURIComponent(id)}/content?index=0`, { signal: form._abort?.signal, base, method: 'GET' });
       if (video.ok && video.blob) {
         const url = URL.createObjectURL(video.blob);
         rendered = el('div', { class: 'output' },
@@ -914,11 +915,11 @@ function setupRefImages(form) {
 // Image with reference pictures, on whatever the current provider uses for edits.
 // OpenRouter: JSON to /images with data URLs in input_references and no mask.
 // OpenAI style (Requesty, custom): multipart with one image[] field per picture.
-async function sendImageEdit(fields, images, mask) {
+async function sendImageEdit(fields, images, mask, signal) {
   const { path, base, json } = ep('imageEdit');
   if (json) {
     const refs = await Promise.all(images.map(async (f) => ({ type: 'image_url', image_url: { url: await fileToDataUrl(f) } })));
-    const resp = await callApi(path, { base, json: { ...fields, input_references: refs } });
+    const resp = await callApi(path, { base, json: { ...fields, input_references: refs }, signal });
     const request = { ...fields, input_references: images.map((f) => ({ type: 'image_url', image_url: { url: `<${f.name} as base64 data URL>` } })) };
     return { resp, request, curl: curlFor(path, { base, json: request }), maskDropped: Boolean(mask) };
   }
@@ -926,7 +927,7 @@ async function sendImageEdit(fields, images, mask) {
   for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
   for (const img of images) fd.append('image[]', img, img.name);
   if (mask) fd.append('mask', mask, mask.name);
-  const resp = await callApi(path, { base, formData: fd });
+  const resp = await callApi(path, { base, formData: fd, signal });
   const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 1024).toFixed(1)} KB)`;
   const request = { ...fields, 'image[]': images.map(describe), ...(mask ? { mask: describe(mask) } : {}) };
   const curl = curlFor(path, { base, formFields: [
@@ -964,13 +965,13 @@ function addQuestion(form, { id = '', type = 'noul', instructions = '', criteria
   $('.questions', form).append(node);
 }
 
-function addMessage(form, role = 'user', content = '') {
+function addMessage(form, role = 'user', content = '', { focus = true } = {}) {
   const node = $('#message-row').content.firstElementChild.cloneNode(true);
   $('.role', node).value = role;
   $('.content', node).value = content;
   $('.remove', node).addEventListener('click', () => node.remove());
   $('.messages', form).append(node);
-  if (!content) $('.content', node).focus();
+  if (!content && focus) $('.content', node).focus();
 }
 
 /* ------------------------------------------------------------------ */
@@ -1439,7 +1440,7 @@ function renderDreamGenScene(root) {
         ' or in your own Docker or node server.js, this tool sends nothing to us or to any third party and saves nothing anywhere but your browser. ',
         'GitHub Pages only serves the page files; your export, prompts and pictures stay in this browser. Your own server only forwards your requests and logs no content. ',
         'What reaches a third party is what you send with your own key to the provider you chose (Requesty, OpenRouter or your custom endpoint), and what that provider and its models do with it is between you and them. ',
-        'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage.'),
+        'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage, and what you type in session storage (this tab only) so a reload does not clear it.'),
       el('p', { class: 'small' }, el('strong', { text: 'Feedback. ' }), 'Send ideas and problems with this tool to Zorander on the DreamGen Discord.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
@@ -1462,9 +1463,10 @@ function renderDreamGenScene(root) {
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   setupModelOptions(imageForm);
   syncStyle();
+  keepDrafts(root, 'dgscene', { skip: ['max_tokens', 'trim_tokens', 'style_custom'] });
   // The chosen models are remembered per provider, and each step's settings fold away once
   // its model is chosen, so a second run is: load the export, write the prompt, draw.
-  rememberModel(promptForm, 'chat', ['max_tokens']);
+  rememberModel(promptForm, 'chat', ['max_tokens', 'trim_tokens']);
   rememberModel(imageForm, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
   settingsToggle(promptForm, chatSettings, 'chat', () => `Chat model: ${chosenModel(promptForm)}`);
   settingsToggle(imageForm, imageSettings, 'image', () => [`Image model: ${chosenModel(imageForm)}`,
@@ -1508,7 +1510,7 @@ function renderDreamGenScene(root) {
         max_tokens: num(promptForm, 'max_tokens'),
       });
       const { path, base } = ep('chat');
-      const resp = await callApi(path, { base, json: body });
+      const resp = await callApi(path, { base, json: body, signal: promptForm._abort?.signal });
       let rendered;
       if (resp.ok && resp.data?.choices) {
         const choice = resp.data.choices[0] || {};
@@ -1592,13 +1594,13 @@ function renderDreamGenScene(root) {
         resolution: str(imageForm, 'resolution'), quality: str(imageForm, 'quality'),
       });
       if (st.refs.length) {
-        const { resp, request, curl } = await sendImageEdit(fields, st.refs.map((r) => r.file));
+        const { resp, request, curl } = await sendImageEdit(fields, st.refs.map((r) => r.file), undefined, imageForm._abort?.signal);
         const { rendered, shown } = renderImages(resp);
         renderResult(imageOut, { resp: shown, request, curl, rendered });
         return;
       }
       const { path, base } = ep('image');
-      const resp = await callApi(path, { base, json: fields });
+      const resp = await callApi(path, { base, json: fields, signal: imageForm._abort?.signal });
       const { rendered, shown } = renderImages(resp);
       renderResult(imageOut, { resp: shown, request: fields, curl: curlFor(path, { base, json: fields }), rendered });
     });
@@ -1672,25 +1674,97 @@ function settingsToggle(form, body, key, describe) {
   sync();
 }
 
-// Busy button, elapsed time and error display for a tool form, like the endpoint tabs.
+// Runs one request for a form: busy button, elapsed time, a Cancel button and error display.
+// Used by every endpoint tab and tool. Cancel aborts the fetch (and any polling between calls)
+// through `form._abort`, so the form is usable again without reloading the page.
 async function runStep(form, out, fn) {
   const btn = $('button[type=submit]', form);
+  if (!form._cancelBtn) {
+    form._cancelBtn = el('button', { type: 'button', class: 'secondary cancel-btn', text: 'Cancel', hidden: '',
+      onclick: () => form._abort?.abort() });
+    btn.after(form._cancelBtn);
+  }
+  form._abort = new AbortController();
   const label = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Sending…';
+  form._cancelBtn.hidden = false;
   const waiting = el('div', { class: 'muted', text: 'Waiting for response…' });
   out.replaceChildren(waiting);
+  // Show elapsed time, since cold-starting provider models can take a minute.
   const t0 = Date.now();
   const timer = setInterval(() => { waiting.textContent = `Waiting for response… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
   try {
     await fn();
   } catch (err) {
-    renderException(out, err);
+    if (err?.name === 'AbortError') {
+      out.replaceChildren(el('div', { class: 'output', text: `Cancelled after ${Math.round((Date.now() - t0) / 1000)} s. The page stopped waiting; the provider may still finish the request and charge for it.` }));
+    } else {
+      renderException(out, err);
+    }
   } finally {
     clearInterval(timer);
     btn.disabled = false;
     btn.textContent = label;
+    form._cancelBtn.hidden = true;
+    form._abort = null;
   }
+}
+
+// A pause that ends early, with an AbortError, when the signal is aborted.
+function wait(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Drafts: typed text survives a reload                                */
+/* ------------------------------------------------------------------ */
+// Text the user typed is kept in sessionStorage (this browser tab only; cleared when the tab
+// closes) and put back after a reload. Choices of model and options are kept by rememberModel.
+const drafts = {
+  get(k) { try { return sessionStorage.getItem(`draft:${k}`); } catch { return null; } },
+  set(k, v) { try { sessionStorage.setItem(`draft:${k}`, v); } catch { /* full or blocked: skip */ } },
+};
+// Saves after a short pause in typing, so a large export is not rewritten on every key.
+function debounce(fn, ms = 400) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// Text, number and checkbox fields with a name, inside `root`, keyed by `scope` and name.
+function keepDrafts(root, scope, { skip = [] } = {}) {
+  const fields = $$('input[name], textarea[name]', root)
+    .filter((f) => !['file', 'password', 'hidden'].includes(f.type) && !skip.includes(f.name) && !['model', 'model_custom'].includes(f.name));
+  for (const f of fields) {
+    const key = `${scope}:${f.name}`;
+    const saved = drafts.get(key);
+    if (saved != null) {
+      if (f.type === 'checkbox') f.checked = saved === '1';
+      else f.value = saved;
+      f.dispatchEvent(new Event(f.type === 'checkbox' ? 'change' : 'input', { bubbles: true }));
+    }
+    const save = debounce(() => drafts.set(key, f.type === 'checkbox' ? (f.checked ? '1' : '0') : f.value));
+    f.addEventListener(f.type === 'checkbox' ? 'change' : 'input', save);
+  }
+}
+
+// Rows added on the page (chat messages, decision questions): saved as a list, rebuilt on load.
+function keepRows(form, scope, container, { read, rebuild }) {
+  const saved = drafts.get(scope);
+  if (saved) {
+    try {
+      const rows = JSON.parse(saved);
+      if (Array.isArray(rows)) { container.replaceChildren(); rows.forEach((r) => rebuild(r)); }
+    } catch { /* ignore a broken draft */ }
+  }
+  const save = debounce(() => drafts.set(scope, JSON.stringify(read())));
+  container.addEventListener('input', save);
+  container.addEventListener('change', save);
+  new MutationObserver(save).observe(container, { childList: true });
 }
 
 /* ------------------------------------------------------------------ */
@@ -1758,26 +1832,24 @@ function init() {
   $$('form.request-form').forEach((form) => form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const out = $('.result', form.closest('.panel'));
-    const btn = $('button[type=submit]', form);
     if (!chosenModel(form)) { renderException(out, new Error('Pick or type a model first.')); return; }
-    btn.disabled = true;
-    const label = btn.textContent;
-    btn.textContent = 'Sending…';
-    // Show elapsed time, since cold-starting provider models can take a minute.
-    const waiting = el('div', { class: 'muted', text: 'Waiting for response…' });
-    out.replaceChildren(waiting);
-    const t0 = Date.now();
-    const timer = setInterval(() => { waiting.textContent = `Waiting for response… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
-    try {
-      await handlers[form.dataset.kind](form, out);
-    } catch (err) {
-      renderException(out, err);
-    } finally {
-      clearInterval(timer);
-      btn.disabled = false;
-      btn.textContent = label;
-    }
+    await runStep(form, out, () => handlers[form.dataset.kind](form, out));
   }));
+
+  // Typed text comes back after a reload; the model and its options are remembered per provider.
+  for (const form of $$('form.request-form')) {
+    const kind = form.dataset.kind;
+    rememberModel(form, `tab_${kind}`, $$('select[name]', form).map((x) => x.name).filter((n) => n !== 'model'));
+    keepDrafts(form, kind);
+  }
+  keepRows(chatForm, 'chat:messages', $('.messages', chatForm), {
+    read: () => $$('.message', chatForm).map((row) => ({ role: $('.role', row).value, content: $('.content', row).value })),
+    rebuild: (r) => addMessage(chatForm, r.role, r.content, { focus: false }),
+  });
+  keepRows(decisionForm, 'decision:questions', $('.questions', decisionForm), {
+    read: () => $$('.questions > *', decisionForm).map((q) => ({ id: $('.qid', q).value, type: $('.qtype', q).value, instructions: $('.qinstr', q).value, criteria: $('.qcriteria', q).value })),
+    rebuild: (r) => addQuestion(decisionForm, r),
+  });
 
   $('#model-filter').addEventListener('input', renderModelsTable);
 

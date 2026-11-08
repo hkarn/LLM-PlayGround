@@ -641,7 +641,7 @@ const handlers = {
     renderResult(out, { resp: shown, request: body, curl: curlFor(ep('image').path, { base: ep('image').base, json: body }), rendered });
   },
 
-  // Multipart, with one image[] field per reference image (up to 16 for GPT image models).
+  // Reference images go as JSON input_references (OpenRouter) or multipart image[] fields.
   async imageEdit(form, out) {
     const images = form._refImages || [];
     if (!images.length) throw new Error('Add at least one reference image.');
@@ -651,30 +651,10 @@ const handlers = {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
       size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'), quality: str(form, 'quality'),
     });
-    const { path, base, json } = ep('imageEdit');
-    if (json) {
-      // OpenRouter: JSON to /images, with the pictures as data URLs in input_references. No mask.
-      const refs = await Promise.all(images.map(async (f) => ({ type: 'image_url', image_url: { url: await fileToDataUrl(f) } })));
-      const body = { ...fields, input_references: refs };
-      const resp = await callApi(path, { base, json: body });
-      const { rendered, shown } = renderImages(resp);
-      const request = { ...fields, input_references: images.map((f) => ({ type: 'image_url', image_url: { url: `<${f.name} as base64 data URL>` } })) };
-      const note = mask ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
-      renderResult(out, { resp: shown, request, curl: curlFor(path, { base, json: request }), rendered: rendered && el('div', {}, note, rendered) });
-      return;
-    }
-    const fd = new FormData();
-    for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-    for (const img of images) fd.append('image[]', img, img.name);
-    if (mask) fd.append('mask', mask, mask.name);
-    const resp = await callApi(ep('imageEdit').path, { base: ep('imageEdit').base, formData: fd });
+    const { resp, request, curl, maskDropped } = await sendImageEdit(fields, images, mask);
     const { rendered, shown } = renderImages(resp);
-    const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 1024).toFixed(1)} KB)`;
-    const request = { ...fields, 'image[]': images.map(describe), ...(mask ? { mask: describe(mask) } : {}) };
-    const curl = curlFor(ep('imageEdit').path, { base: ep('imageEdit').base, formFields: [
-      ...Object.entries(fields), ...images.map((f) => ['image[]', `@${f.name}`]), ...(mask ? [['mask', `@${mask.name}`]] : []),
-    ] });
-    renderResult(out, { resp: shown, request, curl, rendered });
+    const note = maskDropped ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
+    renderResult(out, { resp: shown, request, curl, rendered: rendered && el('div', {}, note, rendered) });
   },
 
   async speech(form, out) {
@@ -931,6 +911,30 @@ function setupRefImages(form) {
   $('.clear-mask', form).addEventListener('click', () => { mask.value = ''; syncMask(); });
 }
 
+// Image with reference pictures, on whatever the current provider uses for edits.
+// OpenRouter: JSON to /images with data URLs in input_references and no mask.
+// OpenAI style (Requesty, custom): multipart with one image[] field per picture.
+async function sendImageEdit(fields, images, mask) {
+  const { path, base, json } = ep('imageEdit');
+  if (json) {
+    const refs = await Promise.all(images.map(async (f) => ({ type: 'image_url', image_url: { url: await fileToDataUrl(f) } })));
+    const resp = await callApi(path, { base, json: { ...fields, input_references: refs } });
+    const request = { ...fields, input_references: images.map((f) => ({ type: 'image_url', image_url: { url: `<${f.name} as base64 data URL>` } })) };
+    return { resp, request, curl: curlFor(path, { base, json: request }), maskDropped: Boolean(mask) };
+  }
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
+  for (const img of images) fd.append('image[]', img, img.name);
+  if (mask) fd.append('mask', mask, mask.name);
+  const resp = await callApi(path, { base, formData: fd });
+  const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 1024).toFixed(1)} KB)`;
+  const request = { ...fields, 'image[]': images.map(describe), ...(mask ? { mask: describe(mask) } : {}) };
+  const curl = curlFor(path, { base, formFields: [
+    ...Object.entries(fields), ...images.map((f) => ['image[]', `@${f.name}`]), ...(mask ? [['mask', `@${mask.name}`]] : []),
+  ] });
+  return { resp, request, curl, maskDropped: false };
+}
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -1028,6 +1032,7 @@ const svgIcon = (paths) => {
 const ICONS = {
   groupChat: '<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-4a2 2 0 0 1-2-2v-1"/>',
   video: '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/>',
+  scene: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
 };
 
 const HUBS = {
@@ -1041,6 +1046,8 @@ const APPS = {
       blurb: 'Several AI characters, each on its own model, chat with you and with each other.', render: renderGroupChatPlaceholder },
   ],
   tools: [
+    { id: 'dreamgen-scene', title: 'Draw the DreamGen Scene', icon: ICONS.scene,
+      blurb: 'Turn the last scene of a DreamGen session export into an image prompt, add reference portraits, and draw it.', render: renderDreamGenScene },
     { id: 'video-generator', title: 'Video Generator', icon: ICONS.video, status: 'Coming soon',
       blurb: 'Make videos with models whose options we have tested, with the right settings for each.', render: renderVideoGeneratorPlaceholder },
   ],
@@ -1142,6 +1149,359 @@ function renderVideoGeneratorPlaceholder(root) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Tool: Draw the DreamGen Scene                                       */
+/* ------------------------------------------------------------------ */
+// Reads a DreamGen session export (JSON `scenario_session`, or a Markdown/text export), asks a
+// chat model for an image prompt with the visible characters named and described, then sends
+// that prompt, with optional reference portraits, to the provider's image endpoint.
+// Format notes: docs/dreamgen-session-export.md.
+
+const SCENE_SYSTEM_PROMPT = `You turn role-play transcripts into prompts for an image model.
+
+Read the story inside <role_play>. Find its last scene: the place, the moment and the characters present in the final turns. Write one prompt that shows that moment as a single still picture.
+
+Reply with JSON only, in this shape:
+{"scene": "one-line summary of the moment", "characters": [{"name": "full name as in the story", "description": "what they look like here: age, build, face, hair, clothing, pose and what they are doing"}], "prompt": "the image prompt"}
+
+Rules for the prompt:
+- Name every visible character and describe them where they first appear, for example "Mara Ellison, a wiry woman in her forties with cropped grey hair and a patched oilskin coat, leans over the chart table", so the picture works without reference images.
+- Say where each character is and what they are doing, then the setting, the light, the mood and the camera framing.
+- Only characters who are present in the scene. Take appearance from the cast cards; where the story says otherwise, the story wins.
+- Visual details only: no dialogue, sounds or thoughts. Keep the period, technology and clothing of the story's world.
+- At most 180 words.`;
+
+const DG_CARD_CHARS = 1500;     // per cast or location card sent to the prompt model
+const DG_STORY_CHARS = 24000;   // default amount of story, counted back from the end
+
+// Walks the session tree from the head back to the root: dead branches from regenerated
+// turns are left out. Returns { title, persona, turns: [{ name, text, hidden }], cast, images }.
+function parseDreamGenJson(doc) {
+  const data = doc?.data || doc;
+  const scenario = data?.scenario;
+  const session = data?.session;
+  if (!session?.interactions) {
+    throw new Error(doc?.object === 'scenario' ? 'This is a scenario export with no played session. Export the session (game) instead.' : 'No session found in this JSON. Expected a DreamGen session export (object "scenario_session").');
+  }
+  const entities = scenario?.entities || [];
+  const byId = new Map(entities.map((e) => [e.id, e]));
+  const nameOf = (e) => e?.definition?.name || e?.display?.name || e?.label || '';
+  const byInteraction = new Map(session.interactions.map((i) => [i.id, i]));
+  const chain = [];
+  const seen = new Set();
+  let cur = session.headInteractionId || session.interactions.at(-1)?.id;
+  while (cur && byInteraction.has(cur) && !seen.has(cur)) {
+    seen.add(cur);
+    chain.push(byInteraction.get(cur));
+    cur = byInteraction.get(cur).parentId;
+  }
+  chain.reverse();
+  const turns = [];
+  for (const { payload: p = {} } of chain) {
+    // Instructions are the player's out-of-character steering, artifacts the CYOA menus: not story.
+    if (p.kind !== 'message' && p.kind !== 'text') continue;
+    const text = String(p.content || '').trim();
+    if (!text) continue;
+    if (p.kind === 'text' && /^<hidden>/i.test(text)) {
+      turns.push({ name: 'Hidden world state', text: text.replace(/<\/?hidden>/gi, '').trim(), hidden: true });
+    } else {
+      turns.push({ name: p.kind === 'text' ? 'Narrator' : (p.name || nameOf(byId.get(p.characterId)) || (p.role === 'user' ? 'Player' : 'Character')), text });
+    }
+  }
+  const cast = entities
+    .filter((e) => ['character', 'character_user', 'location'].includes(e.kind) && nameOf(e) && e.definition?.description)
+    .map((e) => ({ kind: e.kind, name: nameOf(e), text: e.definition.description }));
+  // Exports with images carry them as raw base64 in display.images[].
+  const images = [];
+  for (const e of entities) {
+    const img = (e.display?.images || []).find((i) => i?.dataBase64);
+    if (img && nameOf(e)) images.push({ name: nameOf(e), label: e.label, file: base64ToFile(img.dataBase64, img.mimeType, `${e.label || nameOf(e)}`) });
+  }
+  return {
+    title: scenario?.display?.name || 'DreamGen session',
+    persona: nameOf(entities.find((e) => e.kind === 'character_user')),
+    turns, cast, images, format: 'JSON',
+  };
+}
+
+// Markdown or text exports have no fixed structure we rely on: blocks split on blank lines
+// count as turns, and the model reads them as they are.
+function parseDreamGenText(text, fileName) {
+  const title = text.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.[^.]+$/, '');
+  const turns = text.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).map((t) => ({ text: t }));
+  return { title, persona: '', turns, cast: [], images: [], format: 'Markdown/text' };
+}
+
+function base64ToFile(b64, type = 'image/png', base = 'image') {
+  const bin = atob(String(b64).replace(/^data:[^,]*,/, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+  return new File([bytes], `${base.replace(/[^\w-]+/g, '_')}.${ext}`, { type });
+}
+
+const turnText = (t) => (t.name ? `${t.hidden ? `[${t.name}]` : `${t.name}:`} ${t.text}` : t.text);
+
+// The last turns that fit in `budget` characters, whole turns only (the last one is always kept).
+function lastTurns(turns, budget) {
+  const picked = [];
+  let used = 0;
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    const len = turnText(turns[i]).length + 2;
+    if (picked.length && used + len > budget) break;
+    picked.unshift(turns[i]);
+    used += len;
+  }
+  return picked;
+}
+
+function buildScenePrompt(session, { budget, withCast, focus }) {
+  const parts = [`Story: ${session.title}${session.persona ? `\nThe player's character: ${session.persona}` : ''}`];
+  if (withCast && session.cast.length) {
+    const card = (c) => `<card kind="${c.kind === 'location' ? 'location' : 'character'}" name="${c.name}">\n${truncate(c.text.trim(), DG_CARD_CHARS)}\n</card>`;
+    parts.push(`<cast_cards>\n${session.cast.map(card).join('\n')}\n</cast_cards>`);
+  }
+  const turns = lastTurns(session.turns, budget);
+  parts.push(`<role_play>\n${turns.map(turnText).join('\n\n')}\n</role_play>`);
+  if (focus) parts.push(`Note from the user about the picture: ${focus}`);
+  return { text: parts.join('\n\n'), turnCount: turns.length };
+}
+
+function renderDreamGenScene(root) {
+  const st = { session: null, refs: [] }; // refs: [{ name, file }]
+
+  // 1. Session file
+  const fileInput = el('input', { type: 'file', accept: '.json,.md,.markdown,.txt,application/json,text/markdown,text/plain' });
+  const summary = el('div', { class: 'muted small', text: 'No session loaded.' });
+
+  // 2. Prompt from a chat model
+  const promptForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
+    el('div', { class: 'model-picker', 'data-category': 'chat' }),
+    el('details', {}, el('summary', { text: 'System prompt' }),
+      el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { promptForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })),
+    el('div', { class: 'grid3' },
+      el('label', {}, 'Story to send (characters, from the end)', el('input', { name: 'budget', type: 'number', min: 1000, step: 1000, value: DG_STORY_CHARS })),
+      el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
+      el('label', { class: 'inline' }, el('input', { name: 'with_cast', type: 'checkbox', checked: '' }), 'Send cast and location cards')),
+    el('label', {}, 'Note for this picture (optional)', el('input', { name: 'focus', placeholder: 'e.g. focus on the moment she opens the letter; wide shot' })),
+    el('details', {}, el('summary', { text: 'Preview what will be sent' }), el('pre', { class: 'mono scene-preview' })),
+    el('button', { type: 'submit', class: 'primary', text: 'Write image prompt' }));
+  const promptOut = el('div', { class: 'result' });
+
+  // 3. Prompt, characters and reference portraits
+  const sceneLine = el('div', { class: 'muted small' });
+  const promptBox = el('textarea', { name: 'prompt', rows: 7, placeholder: 'Write the prompt with step 2, or type your own.' });
+  const charList = el('div', { class: 'scene-chars' });
+  const refGrid = el('div', { class: 'scene-refs' });
+  const refPicker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
+  const addNames = el('input', { type: 'checkbox', checked: '' });
+
+  // 4. Image
+  const imageForm = el('form', { class: 'tool-form', 'data-kind': 'image' },
+    el('div', { class: 'model-picker', 'data-category': 'image' }),
+    el('div', { class: 'grid3' },
+      el('label', {}, 'Size', el('select', { name: 'size' }, el('option', { value: '', text: 'default' }),
+        ...['auto', '1024x1024', '1536x1024', '1024x1536'].map((v) => el('option', { text: v })))),
+      el('label', {}, 'Aspect ratio', el('select', { name: 'aspect_ratio' }, el('option', { value: '', text: 'default' }),
+        ...['16:9', '3:2', '4:3', '1:1', '3:4', '2:3', '9:16', '21:9'].map((v) => el('option', { text: v })))),
+      el('label', {}, 'Resolution', el('select', { name: 'resolution' }, el('option', { value: '', text: 'default' }),
+        ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
+      el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
+        ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))),
+    el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
+  const imageOut = el('div', { class: 'result' });
+
+  root.append(
+    el('div', { class: 'placeholder-note' },
+      el('strong', { text: 'How it works' }),
+      el('ol', {},
+        el('li', { text: 'Load a session export from DreamGen (JSON or Markdown). Nothing leaves the browser until you press a button.' }),
+        el('li', { text: 'A chat model reads the end of the story and writes an image prompt with the characters in the last scene named and described.' }),
+        el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Portraits embedded in the export are filled in for you.' }),
+        el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' }))),
+    el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
+    el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
+    el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
+      sceneLine,
+      el('label', {}, 'Image prompt', promptBox),
+      charList,
+      el('div', { class: 'row' },
+        el('label', { class: 'inline' }, 'Add portraits ', refPicker),
+        el('label', { class: 'inline small' }, addNames, 'Add the portrait names to the prompt')),
+      refGrid),
+    el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut));
+
+  for (const picker of $$('.model-picker', root)) setupPicker(picker);
+  setupModelOptions(imageForm);
+
+  const preview = () => {
+    const pre = $('.scene-preview', promptForm);
+    if (!st.session) { pre.textContent = 'Load a session first.'; return; }
+    const { text, turnCount } = buildScenePrompt(st.session, promptOptions());
+    pre.textContent = `${turnCount} of ${st.session.turns.length} turns, ${text.length.toLocaleString()} characters\n\n${text}`;
+  };
+  const promptOptions = () => ({
+    budget: Number(promptForm.elements.budget.value) || DG_STORY_CHARS,
+    withCast: promptForm.elements.with_cast.checked,
+    focus: promptForm.elements.focus.value.trim(),
+  });
+  $('details:last-of-type', promptForm).addEventListener('toggle', preview);
+  promptForm.addEventListener('input', () => { if ($('details:last-of-type', promptForm).open) preview(); });
+
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const isJson = /\.json$/i.test(f.name) || /^\s*[{[]/.test(text);
+      st.session = isJson ? parseDreamGenJson(JSON.parse(text)) : parseDreamGenText(text, f.name);
+      const s = st.session;
+      if (!s.turns.length) throw new Error('The session has no story turns.');
+      const last = s.turns.filter((t) => !t.hidden).at(-1);
+      summary.replaceChildren(
+        el('div', {}, el('strong', { text: s.title }), ` · ${s.format} · ${s.turns.length.toLocaleString()} turns`,
+          s.persona ? ` · player: ${s.persona}` : '',
+          s.cast.length ? ` · ${s.cast.length} cast and location cards` : '',
+          s.images.length ? ` · ${s.images.length} portraits embedded` : ''),
+        last ? el('div', { text: `Last turn: ${truncate(turnText(last).replace(/\s+/g, ' '), 260)}` }) : null);
+      promptForm.elements.with_cast.disabled = !s.cast.length;
+      // Portraits in the export are offered as references; they can be removed.
+      st.refs = s.images.map((i) => ({ name: i.name, file: i.file }));
+      renderRefs();
+      preview();
+    } catch (err) {
+      st.session = null;
+      summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
+    }
+  });
+
+  promptForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    runStep(promptForm, promptOut, async () => {
+      if (!st.session) throw new Error('Load a session export first (step 1).');
+      const model = chosenModel(promptForm);
+      if (!model) throw new Error('Pick or type a chat model first.');
+      const { text } = buildScenePrompt(st.session, promptOptions());
+      const system = promptForm.elements.system.value.trim();
+      const body = compact({
+        model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
+        max_tokens: num(promptForm, 'max_tokens'),
+      });
+      const { path, base } = ep('chat');
+      const resp = await callApi(path, { base, json: body });
+      let rendered;
+      if (resp.ok && resp.data?.choices) {
+        const choice = resp.data.choices[0] || {};
+        const reply = messageText(choice.message || {});
+        const parsed = parseJsonLoose(reply);
+        applyScene(parsed?.prompt ? parsed : { prompt: reply.trim(), characters: [] });
+        rendered = el('div', {},
+          el('div', { class: 'output', text: parsed?.prompt ? 'Prompt written. Check it in step 3.' : 'The reply was not the JSON asked for; it is in step 3 as it came.' }),
+          el('div', { class: 'muted small', text: usageLine(resp.data, choice) }));
+      }
+      renderResult(promptOut, { resp, request: { ...body, messages: body.messages.map((m) => ({ ...m, content: truncate(m.content, 600) })) }, curl: curlFor(path, { base, json: body }), rendered });
+    });
+  });
+
+  // The characters the model named, each with a button to attach a portrait for them.
+  function applyScene({ scene, prompt, characters = [] }) {
+    sceneLine.textContent = scene ? `Scene: ${scene}` : '';
+    promptBox.value = prompt || '';
+    const chars = Array.isArray(characters) ? characters.filter((c) => c?.name) : [];
+    charList.replaceChildren(...(chars.length ? [el('strong', { class: 'small', text: 'Characters in the scene' })] : []),
+      ...chars.map((c) => {
+        const pick = el('input', { type: 'file', accept: 'image/*', hidden: '' });
+        pick.addEventListener('change', () => {
+          if (pick.files[0]) addRef(c.name, pick.files[0]);
+          pick.value = '';
+        });
+        return el('div', { class: 'scene-char' },
+          el('div', {}, el('strong', { text: c.name }), c.description ? el('div', { class: 'muted small', text: c.description }) : null),
+          el('button', { type: 'button', class: 'secondary', text: 'Add portrait', onclick: () => pick.click() }), pick);
+      }));
+    // Keep embedded portraits only for characters in this scene, when the model named any.
+    if (chars.length && st.session?.images.length) {
+      const names = chars.map((c) => c.name.toLowerCase());
+      const inScene = (n) => names.some((x) => x.includes(n.toLowerCase()) || n.toLowerCase().includes(x));
+      const embedded = new Set(st.session.images.map((i) => i.file));
+      st.refs = st.refs.filter((r) => !embedded.has(r.file) || inScene(r.name));
+      renderRefs();
+    }
+  }
+
+  function addRef(name, file) {
+    if (st.refs.length >= MAX_EDIT_IMAGES) { alert(`At most ${MAX_EDIT_IMAGES} reference images.`); return; }
+    st.refs.push({ name, file });
+    renderRefs();
+  }
+  refPicker.addEventListener('change', () => {
+    for (const f of refPicker.files) addRef(f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), f);
+    refPicker.value = '';
+  });
+
+  function renderRefs() {
+    refGrid.replaceChildren(...st.refs.map((r, i) => el('figure', { title: r.file.name },
+      el('img', { src: URL.createObjectURL(r.file), alt: r.name, onload: (e) => URL.revokeObjectURL(e.target.src) }),
+      el('button', { type: 'button', class: 'secondary', title: 'Remove', text: '×', onclick: () => { st.refs.splice(i, 1); renderRefs(); } }),
+      el('input', { value: r.name, placeholder: 'Who is this?', 'aria-label': `Name for reference ${i + 1}`, oninput: (e) => { r.name = e.target.value; } }))));
+  }
+
+  // With references, "Reference image 1 shows …" lines tell the model who is who.
+  function finalPrompt() {
+    const base = promptBox.value.trim();
+    const named = st.refs.map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
+    if (!addNames.checked || !named.length) return base;
+    return `${base}\n\nUse the reference images for the characters' faces and looks: ${named.join('; ')}.`;
+  }
+
+  imageForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    runStep(imageForm, imageOut, async () => {
+      const prompt = finalPrompt();
+      if (!prompt) throw new Error('Write or generate an image prompt first (steps 2 and 3).');
+      const model = chosenModel(imageForm);
+      if (!model) throw new Error('Pick or type an image model first.');
+      const fields = compact({
+        model, prompt,
+        size: str(imageForm, 'size'), aspect_ratio: str(imageForm, 'aspect_ratio'),
+        resolution: str(imageForm, 'resolution'), quality: str(imageForm, 'quality'),
+      });
+      if (st.refs.length) {
+        const { resp, request, curl } = await sendImageEdit(fields, st.refs.map((r) => r.file));
+        const { rendered, shown } = renderImages(resp);
+        renderResult(imageOut, { resp: shown, request, curl, rendered });
+        return;
+      }
+      const { path, base } = ep('image');
+      const resp = await callApi(path, { base, json: fields });
+      const { rendered, shown } = renderImages(resp);
+      renderResult(imageOut, { resp: shown, request: fields, curl: curlFor(path, { base, json: fields }), rendered });
+    });
+  });
+}
+
+// Busy button, elapsed time and error display for a tool form, like the endpoint tabs.
+async function runStep(form, out, fn) {
+  const btn = $('button[type=submit]', form);
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  const waiting = el('div', { class: 'muted', text: 'Waiting for response…' });
+  out.replaceChildren(waiting);
+  const t0 = Date.now();
+  const timer = setInterval(() => { waiting.textContent = `Waiting for response… ${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
+  try {
+    await fn();
+  } catch (err) {
+    renderException(out, err);
+  } finally {
+    clearInterval(timer);
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
 function init() {
@@ -1153,7 +1513,6 @@ function init() {
   }));
   const savedTab = store.get('tab');
   if (savedTab) $(`.tabs button[data-tab="${savedTab}"]`)?.click();
-  setupHubs();
 
   // Endpoint and key. Keys are remembered per provider.
   const keyName = () => `key_${state.provider}`;
@@ -1201,6 +1560,8 @@ function init() {
   addQuestion(decisionForm, { id: 'genre', type: 'choice', instructions: 'Which genre is the book?', criteria: 'fantasy: Magic, myth or invented worlds\nmystery: A crime or puzzle to solve\nromance: A love story' });
   addQuestion(decisionForm, { id: 'rating', type: 'score', instructions: 'How much did the reviewer enjoy the book?', criteria: 'Hated it\nDisliked it\nNeutral\nLiked it\nLoved it' });
   $('.add-question', decisionForm).addEventListener('click', () => addQuestion(decisionForm));
+  // After the tab pickers: an open app sets up its own pickers.
+  setupHubs();
 
   $$('form.request-form').forEach((form) => form.addEventListener('submit', async (e) => {
     e.preventDefault();

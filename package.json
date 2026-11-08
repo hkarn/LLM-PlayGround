@@ -1,0 +1,12 @@
+{
+  "name": "llm-playground",
+  "version": "1.0.0",
+  "description": "Zero-dependency web playground for LLM providers and routers (starting with Requesty), plus small LLM experiments and games.",
+  "private": true,
+  "license": "MIT",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

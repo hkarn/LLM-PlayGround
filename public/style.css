@@ -10,6 +10,8 @@
   --err: #c2372f;
   --code-bg: #f1f2f5;
   --highlight: #e9e9fd;
+  --link: #3f3fc4;
+  --link-visited: #6b3fb8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -24,6 +26,8 @@
     --err: #ff7a70;
     --code-bg: #24262b;
     --highlight: #2c2c4a;
+    --link: #a8b0ff;
+    --link-visited: #d0b0ff;
   }
 }
 
@@ -34,6 +38,10 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+/* Links: the browser defaults are too dark on the dark theme, so both themes set their own. */
+a { color: var(--link); text-underline-offset: 2px; }
+a:visited { color: var(--link-visited); }
+a:hover { text-decoration-thickness: 2px; }
 code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }

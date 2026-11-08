@@ -1,0 +1,52 @@
+/* LLM PlayGround: UI component: the result panel (status, rendered answer, raw response, request, headers, cURL) and image results. */
+import { errorMessage } from '../core.js';
+import { el } from './dom.js';
+
+/* ------------------------------------------------------------------ */
+/* Result panel                                                        */
+/* ------------------------------------------------------------------ */
+export function pre(obj) {
+  return el('pre', { class: 'mono' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
+}
+
+export function renderResult(container, { resp, request, curl, rendered }) {
+  container.replaceChildren();
+  container.append(el('div', { class: 'status-line' },
+    el('span', { class: `badge ${resp.ok ? 'ok' : 'err'}`, text: `${resp.status} ${resp.statusText || ''}`.trim() }),
+    el('span', { class: 'muted', text: `${resp.ms} ms round-trip` }),
+    resp.headers['x-tester-upstream-ms'] ? el('span', { class: 'muted', text: `(${resp.headers['x-tester-upstream-ms']} ms upstream)` }) : null,
+    resp.contentType ? el('span', { class: 'muted', text: resp.contentType }) : null,
+  ));
+
+  if (!resp.ok) {
+    container.append(el('div', { class: 'output error', text: errorMessage(resp) }));
+  } else if (rendered) {
+    container.append(rendered);
+  }
+
+  const rawResponse = resp.blob ? `<binary ${resp.blob.type || 'data'}, ${resp.blob.size.toLocaleString()} bytes>` : resp.data;
+  container.append(
+    el('details', { open: !resp.ok || undefined }, el('summary', { text: 'Raw response' }), pre(rawResponse ?? '')),
+    el('details', {}, el('summary', { text: 'Request body' }), pre(request)),
+    el('details', {}, el('summary', { text: 'Response headers' }), pre(resp.headers)),
+    el('details', {}, el('summary', { text: 'cURL' }), pre(curl)),
+  );
+}
+
+export function renderException(container, err) {
+  container.replaceChildren(el('div', { class: 'output error', text: `Request failed: ${err.message}` }));
+}
+
+// Shared by image generation and edits. `shown` shortens b64_json for the raw view.
+export function renderImages(resp, format = 'png') {
+  if (!resp.ok || !Array.isArray(resp.data?.data)) return { rendered: undefined, shown: resp };
+  const rendered = el('div', { class: 'output' }, ...resp.data.data.map((img, i) => {
+    const src = img.b64_json ? `data:${img.media_type || `image/${format}`};base64,${img.b64_json}` : img.url;
+    return el('div', {},
+      src ? el('img', { src, alt: `Generated image ${i + 1}` }) : el('div', { text: '(no image data)' }),
+      img.revised_prompt ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised_prompt}` }) : null,
+      src ? el('a', { href: src, download: `image-${i + 1}.${format}`, target: '_blank', text: 'Download / open' }) : null);
+  }), resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
+  const shown = { ...resp, data: { ...resp.data, data: resp.data.data.map((d) => (d.b64_json ? { ...d, b64_json: `<${d.b64_json.length.toLocaleString()} base64 chars>` } : d)) } };
+  return { rendered, shown };
+}

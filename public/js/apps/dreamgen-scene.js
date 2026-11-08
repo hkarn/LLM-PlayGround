@@ -1,5 +1,15 @@
 /* LLM PlayGround: Tool: Draw the DreamGen Scene. */
-import { $, $$, callApi, chosenModel, compact, curlFor, el, ep, keepDrafts, lines, MAX_EDIT_IMAGES, messageText, num, parseJsonLoose, rememberModel, renderImages, renderResult, runStep, sendImageEdit, settingsToggle, setupModelOptions, setupPicker, store, str, usageLine } from '../core.js';
+import { callApi, compact, curlFor, ep, lines, messageText, num, parseJsonLoose, sendImageEdit, store, str, usageLine } from '../core.js';
+import { copyButton } from '../ui/copy-button.js';
+import { $, $$, el } from '../ui/dom.js';
+import { keepDrafts } from '../ui/drafts.js';
+import { setupModelOptions } from '../ui/model-options.js';
+import { chosenModel, setupPicker } from '../ui/model-picker.js';
+import { refPortraits } from '../ui/ref-portraits.js';
+import { rememberModel } from '../ui/remember.js';
+import { renderImages, renderResult } from '../ui/result.js';
+import { runStep } from '../ui/run-step.js';
+import { settingsToggle } from '../ui/settings-toggle.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
 
@@ -163,7 +173,7 @@ export const SCENE_STYLES = [
 ];
 
 export function renderDreamGenScene(root) {
-  const st = { session: null, refs: [] }; // refs: [{ name, file }]
+  const st = { session: null };
 
   // 1. Session file
   const fileInput = el('input', { type: 'file', accept: '.json,.md,.markdown,.txt,application/json,text/markdown,text/plain' });
@@ -224,9 +234,8 @@ export function renderDreamGenScene(root) {
   const sceneLine = el('div', { class: 'muted small' });
   const promptBox = el('textarea', { name: 'prompt', rows: 7, placeholder: 'Write the prompt with step 2, or type your own.' });
   const charList = el('div', { class: 'scene-chars' });
-  const refGrid = el('div', { class: 'scene-refs' });
-  const refPicker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
   const addNames = el('input', { type: 'checkbox', checked: '' });
+  const portraits = refPortraits({ extra: el('label', { class: 'inline small' }, addNames, 'Add the portrait names to the prompt') });
   // The picture style is added to the prompt when it is drawn or copied, and remembered.
   const styleSelect = el('select', { name: 'style' }, ...SCENE_STYLES.map(([v, t]) => el('option', { value: v, text: t })));
   const styleCustom = el('input', { name: 'style_custom', placeholder: 'e.g. 1980s fantasy paperback cover, airbrushed' });
@@ -237,21 +246,12 @@ export function renderDreamGenScene(root) {
   styleCustom.addEventListener('input', () => store.set('dgscene_style_custom', styleCustom.value));
   const styleText = () => (styleSelect.value === 'custom' ? styleCustom.value.trim() : styleSelect.value);
   const withStyle = (text) => (styleText() ? `${text}\n\nStyle: ${styleText()}` : text);
-  const copyNote = el('span', { class: 'muted small', text: 'Or copy it to use somewhere else, such as the DreamGen image generator, instead of step 4.' });
-  // The prompt as written; the reference-name lines are only for step 4, where the portraits go too.
-  async function copyPrompt() {
-    if (!promptBox.value.trim()) { copyNote.textContent = 'There is no prompt to copy yet.'; return; }
-    const text = withStyle(promptBox.value.trim());
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // Older browsers, or a page without clipboard permission: copy from the selected text.
-      promptBox.focus();
-      promptBox.select();
-      if (!document.execCommand('copy')) { copyNote.textContent = 'Could not copy: select the text and copy it by hand.'; return; }
-    }
-    copyNote.textContent = 'Copied. Paste it into the DreamGen image generator, or wherever you like.';
-  }
+  // The prompt as written, with its style; the reference-name lines are only for step 4, where the portraits go too.
+  const copyRow = copyButton({
+    label: 'Copy prompt', getText: () => (promptBox.value.trim() ? withStyle(promptBox.value.trim()) : ''),
+    hint: 'Or copy it to use somewhere else, such as the DreamGen image generator, instead of step 4.',
+    empty: 'There is no prompt to copy yet.', done: 'Copied. Paste it into the DreamGen image generator, or wherever you like.',
+  });
 
   // 4. Image
   const imageSettings = el('div', { class: 'tool-settings' },
@@ -291,17 +291,12 @@ export function renderDreamGenScene(root) {
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
       sceneLine,
       el('label', {}, 'Image prompt', promptBox),
-      el('div', { class: 'row' },
-        el('button', { type: 'button', class: 'secondary', text: 'Copy prompt', onclick: () => copyPrompt() }),
-        copyNote),
+      copyRow,
       el('div', { class: 'grid3' },
         el('label', {}, 'Picture style', styleSelect),
         el('label', { class: 'style-custom', hidden: '' }, 'Your style', styleCustom)),
       charList,
-      el('div', { class: 'row' },
-        el('label', { class: 'inline' }, 'Add portraits ', refPicker),
-        el('label', { class: 'inline small' }, addNames, 'Add the portrait names to the prompt')),
-      refGrid),
+      portraits.node),
     el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut),
     el('p', { class: 'muted small' }, 'Next: ', el('a', { href: '#tools/dreamgen-video', text: 'Animate the DreamGen Scene' }),
       ' will turn the picture into a short clip (coming soon; it will take this picture straight from here).'));
@@ -333,8 +328,7 @@ export function renderDreamGenScene(root) {
       undo.length = 0;
       setExport(s.text, { keepUndo: true });
       // Embedded portraits are attached in step 3, for the characters the model puts in the scene.
-      st.refs = [];
-      renderRefs();
+      portraits.set([]);
     } catch (err) {
       st.session = null;
       summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
@@ -381,7 +375,7 @@ export function renderDreamGenScene(root) {
       ...chars.map((c) => {
         const pick = el('input', { type: 'file', accept: 'image/*', hidden: '' });
         pick.addEventListener('change', () => {
-          if (pick.files[0]) addRef(c.name, pick.files[0]);
+          if (pick.files[0]) portraits.add(c.name, pick.files[0]);
           pick.value = '';
         });
         return el('div', { class: 'scene-char' },
@@ -390,39 +384,22 @@ export function renderDreamGenScene(root) {
       }));
     // Attach the export's own portrait for each character in the scene, replacing earlier ones.
     const embedded = new Set((st.session?.images || []).map((i) => i.file));
-    st.refs = st.refs.filter((r) => !embedded.has(r.file));
+    const refs = portraits.refs.filter((r) => !embedded.has(r.file));
     const norm = (n) => n.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
     for (const c of chars) {
       const n = norm(c.name);
       const img = (st.session?.images || []).find((i) => norm(i.name) === n)
         || (st.session?.images || []).find((i) => norm(i.name).split(' ')[0] === n.split(' ')[0]);
-      if (img && !st.refs.some((r) => r.file === img.file) && st.refs.length < MAX_EDIT_IMAGES) st.refs.push({ name: c.name, file: img.file });
+      if (img && !refs.some((r) => r.file === img.file)) refs.push({ name: c.name, file: img.file });
     }
-    renderRefs();
-  }
-
-  function addRef(name, file) {
-    if (st.refs.length >= MAX_EDIT_IMAGES) { alert(`At most ${MAX_EDIT_IMAGES} reference images.`); return; }
-    st.refs.push({ name, file });
-    renderRefs();
-  }
-  refPicker.addEventListener('change', () => {
-    for (const f of refPicker.files) addRef(f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), f);
-    refPicker.value = '';
-  });
-
-  function renderRefs() {
-    refGrid.replaceChildren(...st.refs.map((r, i) => el('figure', { title: r.file.name },
-      el('img', { src: URL.createObjectURL(r.file), alt: r.name, onload: (e) => URL.revokeObjectURL(e.target.src) }),
-      el('button', { type: 'button', class: 'secondary', title: 'Remove', text: '×', onclick: () => { st.refs.splice(i, 1); renderRefs(); } }),
-      el('input', { value: r.name, placeholder: 'Who is this?', 'aria-label': `Name for reference ${i + 1}`, oninput: (e) => { r.name = e.target.value; } }))));
+    portraits.set(refs);
   }
 
   // With references, "Reference image 1 shows …" lines tell the model who is who.
   function finalPrompt() {
     if (!promptBox.value.trim()) return '';
     const base = withStyle(promptBox.value.trim());
-    const named = st.refs.map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
+    const named = portraits.refs.map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
     if (!addNames.checked || !named.length) return base;
     return `${base}\n\nUse the reference images for the characters' faces and looks: ${named.join('; ')}.`;
   }
@@ -439,8 +416,8 @@ export function renderDreamGenScene(root) {
         size: str(imageForm, 'size'), aspect_ratio: str(imageForm, 'aspect_ratio'),
         resolution: str(imageForm, 'resolution'), quality: str(imageForm, 'quality'),
       });
-      if (st.refs.length) {
-        const { resp, request, curl } = await sendImageEdit(fields, st.refs.map((r) => r.file), undefined, imageForm._abort?.signal);
+      if (portraits.refs.length) {
+        const { resp, request, curl } = await sendImageEdit(fields, portraits.refs.map((r) => r.file), undefined, imageForm._abort?.signal);
         const { rendered, shown } = renderImages(resp);
         renderResult(imageOut, { resp: shown, request, curl, rendered });
         return;

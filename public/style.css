@@ -223,3 +223,6 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 
 .cancel-btn { align-self: flex-start; }
 .cancel-btn[hidden] { display: none; }
+
+/* Animate the DreamGen Scene mock: keep the picture and clip boxes a sensible size */
+.tool-step .vg-stage { width: 100%; max-width: 560px; }

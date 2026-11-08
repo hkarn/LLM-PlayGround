@@ -1034,6 +1034,7 @@ const ICONS = {
   groupChat: '<path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-4a2 2 0 0 1-2-2v-1"/>',
   video: '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/>',
   scene: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+  sceneVideo: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/><path d="M3 9h2M3 15h2M19 9h2M19 15h2"/>',
 };
 
 const HUBS = {
@@ -1049,6 +1050,8 @@ const APPS = {
   tools: [
     { id: 'dreamgen-scene', title: 'Draw the DreamGen Scene', icon: ICONS.scene,
       blurb: 'Turn the last scene of a DreamGen session export into an image prompt, add reference portraits, and draw it.', render: renderDreamGenScene },
+    { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo, status: 'Coming soon',
+      blurb: 'Turn a scene picture into a short clip, with motion written from the last scene of the session.', render: renderDreamGenVideoPlaceholder },
     { id: 'video-generator', title: 'Video Generator', icon: ICONS.video, status: 'Coming soon',
       blurb: 'Make videos with models whose options we have tested, with the right settings for each.', render: renderVideoGeneratorPlaceholder },
   ],
@@ -1168,6 +1171,45 @@ function renderGroupChatPlaceholder(root) {
         el('div', { class: 'row' },
           el('input', { disabled: '', placeholder: 'Coming soon', style: 'flex:1' }),
           el('button', { type: 'button', class: 'primary', disabled: '', text: 'Send' })))));
+}
+
+// Placeholder: the layout of the scene-to-video tool, with nothing wired up yet. It will take its
+// first frame from Draw the DreamGen Scene, and its motion from the same session export.
+function renderDreamGenVideoPlaceholder(root) {
+  const step = (title, ...body) => el('section', { class: 'tool-step mock' }, el('h3', { text: title }), ...body);
+  root.append(
+    el('div', { class: 'placeholder-note' },
+      el('strong', { text: 'What this will be' }),
+      el('ol', {},
+        el('li', { text: 'Start from a scene picture: passed straight from Draw the DreamGen Scene, or an image you upload. It becomes the first frame, since few video models take reference portraits.' }),
+        el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene, in one or two sentences.' }),
+        el('li', { text: 'Pick from video models we have tested with a scene still (some keep a face, some refuse realistic faces), with only the durations and resolutions each one supports.' }),
+        el('li', { text: 'The price is shown before you start. The default is a short, cheap clip: low resolution, 3 to 5 seconds, no audio.' }),
+        el('li', { text: 'The job runs in the background with a Cancel button; the finished clip plays here and can be downloaded.' })),
+      el('div', { class: 'muted small', text: 'For any video model with raw request and response details, use the Video tab.' })),
+    step('1. Scene picture',
+      el('div', { class: 'vg-stage', text: 'The picture from Draw the DreamGen Scene will appear here' }),
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: 'secondary', disabled: '', text: 'Use the last drawn scene' }),
+        el('label', { class: 'inline' }, 'or upload ', el('input', { type: 'file', disabled: '' })))),
+    step('2. Motion prompt',
+      el('div', { class: 'row' },
+        el('button', { type: 'button', class: 'secondary', disabled: '', text: 'Use the session from Draw the DreamGen Scene' }),
+        el('label', { class: 'inline' }, 'or load an export ', el('input', { type: 'file', disabled: '' }))),
+      el('label', {}, 'Motion prompt', el('textarea', { rows: 3, disabled: '', placeholder: 'e.g. The man on the wall turns his head toward the empty space beside him; the streetlight flickers; the river runs on.' })),
+      el('button', { type: 'button', class: 'primary', disabled: '', text: 'Write motion prompt' })),
+    step('3. Model and settings',
+      el('div', { class: 'vg-models' },
+        ...['Tested model 1', 'Tested model 2', 'Tested model 3'].map((t) => el('div', { class: 'vg-model' },
+          el('div', { text: t }), el('div', { class: 'muted small', text: 'keeps faces? · durations · price/s' })))),
+      el('div', { class: 'grid3' },
+        el('label', {}, 'Duration', el('select', { disabled: '' }, el('option', { text: '4 s' }))),
+        el('label', {}, 'Resolution', el('select', { disabled: '' }, el('option', { text: '480p' }))),
+        el('label', {}, 'Audio', el('select', { disabled: '' }, el('option', { text: 'off' })))),
+      el('div', { class: 'muted small', text: 'Estimated price: shown here before you start.' })),
+    step('4. Make the clip',
+      el('button', { type: 'button', class: 'primary', disabled: '', text: 'Make video' }),
+      el('div', { class: 'vg-stage', text: 'Your clip will play here' })));
 }
 
 // Placeholder: a curated video tool. The Video tab stays as the raw endpoint tester.
@@ -1508,7 +1550,9 @@ function renderDreamGenScene(root) {
         el('label', { class: 'inline' }, 'Add portraits ', refPicker),
         el('label', { class: 'inline small' }, addNames, 'Add the portrait names to the prompt')),
       refGrid),
-    el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut));
+    el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut),
+    el('p', { class: 'muted small' }, 'Next: ', el('a', { href: '#tools/dreamgen-video', text: 'Animate the DreamGen Scene' }),
+      ' will turn the picture into a short clip (coming soon; it will take this picture straight from here).'));
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   setupModelOptions(imageForm);

@@ -1151,30 +1151,52 @@ function renderVideoGeneratorPlaceholder(root) {
 /* ------------------------------------------------------------------ */
 /* Tool: Draw the DreamGen Scene                                       */
 /* ------------------------------------------------------------------ */
-// Reads a DreamGen session export (JSON `scenario_session`, or a Markdown/text export), asks a
+// Reads a DreamGen session export (JSON `scenario_session`, or the Markdown export), asks a
 // chat model for an image prompt with the visible characters named and described, then sends
 // that prompt, with optional reference portraits, to the provider's image endpoint.
 // Format notes: docs/dreamgen-session-export.md.
 
-const SCENE_SYSTEM_PROMPT = `You turn role-play transcripts into prompts for an image model.
+const SCENE_SYSTEM_PROMPT = `You turn a role-play session into a prompt for an image model that draws one still picture of how the story stands at its very end.
 
-Read the story inside <role_play>. Find its last scene: the place, the moment and the characters present in the final turns. Write one prompt that shows that moment as a single still picture.
+## What you are given
+- <story>: the title and a short description, for genre, period and look.
+- <cast_cards> (optional): the scenario's cards for characters, the player's character and locations. Cards describe the character in general, not this moment, and include characters who are nowhere near the scene.
+- <role_play>: the end of the session, oldest turn first, in DreamGen's transcript layout:
+  - "[Name]: text" is a turn by that character. The player's character is named in <story>. Their turns are usually first person ("I open the door"), and narration often calls them "you" (second person) or uses their name: all of these are the same person.
+  - Plain paragraphs without a [Name] are narration. A paragraph can also continue the turn above it.
+  - <hidden>...</hidden> blocks are the game's private tracking: who is nearby or elsewhere and what they are doing, faction moves, a clock. Use them only to check who is where. Never draw something only because it is listed there, and never draw anyone it puts somewhere else.
+  - Time and place lines open scenes and often repeat on later turns, for example "Day 2 · 06:10 · North gate", "[Day 0 · 22:54 · The workshop]" or "Tuesday 3 November, night."
+  - The player's out-of-character instructions and choice menus have been removed.
 
+## The last scene and its final moment
+- The last scene is the stretch at the end after the most recent change of place or jump in time: travel, sleep, "later", a new day, a new location in a time line. Lines that repeat the same place a few minutes apart belong to the same scene.
+- Draw the final moment of that scene: where everyone is and what they are doing after the last turn. People who left during the scene are gone; people who arrived are there. Someone reached by phone, letter, message or magic at a distance is not in the room.
+- If the last turn is the player's and nobody has answered it yet, show that action as it starts.
+- A character is present if they speak or act in the last scene, or narration places them there. The player's character is present unless the story says otherwise.
+
+## Reply
 Reply with JSON only, in this shape:
-{"scene": "one-line summary of the moment", "characters": [{"name": "full name as in the story", "description": "what they look like here: age, build, face, hair, clothing, pose and what they are doing"}], "prompt": "the image prompt"}
+{"scene": "one line: place, time of day and what is happening", "characters": [{"name": "name as in the story", "description": "how they look right now: apparent age, build, face, hair, clothing and its state, pose and action"}], "prompt": "the image prompt"}
 
-Rules for the prompt:
+List every visible character in "characters", the player's character included when in frame.
+
+## Rules for the prompt
 - Name every visible character and describe them where they first appear, for example "Mara Ellison, a wiry woman in her forties with cropped grey hair and a patched oilskin coat, leans over the chart table", so the picture works without reference images.
-- Say where each character is and what they are doing, then the setting, the light, the mood and the camera framing.
-- Only characters who are present in the scene. Take appearance from the cast cards; where the story says otherwise, the story wins.
-- Visual details only: no dialogue, sounds or thoughts. Keep the period, technology and clothing of the story's world.
+- Appearance comes from the cast cards, updated by the story: what they are wearing now, rain, mud, wounds, costumes, carried objects. Where the story and a card disagree, the story wins. Invent nothing that contradicts either; fill gaps plainly and in keeping with the world.
+- Say where each character is and what they are doing, then the setting, the light and time of day, the weather, the mood and the camera framing. Show the player's character in the frame, in the third person, unless the user's note asks for their point of view.
+- Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
 
 const DG_CARD_CHARS = 1500;     // per cast or location card sent to the prompt model
 const DG_STORY_CHARS = 24000;   // default amount of story, counted back from the end
+const HIDDEN_RE = /<hidden>[\s\S]*?(<\/hidden>|$)/gi;
 
-// Walks the session tree from the head back to the root: dead branches from regenerated
-// turns are left out. Returns { title, persona, turns: [{ name, text, hidden }], cast, images }.
+// Both formats become DreamGen's own Markdown session layout, so the prompt model only has
+// to learn one: "[Name]: text" turns, narration as plain paragraphs, <hidden> blocks kept.
+// A session is { title, about, persona, turns: [{ text, hidden? }], cast, images, format }.
+
+// JSON: walks the session tree from the head back to the root, so dead branches from
+// regenerated turns are left out.
 function parseDreamGenJson(doc) {
   const data = doc?.data || doc;
   const scenario = data?.scenario;
@@ -1199,47 +1221,89 @@ function parseDreamGenJson(doc) {
   for (const { payload: p = {} } of chain) {
     // Instructions are the player's out-of-character steering, artifacts the CYOA menus: not story.
     if (p.kind !== 'message' && p.kind !== 'text') continue;
-    const text = String(p.content || '').trim();
-    if (!text) continue;
-    if (p.kind === 'text' && /^<hidden>/i.test(text)) {
-      turns.push({ name: 'Hidden world state', text: text.replace(/<\/?hidden>/gi, '').trim(), hidden: true });
-    } else {
-      turns.push({ name: p.kind === 'text' ? 'Narrator' : (p.name || nameOf(byId.get(p.characterId)) || (p.role === 'user' ? 'Player' : 'Character')), text });
+    const raw = String(p.content || '');
+    // The hidden header can be its own narrator turn or the end of an NPC's message.
+    const hidden = raw.match(HIDDEN_RE) || [];
+    const text = raw.replace(HIDDEN_RE, '').trim();
+    if (text) {
+      const name = p.kind === 'message' ? (p.name || nameOf(byId.get(p.characterId)) || (p.role === 'user' ? 'Player' : 'Character')) : '';
+      turns.push({ text: name ? `[${name}]: ${text}` : text });
     }
+    for (const h of hidden) turns.push({ text: h.trim(), hidden: true });
   }
+  const kindOf = { character: 'character', character_user: 'player', location: 'location' };
   const cast = entities
-    .filter((e) => ['character', 'character_user', 'location'].includes(e.kind) && nameOf(e) && e.definition?.description)
-    .map((e) => ({ kind: e.kind, name: nameOf(e), text: e.definition.description }));
-  // Exports with images carry them as raw base64 in display.images[].
+    .filter((e) => kindOf[e.kind] && nameOf(e) && e.definition?.description)
+    .map((e) => ({ kind: kindOf[e.kind], name: nameOf(e), text: e.definition.description }));
+  // Exports with images carry them as raw base64 in display.images[], sometimes without a mimeType.
   const images = [];
   for (const e of entities) {
     const img = (e.display?.images || []).find((i) => i?.dataBase64);
-    if (img && nameOf(e)) images.push({ name: nameOf(e), label: e.label, file: base64ToFile(img.dataBase64, img.mimeType, `${e.label || nameOf(e)}`) });
+    if (img && nameOf(e) && e.kind !== 'narrator') images.push({ name: nameOf(e), file: base64ToFile(img.dataBase64, img.mimeType, e.label || nameOf(e)) });
   }
+  const persona = entities.filter((e) => e.kind === 'character_user');
+  const spoke = (e) => turns.some((t) => t.text.startsWith(`[${nameOf(e)}]:`));
   return {
     title: scenario?.display?.name || 'DreamGen session',
-    persona: nameOf(entities.find((e) => e.kind === 'character_user')),
+    about: scenario?.display?.shortDescriptionMarkdown || scenario?.display?.descriptionMarkdown || '',
+    persona: nameOf(persona.find(spoke) || persona[0]),
     turns, cast, images, format: 'JSON',
   };
 }
 
-// Markdown or text exports have no fixed structure we rely on: blocks split on blank lines
-// count as turns, and the model reads them as they are.
+// Markdown: DreamGen's export has "# Title", an intro, then "## Section" blocks: Characters,
+// User Personas and Locations hold "### Name" cards, Session holds the transcript. Examples
+// and Openings are templates, not story. Other text files are read as a plain transcript.
 function parseDreamGenText(text, fileName) {
-  const title = text.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.[^.]+$/, '');
-  const turns = text.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).map((t) => ({ text: t }));
-  return { title, persona: '', turns, cast: [], images: [], format: 'Markdown/text' };
+  const src = text.replace(/\r\n?/g, '\n');
+  const title = src.match(/^#\s+(.+)$/m)?.[1]?.trim() || fileName.replace(/\.[^.]+$/, '');
+  const sections = {};
+  const parts = src.split(/^##\s+(?!#)(.+)$/m); // [before, heading, body, heading, body, …]
+  for (let i = 1; i < parts.length; i += 2) sections[parts[i].trim().toLowerCase()] = parts[i + 1] || '';
+  const about = parts[0].replace(/^#\s+.+$/m, '').replace(/^\[Tags\]:.*$/m, '').trim();
+  const cards = (body = '', kind) => body.split(/^###\s+(?!#)(.+)$/m).flatMap((v, i, arr) => (i % 2 ? [{ kind, name: v.trim(), text: (arr[i + 1] || '').trim() }] : []))
+    .filter((c) => c.name && c.text);
+  const cast = [...cards(sections.characters, 'character'), ...cards(sections['user personas'], 'player'), ...cards(sections.locations, 'location')];
+
+  // Turns start at "[Name]:" lines; unprefixed paragraphs stay with the block above them.
+  const body = sections.session ?? (Object.keys(sections).length ? '' : src);
+  if (!body.trim()) throw new Error('No "## Session" section found. Export the session (game), not only the scenario.');
+  const turns = [];
+  let block = null;
+  const flush = () => {
+    if (!block) return;
+    const t = block.lines.join('\n').trim();
+    // Out-of-character instructions are not story.
+    if (t && !/^\[instruction\]:/i.test(t)) {
+      const hidden = t.match(HIDDEN_RE) || [];
+      const rest = t.replace(HIDDEN_RE, '').trim();
+      if (rest) turns.push({ text: rest });
+      for (const h of hidden) turns.push({ text: h.trim(), hidden: true });
+    }
+    block = null;
+  };
+  for (const line of body.split('\n')) {
+    if (/^\[[^\]\n]{1,80}\]:/.test(line) || !block) { flush(); block = { lines: [] }; }
+    block.lines.push(line);
+  }
+  flush();
+  const personas = cards(sections['user personas'], 'player');
+  const persona = (personas.find((c) => turns.some((t) => t.text.startsWith(`[${c.name}]:`))) || personas[0])?.name || '';
+  return { title, about, persona, turns, cast, images: [], format: 'Markdown' };
 }
 
-function base64ToFile(b64, type = 'image/png', base = 'image') {
-  const bin = atob(String(b64).replace(/^data:[^,]*,/, ''));
+// DreamGen exports images as WebP; older or edited files may be PNG or JPEG.
+function base64ToFile(b64, type, base = 'image') {
+  const data = String(b64).replace(/^data:([^;,]*)[^,]*,/, (_, t) => { type = type || t; return ''; });
+  type = type || (data.startsWith('UklGR') ? 'image/webp' : data.startsWith('/9j/') ? 'image/jpeg' : data.startsWith('R0lGOD') ? 'image/gif' : 'image/png');
+  const bin = atob(data);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
   const ext = (type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-  return new File([bytes], `${base.replace(/[^\w-]+/g, '_')}.${ext}`, { type });
+  return new File([bytes], `${String(base).replace(/[^\w-]+/g, '_')}.${ext}`, { type });
 }
 
-const turnText = (t) => (t.name ? `${t.hidden ? `[${t.name}]` : `${t.name}:`} ${t.text}` : t.text);
+const turnText = (t) => t.text;
 
 // The last turns that fit in `budget` characters, whole turns only (the last one is always kept).
 function lastTurns(turns, budget) {
@@ -1255,14 +1319,18 @@ function lastTurns(turns, budget) {
 }
 
 function buildScenePrompt(session, { budget, withCast, focus }) {
-  const parts = [`Story: ${session.title}${session.persona ? `\nThe player's character: ${session.persona}` : ''}`];
+  const story = [`Title: ${session.title}`];
+  if (session.about) story.push(`About: ${truncate(session.about.replace(/\s+/g, ' ').trim(), 800)}`);
+  if (session.persona) story.push(`The player's character: ${session.persona}`);
+  const parts = [`<story>\n${story.join('\n')}\n</story>`];
   if (withCast && session.cast.length) {
-    const card = (c) => `<card kind="${c.kind === 'location' ? 'location' : 'character'}" name="${c.name}">\n${truncate(c.text.trim(), DG_CARD_CHARS)}\n</card>`;
+    const card = (c) => `<card kind="${c.kind}" name="${c.name}">\n${truncate(c.text.trim(), DG_CARD_CHARS)}\n</card>`;
     parts.push(`<cast_cards>\n${session.cast.map(card).join('\n')}\n</cast_cards>`);
   }
   const turns = lastTurns(session.turns, budget);
-  parts.push(`<role_play>\n${turns.map(turnText).join('\n\n')}\n</role_play>`);
-  if (focus) parts.push(`Note from the user about the picture: ${focus}`);
+  const cut = turns.length < session.turns.length ? '(earlier turns left out)\n\n' : '';
+  parts.push(`<role_play>\n${cut}${turns.map(turnText).join('\n\n')}\n</role_play>`);
+  parts.push(focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.');
   return { text: parts.join('\n\n'), turnCount: turns.length };
 }
 
@@ -1317,7 +1385,7 @@ function renderDreamGenScene(root) {
       el('ol', {},
         el('li', { text: 'Load a session export from DreamGen (JSON or Markdown). Nothing leaves the browser until you press a button.' }),
         el('li', { text: 'A chat model reads the end of the story and writes an image prompt with the characters in the last scene named and described.' }),
-        el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Portraits embedded in the export are filled in for you.' }),
+        el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Portraits embedded in the export are attached for the characters in the scene.' }),
         el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' }))),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
@@ -1361,12 +1429,12 @@ function renderDreamGenScene(root) {
       summary.replaceChildren(
         el('div', {}, el('strong', { text: s.title }), ` · ${s.format} · ${s.turns.length.toLocaleString()} turns`,
           s.persona ? ` · player: ${s.persona}` : '',
-          s.cast.length ? ` · ${s.cast.length} cast and location cards` : '',
+          s.cast.length ? ` · ${s.cast.length} cards` : '',
           s.images.length ? ` · ${s.images.length} portraits embedded` : ''),
         last ? el('div', { text: `Last turn: ${truncate(turnText(last).replace(/\s+/g, ' '), 260)}` }) : null);
       promptForm.elements.with_cast.disabled = !s.cast.length;
-      // Portraits in the export are offered as references; they can be removed.
-      st.refs = s.images.map((i) => ({ name: i.name, file: i.file }));
+      // Embedded portraits are attached in step 3, for the characters the model puts in the scene.
+      st.refs = [];
       renderRefs();
       preview();
     } catch (err) {
@@ -1419,14 +1487,17 @@ function renderDreamGenScene(root) {
           el('div', {}, el('strong', { text: c.name }), c.description ? el('div', { class: 'muted small', text: c.description }) : null),
           el('button', { type: 'button', class: 'secondary', text: 'Add portrait', onclick: () => pick.click() }), pick);
       }));
-    // Keep embedded portraits only for characters in this scene, when the model named any.
-    if (chars.length && st.session?.images.length) {
-      const names = chars.map((c) => c.name.toLowerCase());
-      const inScene = (n) => names.some((x) => x.includes(n.toLowerCase()) || n.toLowerCase().includes(x));
-      const embedded = new Set(st.session.images.map((i) => i.file));
-      st.refs = st.refs.filter((r) => !embedded.has(r.file) || inScene(r.name));
-      renderRefs();
+    // Attach the export's own portrait for each character in the scene, replacing earlier ones.
+    const embedded = new Set((st.session?.images || []).map((i) => i.file));
+    st.refs = st.refs.filter((r) => !embedded.has(r.file));
+    const norm = (n) => n.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
+    for (const c of chars) {
+      const n = norm(c.name);
+      const img = (st.session?.images || []).find((i) => norm(i.name) === n)
+        || (st.session?.images || []).find((i) => norm(i.name).split(' ')[0] === n.split(' ')[0]);
+      if (img && !st.refs.some((r) => r.file === img.file) && st.refs.length < MAX_EDIT_IMAGES) st.refs.push({ name: c.name, file: img.file });
     }
+    renderRefs();
   }
 
   function addRef(name, file) {

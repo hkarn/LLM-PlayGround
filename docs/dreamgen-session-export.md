@@ -1,6 +1,8 @@
-# DreamGen session export (read by "Draw the DreamGen Scene")
+# DreamGen session exports (read by "Draw the DreamGen Scene")
 
-What the Tools hub's DreamGen scene tool reads. Taken from a real export (object `scenario_session`, version `1.0`, 2026-11-08) and the DreamGen Studio notes on the scenario format. No story content is kept here.
+What the Tools hub's DreamGen scene tool reads, from real session exports in both formats (2026-11-08, six games; none are kept in this repository). Both formats are turned into one transcript layout before anything is sent, so the system prompt only has to explain that one.
+
+## JSON (object `scenario_session`, version `1.0`)
 
 ```text
 { "object": "scenario_session", "version": "1.0",
@@ -9,18 +11,32 @@ What the Tools hub's DreamGen scene tool reads. Taken from a real export (object
     "session":  { "headInteractionId": "<id>", "interactions": [ ... ] } } }
 ```
 
-- `scenario.entities[]`: `id`, `label`, `kind` (`character`, `character_user` = the player's persona, `narrator`, `location`, `item`), `display` (`name`, `images[]`) and `definition` (`name`, `description`: the AI-facing card). An export with images carries each one as raw base64 in `images[].dataBase64` with a `mimeType`; the tool offers those as reference portraits.
+- `scenario.entities[]`: `id`, `label`, `kind` (`character`, `character_user` = a player persona, `narrator`, `location`, `item`), `display` (`name`, `images[]`) and `definition` (`name`, `description`: the AI-facing card). Use `definition.name`: a persona's `display.name` can be just `user`, the narrator's `Narrative`.
+- Images are raw base64 in `display.images[].dataBase64`, sometimes with a `mimeType`, sometimes only with an `nsfw` flag; DreamGen's are WebP (base64 starts `UklGR`). The tool sniffs the type.
 - `session.interactions[]` is a **tree**: each has `id`, `parentId` (absent on the root) and `payload`. The played story is the chain from `headInteractionId` back to the root, reversed. Regenerated turns leave dead branches, so always walk from the head.
 - `payload.kind`:
   - `message`: `role` `user` or `bot`, `characterId`, `name` (speaker), `content`, `hidden`, `prompt.excluded`.
-  - `text`: narrator prose (`content`). Some games put a hidden world-state header here, starting with `<hidden>` (who is present, factions, clock and place); the tool keeps it, labelled, because it says who is in the scene.
+  - `text`: narration (`content`).
   - `instruction`: the player's out-of-character steering. Left out.
   - `artifact`: the CYOA menu (`body.content.kind` `response-options`). Left out.
 - `hidden` and `prompt.excluded` turns are still part of what happened and are kept.
 
-Markdown or text exports have no structure the tool relies on: blocks between blank lines count as turns and are sent as they are.
+## Markdown
+
+`# Title`, an intro paragraph (and a `[Tags]:` line), then `## Section` blocks: `Plot`, `Setting`, `Style`, `CYOA`, `Characters`, `User Personas`, `Locations`, `Objects`, `Examples`, `Openings`, `Session`. Cards are `### Name` under Characters, User Personas and Locations. `Session` holds the played transcript:
+
+- `[Name]: text` starts a turn by that character; the player's persona uses its own name.
+- Unprefixed paragraphs are narration, or the continuation of the turn above (a multi-paragraph NPC message); the export does not mark which, so they stay with the block above.
+- `[Instruction]: …` blocks are out-of-character instructions. Left out.
+- Examples and Openings use the same layout (`[(user)]:` in examples) but are templates, not story, so only `Session` is read.
+
+## Inside the story text, in both formats
+
+- **Hidden headers** `<hidden>…</hidden>`: the game's private state (nearby and off-scene characters, factions, a clock). They come as their own narration turn or at the end of an NPC's message. The tool splits them into their own block and tells the model to use them only to check who is where.
+- **Time and place lines** open scenes and, in some games, repeat on every turn of the same scene: `Day 0 · 20:47 · Place`, `[Day 0 · 22:54 · Place]`, or prose such as `Sunday 1 November, early afternoon.` Because they repeat, a stamp alone does not mark a new scene; the model is told that a scene changes with the place or a jump in time.
+- **Point of view** differs by game: first-person player turns, and narration in the second person ("you") or the third person with the persona's name. All refer to the player's character.
 
 ## What the tool sends
 
-1. Chat (`/chat/completions`): the editable system prompt, then one user message with the story title, the player's persona name, optional `<cast_cards>` (characters and locations, each cut to 1,500 characters) and `<role_play>` holding the last turns that fit the character budget (default 24,000), whole turns only. The model answers with JSON `{scene, characters[{name, description}], prompt}`; any other reply is used as the prompt as it came.
-2. Image: without references, the provider's image generation endpoint. With references, its edit endpoint (OpenRouter: JSON `input_references`; Requesty and custom: multipart `image[]`). Neither takes a caption per picture, so each portrait's typed name is added to the prompt as "reference image 1 is …".
+1. Chat (`/chat/completions`): the editable system prompt (it explains the layout above and what "the final moment of the last scene" is), then one user message with `<story>` (title, short description, the player's character), optional `<cast_cards>` (characters, the player, locations; each cut to 1,500 characters) and `<role_play>` holding the last turns that fit the character budget (default 24,000), whole turns only. The model answers with JSON `{scene, characters[{name, description}], prompt}`; any other reply is used as the prompt as it came.
+2. Image: without references, the provider's image generation endpoint. With references, its edit endpoint (OpenRouter: JSON `input_references`; Requesty and custom: multipart `image[]`). Portraits embedded in the export are attached for the characters the model lists. Neither API takes a caption per picture, so each portrait's typed name is added to the prompt as "reference image 1 is …".

@@ -192,3 +192,22 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .vg-models { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .vg-model { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
 .vg-stage { aspect-ratio: 16 / 9; border-radius: 8px; background: var(--code-bg); display: grid; place-items: center; color: var(--muted); }
+
+/* Draw the DreamGen Scene */
+.tool-step { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+.tool-step h3 { margin: 0; font-size: 15px; }
+.tool-form { display: flex; flex-direction: column; gap: 10px; }
+.tool-step .result { margin: 0; }
+.scene-preview { max-height: 320px; overflow: auto; white-space: pre-wrap; }
+.scene-chars { display: flex; flex-direction: column; gap: 8px; }
+.scene-chars:empty { display: none; }
+.scene-char { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 8px; }
+.scene-char > button { flex: none; }
+.scene-refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.scene-refs:empty { display: none; }
+.scene-refs figure { position: relative; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.scene-refs img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--border); border-radius: 6px; display: block; }
+.scene-refs button { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 12px; }
+.scene-refs input { font-size: 12px; padding: 4px 6px; }
+.scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
+.notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }

@@ -1278,6 +1278,30 @@ function base64ToFile(b64, type, base = 'image') {
   return new File([bytes], `${String(base).replace(/[^\w-]+/g, '_')}.${ext}`, { type });
 }
 
+// A rough, model-independent estimate: about 4 characters per token for English prose.
+const CHARS_PER_TOKEN = 4;
+const tokensFor = (text) => Math.round(text.length / CHARS_PER_TOKEN);
+const TRIM_MARK = '(Earlier Session turns were cut to save tokens.)';
+
+// Keeps the scenario part as it is and only the last `maxTokens` of the Session (the last
+// "## Session" heading), cut at a paragraph boundary so no turn is split in the middle.
+function trimSessionTo(text, maxTokens) {
+  const heads = [...text.matchAll(/^##[ \t]+Session[ \t]*$/gmi)];
+  if (!heads.length) return { error: 'No "## Session" heading found, so there is nothing to trim. Edit the text by hand instead.' };
+  const at = heads.at(-1).index + heads.at(-1)[0].length;
+  const head = text.slice(0, at);
+  const paras = text.slice(at).split(/\n\s*\n/).map((x) => x.trim()).filter((x) => x && x !== TRIM_MARK);
+  const budget = maxTokens * CHARS_PER_TOKEN;
+  let used = 0;
+  let start = paras.length;
+  while (start > 0 && (start === paras.length || used + paras[start - 1].length + 2 <= budget)) {
+    start -= 1;
+    used += paras[start].length + 2;
+  }
+  if (start === 0) return { text, cut: 0 };
+  return { text: `${head}\n\n${TRIM_MARK}\n\n${paras.slice(start).join('\n\n')}\n`, cut: start };
+}
+
 function renderDreamGenScene(root) {
   const st = { session: null, refs: [] }; // refs: [{ name, file }]
 
@@ -1288,6 +1312,9 @@ function renderDreamGenScene(root) {
   // 2. Prompt from a chat model. The whole export is the user message; it can be edited first.
   const exportBox = el('textarea', { name: 'export', rows: 14, class: 'mono scene-export', spellcheck: 'false', placeholder: 'Load a session export, or paste one here.' });
   const exportCount = el('span', { class: 'muted small' });
+  const undo = []; // earlier versions of the box, newest last
+  const undoBtn = el('button', { type: 'button', class: 'secondary', text: 'Undo', disabled: '', onclick: () => { if (undo.length) setExport(undo.pop(), { keepUndo: true }); } });
+  const trimNote = el('div', { class: 'muted small' });
   const promptForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
     el('div', { class: 'model-picker', 'data-category': 'chat' }),
     el('details', {}, el('summary', { text: 'System prompt' }),
@@ -1296,9 +1323,15 @@ function renderDreamGenScene(root) {
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
       'The whole export is sent, so a long game costs many tokens. To save tokens, edit it down here before sending: ',
-      'keep the cards you need and the end of the Session (from a little before the last scene), and delete the rest, such as early Session turns, Examples and Openings.'),
+      'Trim session keeps only the end of the Session. Above it, you can delete what the picture does not need, such as Examples, Openings and game rules.'),
     el('div', { class: 'row' },
-      el('button', { type: 'button', class: 'secondary', text: 'Restore the full export', onclick: () => { if (st.session) { exportBox.value = st.session.text; countExport(); } } })),
+      el('label', { class: 'inline' }, 'Keep the last',
+        el('select', { name: 'trim_tokens' }, ...[5, 10, 15, 20, 30].map((k) => el('option', { value: k * 1000, text: `${k}k`, selected: k === 15 || undefined }))),
+        'tokens of the Session'),
+      el('button', { type: 'button', class: 'secondary', text: 'Trim session', onclick: () => trimSession() }),
+      undoBtn,
+      el('button', { type: 'button', class: 'secondary', text: 'Restore the full export', onclick: () => { if (st.session) setExport(st.session.text); } })),
+    trimNote,
     el('div', { class: 'grid3' },
       el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' }))),
     el('label', {}, 'Note for this picture (optional)', el('input', { name: 'focus', placeholder: 'e.g. focus on the moment she opens the letter; wide shot' })),
@@ -1306,8 +1339,23 @@ function renderDreamGenScene(root) {
   const promptOut = el('div', { class: 'result' });
   const countExport = () => {
     const n = exportBox.value.length;
-    exportCount.textContent = n ? `(${n.toLocaleString()} characters, about ${Math.round(n / 4).toLocaleString()} tokens)` : '';
+    exportCount.textContent = n ? `(${n.toLocaleString()} characters, about ${tokensFor(exportBox.value).toLocaleString()} tokens)` : '';
+    undoBtn.disabled = !undo.length;
   };
+  // Replacing the text (trim, restore) can be undone; typing in the box uses the browser's own undo.
+  function setExport(text, { keepUndo = false } = {}) {
+    if (!keepUndo && exportBox.value && exportBox.value !== text) undo.push(exportBox.value);
+    exportBox.value = text;
+    trimNote.textContent = '';
+    countExport();
+  }
+  function trimSession() {
+    const { text, cut, error } = trimSessionTo(exportBox.value, Number(promptForm.elements.trim_tokens.value));
+    if (error) { trimNote.textContent = error; return; }
+    if (!cut) { trimNote.textContent = 'The Session is already within that size; nothing was cut.'; return; }
+    setExport(text);
+    trimNote.textContent = `Cut ${cut.toLocaleString()} paragraphs from the start of the Session. Check where it now begins; Undo puts them back.`;
+  }
   exportBox.addEventListener('input', countExport);
 
   // 3. Prompt, characters and reference portraits
@@ -1368,8 +1416,8 @@ function renderDreamGenScene(root) {
         el('div', {}, el('strong', { text: s.title }), ` · ${s.format} · ${s.turns.toLocaleString()} turns`,
           s.persona ? ` · player: ${s.persona}` : '',
           s.images.length ? ` · ${s.images.length} portraits embedded` : ''));
-      exportBox.value = s.text;
-      countExport();
+      undo.length = 0;
+      setExport(s.text, { keepUndo: true });
       // Embedded portraits are attached in step 3, for the characters the model puts in the scene.
       st.refs = [];
       renderRefs();

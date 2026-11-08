@@ -36,6 +36,11 @@ The first two tabs open a launcher of icon cards. Picking one fills the page und
 
 The other tabs are the endpoint testers: one per API, with the raw request and response.
 
+Every tab, hub and app has a direct link: add the tab's hash to the page address, for example
+https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-scene (Draw the DreamGen Scene),
+`#games/group-chat`, `#tools`, `#games`, or a tab such as `#chat`, `#image` or `#video`.
+The address follows your clicks, so you can copy it from the address bar.
+
 ## Plans
 
 - More providers and routers (e.g. OpenAI, Anthropic, Google, local Ollama) as presets in the endpoint picker.

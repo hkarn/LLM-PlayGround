@@ -1304,6 +1304,20 @@ function trimSessionTo(text, maxTokens) {
   return { text: `${head}\n\n${TRIM_MARK}\n\n${paras.slice(start).join('\n\n')}\n`, cut: start };
 }
 
+// Picture styles added to the end of the image prompt. "" leaves the style to the prompt.
+const SCENE_STYLES = [
+  ['', 'None'],
+  ['Photorealistic, like a photograph taken on location: natural light, real skin and fabric texture, shallow depth of field.', 'Photoreal'],
+  ['Cinematic film still: anamorphic widescreen look, dramatic but natural lighting, subtle film grain, colour-graded.', 'Cinematic still'],
+  ['Digital painting in the style of fantasy concept art: painterly brushwork, rich light and atmosphere.', 'Digital painting'],
+  ['Classical oil painting: visible brushstrokes, rich pigments, chiaroscuro lighting, canvas texture.', 'Oil painting'],
+  ['Watercolour illustration: soft washes, loose edges, paper texture, muted colours.', 'Watercolour'],
+  ['Anime style: clean line art, cel shading, expressive faces, detailed painted background.', 'Anime'],
+  ['Comic book / graphic novel panel: bold ink outlines, flat colours with hard shadows.', 'Comic / graphic novel'],
+  ['Pencil sketch: graphite on paper, hatching and smudged shading, no colour.', 'Pencil sketch'],
+  ['custom', 'Custom…'],
+];
+
 function renderDreamGenScene(root) {
   const st = { session: null, refs: [] }; // refs: [{ name, file }]
 
@@ -1369,11 +1383,21 @@ function renderDreamGenScene(root) {
   const refGrid = el('div', { class: 'scene-refs' });
   const refPicker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
   const addNames = el('input', { type: 'checkbox', checked: '' });
+  // The picture style is added to the prompt when it is drawn or copied, and remembered.
+  const styleSelect = el('select', { name: 'style' }, ...SCENE_STYLES.map(([v, t]) => el('option', { value: v, text: t })));
+  const styleCustom = el('input', { name: 'style_custom', placeholder: 'e.g. 1980s fantasy paperback cover, airbrushed' });
+  const syncStyle = () => { styleCustom.closest('label').hidden = styleSelect.value !== 'custom'; };
+  styleSelect.value = SCENE_STYLES.some(([v]) => v === store.get('dgscene_style')) ? store.get('dgscene_style') : '';
+  styleCustom.value = store.get('dgscene_style_custom') || '';
+  styleSelect.addEventListener('change', () => { store.set('dgscene_style', styleSelect.value); syncStyle(); });
+  styleCustom.addEventListener('input', () => store.set('dgscene_style_custom', styleCustom.value));
+  const styleText = () => (styleSelect.value === 'custom' ? styleCustom.value.trim() : styleSelect.value);
+  const withStyle = (text) => (styleText() ? `${text}\n\nStyle: ${styleText()}` : text);
   const copyNote = el('span', { class: 'muted small', text: 'Or copy it to use somewhere else, such as the DreamGen image generator, instead of step 4.' });
   // The prompt as written; the reference-name lines are only for step 4, where the portraits go too.
   async function copyPrompt() {
-    const text = promptBox.value.trim();
-    if (!text) { copyNote.textContent = 'There is no prompt to copy yet.'; return; }
+    if (!promptBox.value.trim()) { copyNote.textContent = 'There is no prompt to copy yet.'; return; }
+    const text = withStyle(promptBox.value.trim());
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -1425,6 +1449,9 @@ function renderDreamGenScene(root) {
       el('div', { class: 'row' },
         el('button', { type: 'button', class: 'secondary', text: 'Copy prompt', onclick: () => copyPrompt() }),
         copyNote),
+      el('div', { class: 'grid3' },
+        el('label', {}, 'Picture style', styleSelect),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', styleCustom)),
       charList,
       el('div', { class: 'row' },
         el('label', { class: 'inline' }, 'Add portraits ', refPicker),
@@ -1434,6 +1461,7 @@ function renderDreamGenScene(root) {
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   setupModelOptions(imageForm);
+  syncStyle();
   // The chosen models are remembered per provider, and each step's settings fold away once
   // its model is chosen, so a second run is: load the export, write the prompt, draw.
   rememberModel(promptForm, 'chat', ['max_tokens']);
@@ -1544,7 +1572,8 @@ function renderDreamGenScene(root) {
 
   // With references, "Reference image 1 shows …" lines tell the model who is who.
   function finalPrompt() {
-    const base = promptBox.value.trim();
+    if (!promptBox.value.trim()) return '';
+    const base = withStyle(promptBox.value.trim());
     const named = st.refs.map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
     if (!addNames.checked || !named.length) return base;
     return `${base}\n\nUse the reference images for the characters' faces and looks: ${named.join('; ')}.`;

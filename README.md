@@ -31,7 +31,7 @@ The first two tabs open a launcher of icon cards. Picking one fills the page und
 | Tab | App | Status |
 | --- | --- | --- |
 | **Games** | AI Group Chat: several AI characters, each on its own model, chat with you and each other | Placeholder layout |
-| **Tools** | Draw the DreamGen Scene: load a DreamGen session export (Markdown or JSON); a chat model reads it, finds the last scene and writes an image prompt with the characters named and described (edit the export down first to save tokens); add reference portraits with names if you like, then draw it on the selected endpoint, or copy the prompt to use in DreamGen's own image generator. Each step's settings can be hidden once its model is chosen, and the choices are remembered. Feedback goes to Zorander on the DreamGen Discord | Working |
+| **Tools** | Draw the DreamGen Scene: load a DreamGen session export (Markdown or JSON); a chat model reads it, finds the last scene and writes an image prompt with the characters named and described (edit the export down first to save tokens); add reference portraits with names if you like, then draw it on the selected endpoint, or copy the prompt to use in DreamGen's own image generator. A picture style (photoreal, painting, anime, comic, your own…) can be added to the prompt. Each step's settings can be hidden once its model is chosen, and the choices are remembered. Feedback goes to Zorander on the DreamGen Discord | Working |
 | **Tools** | Video Generator: only video models we have tested, with the options each one really supports | Placeholder layout |
 
 The other tabs are the endpoint testers: one per API, with the raw request and response.

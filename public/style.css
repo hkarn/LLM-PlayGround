@@ -215,3 +215,8 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .settings-bar { align-items: center; }
 .tool-settings { display: flex; flex-direction: column; gap: 10px; }
 .tool-settings[hidden] { display: none; }
+
+/* Long file inputs (e.g. "Add portraits") must not push past the card on phones. */
+.tool-step input[type=file] { max-width: 100%; min-width: 0; }
+.tool-step label.inline { flex-wrap: wrap; max-width: 100%; }
+.style-custom[hidden] { display: none; }

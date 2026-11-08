@@ -220,3 +220,6 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .tool-step input[type=file] { max-width: 100%; min-width: 0; }
 .tool-step label.inline { flex-wrap: wrap; max-width: 100%; }
 .style-custom[hidden] { display: none; }
+
+.cancel-btn { align-self: flex-start; }
+.cancel-btn[hidden] { display: none; }

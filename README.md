@@ -22,7 +22,7 @@ Option dropdowns follow the chosen model. On OpenRouter, image options (aspect r
 
 ## Privacy
 
-Run at https://hkarn.github.io/LLM-PlayGround/ or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser. GitHub Pages only serves the page files; with your own server, `server.js` forwards your requests to the endpoint you chose and logs only the method, path and status. What reaches a third party is what you send, with your own key, to the provider you picked (Requesty, OpenRouter or a custom endpoint), and what that provider and its models do with it is between you and them. The browser keeps your settings, chosen models and, if you tick Remember, your key in its own local storage.
+Run at https://hkarn.github.io/LLM-PlayGround/ or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser. GitHub Pages only serves the page files; with your own server, `server.js` forwards your requests to the endpoint you chose and logs only the method, path and status. What reaches a third party is what you send, with your own key, to the provider you picked (Requesty, OpenRouter or a custom endpoint), and what that provider and its models do with it is between you and them. The browser keeps your settings, chosen models and, if you tick Remember, your key in its own local storage, and the text you type in the forms in session storage (this tab only, gone when it closes) so a reload does not clear it.
 
 ## Games and Tools
 

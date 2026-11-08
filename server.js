@@ -2,13 +2,15 @@
 // LLM PlayGround – zero-dependency static server + pass-through proxy.
 //
 // The browser talks to /api/*, and this server forwards each request to the
-// Requesty router (default https://router.requesty.ai/v1). Going through a
-// local proxy avoids CORS problems and lets binary bodies (audio uploads,
-// TTS audio) pass through untouched.
+// endpoint chosen in the UI, sent as the X-Upstream-Base header (e.g.
+// https://router.requesty.ai/v1). Going through a local proxy avoids CORS
+// problems and lets binary bodies (audio uploads, TTS audio) pass through
+// untouched.
 //
 // The API key is entered in the UI and sent per request in the
-// Authorization header. The server never stores it. You can also set
-// REQUESTY_API_KEY, which is used when the browser sends no key.
+// Authorization header. The server never stores it. You can also set a key
+// per provider (REQUESTY_API_KEY, OPENROUTER_API_KEY). It is used when the
+// browser sends no key, and only for that provider's own domain.
 
 const http = require('node:http');
 const fs = require('node:fs');
@@ -18,8 +20,20 @@ const path = require('node:path');
 const PORT = process.env.PORT || 3000;
 const IS_TCP_PORT = /^\d+$/.test(String(PORT));
 const HOST = process.env.HOST || '127.0.0.1';
-const UPSTREAM = (process.env.REQUESTY_BASE_URL || 'https://router.requesty.ai/v1').replace(/\/+$/, '');
-const ENV_KEY = process.env.REQUESTY_API_KEY || '';
+// Server-side keys per provider. A key is only sent to hosts under that provider's domain.
+const PROVIDERS = {
+  requesty: { domain: 'requesty.ai', envVar: 'REQUESTY_API_KEY' },
+  openrouter: { domain: 'openrouter.ai', envVar: 'OPENROUTER_API_KEY' },
+};
+for (const p of Object.values(PROVIDERS)) p.key = process.env[p.envVar] || '';
+const onDomain = (host, domain) => host === domain || host.endsWith(`.${domain}`);
+// The UI can point at any URL (a custom or local endpoint). On a public server that would let
+// anyone use this proxy to reach other hosts, so other URLs are only allowed when listening on
+// a loopback address, unless ALLOW_ANY_UPSTREAM says otherwise.
+const IS_LOOPBACK = IS_TCP_PORT && ['127.0.0.1', 'localhost', '::1'].includes(HOST);
+const ALLOW_ANY_UPSTREAM = process.env.ALLOW_ANY_UPSTREAM
+  ? /^(1|true|yes)$/i.test(process.env.ALLOW_ANY_UPSTREAM)
+  : IS_LOOPBACK;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const MIME = {
@@ -31,7 +45,7 @@ const MIME = {
   '.ogg': 'audio/ogg',
 };
 
-// Request headers we pass on to Requesty.
+// Request headers we pass on upstream.
 const FORWARD_REQ_HEADERS = ['authorization', 'content-type', 'accept', 'http-referer', 'x-title'];
 // Response headers we drop (Node recomputes these, or fetch already decoded the body).
 const DROP_RES_HEADERS = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection']);
@@ -58,13 +72,34 @@ function readBody(req) {
   });
 }
 
+function sendError(res, status, message) {
+  res.writeHead(status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ error: { message } }));
+}
+
 async function proxy(req, res) {
-  const target = UPSTREAM + req.url.slice('/api'.length);
+  let base;
+  try {
+    base = new URL(String(req.headers['x-upstream-base'] || ''));
+    if (!['http:', 'https:'].includes(base.protocol)) throw new Error('bad protocol');
+  } catch {
+    sendError(res, 400, 'Set a base URL that starts with http:// or https://.');
+    return;
+  }
+  const known = Object.values(PROVIDERS).some((p) => onDomain(base.hostname, p.domain));
+  if (!known && !ALLOW_ANY_UPSTREAM) {
+    sendError(res, 403, `This server only proxies to known providers. Set ALLOW_ANY_UPSTREAM=1 on the server to allow ${base.origin}.`);
+    return;
+  }
+  const target = base.href.replace(/\/+$/, '') + req.url.slice('/api'.length);
   const headers = {};
   for (const h of FORWARD_REQ_HEADERS) {
     if (req.headers[h]) headers[h] = req.headers[h];
   }
-  if (!headers.authorization && ENV_KEY) headers.authorization = `Bearer ${ENV_KEY}`;
+  const provider = Object.hasOwn(PROVIDERS, req.headers['x-upstream-provider']) ? PROVIDERS[req.headers['x-upstream-provider']] : null;
+  if (!headers.authorization && provider?.key && base.protocol === 'https:' && onDomain(base.hostname, provider.domain)) {
+    headers.authorization = `Bearer ${provider.key}`;
+  }
   const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0];
   headers['http-referer'] ||= `${proto}://${req.headers.host || `${HOST}:${PORT}`}`;
   headers['x-title'] ||= 'LLM PlayGround';
@@ -95,8 +130,7 @@ async function proxy(req, res) {
       return;
     }
     console.error(`${req.method} ${target} failed:`, err);
-    res.writeHead(502, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ error: { message: `Proxy could not reach ${target}: ${err.message}` } }));
+    sendError(res, 502, `Proxy could not reach ${target}: ${err.message}`);
   }
 }
 
@@ -121,7 +155,8 @@ http
   .createServer((req, res) => {
     if (req.url === '/config') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ upstream: UPSTREAM, hasEnvKey: Boolean(ENV_KEY) }));
+      const providers = Object.fromEntries(Object.entries(PROVIDERS).map(([id, p]) => [id, { hasEnvKey: Boolean(p.key) }]));
+      res.end(JSON.stringify({ providers, allowAnyUpstream: ALLOW_ANY_UPSTREAM }));
     } else if (req.url.startsWith('/api/')) {
       proxy(req, res);
     } else {
@@ -130,5 +165,6 @@ http
   })
   .listen(...(IS_TCP_PORT ? [Number(PORT), HOST] : [PORT]), () => {
     console.log(`LLM PlayGround running at ${IS_TCP_PORT ? `http://${HOST}:${PORT}` : PORT}`);
-    console.log(`Proxying /api/* -> ${UPSTREAM}${ENV_KEY ? ' (REQUESTY_API_KEY set)' : ''}`);
+    const keys = Object.values(PROVIDERS).filter((p) => p.key).map((p) => p.envVar);
+    console.log(`Proxying /api/* to the endpoint chosen in the UI${ALLOW_ANY_UPSTREAM ? '' : ' (known providers only)'}${keys.length ? `. Server keys: ${keys.join(', ')}` : ''}`);
   });

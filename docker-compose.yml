@@ -6,8 +6,11 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      # Optional: preset a key so the UI works without typing one.
-      # Put REQUESTY_API_KEY=sk-... in a .env file next to this file.
+      # Optional: preset keys so the UI works without typing one.
+      # Put REQUESTY_API_KEY=sk-... and/or OPENROUTER_API_KEY=sk-or-... in a .env file next to this file.
       REQUESTY_API_KEY: ${REQUESTY_API_KEY:-}
-      REQUESTY_BASE_URL: ${REQUESTY_BASE_URL:-https://router.requesty.ai/v1}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # The port is only published on 127.0.0.1, so custom endpoints are allowed by default.
+      # Set it to 0 if you publish the port to other machines.
+      ALLOW_ANY_UPSTREAM: ${ALLOW_ANY_UPSTREAM:-1}
     restart: unless-stopped

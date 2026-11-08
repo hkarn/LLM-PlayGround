@@ -16,6 +16,7 @@ const el = (tag, attrs = {}, ...children) => {
 };
 
 // Category keys match the `api` field Requesty returns from GET /v1/models/all.
+// Other providers are mapped onto them in categorize().
 const CATEGORY_LABEL = {
   chat: 'Chat', decision: 'Decision', embedding: 'Embeddings', image: 'Image', speech: 'Speech', transcription: 'Transcription',
 };
@@ -24,21 +25,44 @@ const ENDPOINT = {
   image: '/images/generations', imageEdit: '/images/edits', speech: '/audio/speech', transcription: '/audio/transcriptions',
 };
 
-const state = {
-  models: [],         // raw model objects from /models
-  upstream: 'https://router.requesty.ai/v1',
-  apiBase: null,      // 'api' through server.js, or the upstream URL when calling Requesty directly
+// Endpoints in the picker. `baseUrl` is only a suggestion: the URL field can be edited.
+// `modelsPaths` are fetched and merged. `keyEnv` is the server.js env var and the name used in cURL.
+// `unsupported` lists tabs the provider has no endpoint for; they stay usable but are dimmed.
+const PROVIDERS = {
+  requesty: {
+    label: 'Requesty', baseUrl: 'https://router.requesty.ai/v1', modelsPaths: ['/models/all'],
+    keyEnv: 'REQUESTY_API_KEY', keyHint: 'sk-…', signup: { href: 'https://app.requesty.ai/join?ref=b1f2b1e1', text: 'No key? Sign up for Requesty' },
+  },
+  openrouter: {
+    label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', modelsPaths: ['/models', '/embeddings/models'],
+    keyEnv: 'OPENROUTER_API_KEY', keyHint: 'sk-or-…', signup: { href: 'https://openrouter.ai/keys', text: 'No key? Get one at OpenRouter' },
+    unsupported: ['decision', 'image-edit'],
+  },
+  custom: {
+    label: 'Custom (OpenAI-compatible)', baseUrl: '', modelsPaths: ['/models'], keyEnv: 'API_KEY', keyHint: 'if needed',
+  },
 };
 
+const state = {
+  models: [],         // raw model objects from the provider's model list
+  provider: 'requesty',
+  keys: {},           // keys typed this session, per provider, so switching back keeps them
+  viaServer: false,   // true when server.js serves the page and proxies /api/*
+  config: null,       // server.js `config`, or null on a static host
+};
+const provider = () => PROVIDERS[state.provider];
+const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
+
 // Use the server.js proxy when it serves the page. On a static host (e.g. GitHub Pages)
-// there is no `config`, so call Requesty directly, which allows CORS from any origin.
-// Paths are relative so the app also works from a subfolder.
+// there is no `config`, so call the provider directly. Requesty and OpenRouter allow CORS
+// from any origin. Paths are relative so the app also works from a subfolder.
 const serverConfig = fetch('config')
   .then((r) => (r.ok ? r.json() : null))
   .catch(() => null)
   .then((cfg) => {
-    if (cfg?.upstream) { state.upstream = cfg.upstream; state.apiBase = 'api'; } else state.apiBase = state.upstream;
-    return cfg;
+    state.config = cfg?.providers ? cfg : null;
+    state.viaServer = Boolean(state.config);
+    return state.config;
   });
 
 /* ------------------------------------------------------------------ */
@@ -53,10 +77,15 @@ const store = {
 /* ------------------------------------------------------------------ */
 /* Model categorisation                                                */
 /* ------------------------------------------------------------------ */
-// GET /v1/models/all tags every model with its modality in `api`. The name-based
-// fallback only kicks in for entries without that field.
+// Requesty's GET /v1/models/all tags every model with its modality in `api`. OpenRouter lists
+// the endpoints each model works with in `endpoints`. The name-based fallback is for the rest.
 function categorize(model) {
   if (model.api && CATEGORY_LABEL[model.api]) return model.api;
+  if (Array.isArray(model.endpoints)) {
+    if (model.endpoints.some((e) => e.endsWith('/embeddings'))) return 'embedding';
+    if (model.endpoints.some((e) => e.endsWith('/images'))) return 'image';
+    return 'chat';
+  }
   const id = String(model.id || '').toLowerCase();
   if (/embed/.test(id)) return 'embedding';
   if (/whisper|transcribe/.test(id)) return 'transcription';
@@ -74,17 +103,26 @@ function apiKey() { return $('#api-key').value.trim(); }
 
 async function callApi(path, { method = 'POST', json, formData } = {}) {
   await serverConfig;
+  const base = baseUrl();
+  if (!/^https?:\/\/./.test(base)) throw new Error('Enter a base URL that starts with http:// or https://.');
   const headers = {};
   const key = apiKey();
   if (key) headers.Authorization = `Bearer ${key}`;
-  // server.js adds these itself; direct calls send them so Requesty can attribute the app.
-  if (state.apiBase !== 'api') Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+  if (state.viaServer) {
+    // server.js forwards to this URL, and picks a server-side key by provider when no key is typed.
+    Object.assign(headers, { 'X-Upstream-Base': base, 'X-Upstream-Provider': state.provider });
+  } else {
+    // server.js adds these itself; direct calls send them so routers can attribute the app.
+    Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+  }
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
   if (formData) body = formData;
 
   const t0 = performance.now();
-  const res = await fetch(`${state.apiBase}${path}`, { method, headers, body });
+  // no-store: through server.js every endpoint shares the same /api/* URLs, so a cached
+  // GET /api/models from one provider would otherwise be reused for another.
+  const res = await fetch(`${state.viaServer ? 'api' : base}${path}`, { method, headers, body, cache: 'no-store' });
   const ms = Math.round(performance.now() - t0);
   const contentType = res.headers.get('content-type') || '';
   const respHeaders = Object.fromEntries(res.headers.entries());
@@ -114,7 +152,7 @@ function errorMessage(resp) {
 /* ------------------------------------------------------------------ */
 const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 function curlFor(path, { json, formFields }) {
-  const lines = [`curl ${state.upstream}${path}`, `  -H "Authorization: Bearer $REQUESTY_API_KEY"`];
+  const lines = [`curl ${baseUrl()}${path}`, `  -H "Authorization: Bearer $${provider().keyEnv}"`];
   if (json !== undefined) {
     lines.push(`  -H "Content-Type: application/json"`, `  -d ${shq(JSON.stringify(json, null, 2))}`);
   }
@@ -194,8 +232,9 @@ function setupPicker(picker) {
     const ctx = m.context_window ?? m.context_length ?? m.max_context_length;
     if (ctx) bits.push(`context ${Number(ctx).toLocaleString()}`);
     const perM = (x) => `$${+(Number(x) * 1e6).toPrecision(4)}/M`;
-    const inP = m.input_price ?? m.pricing?.input;
-    const outP = m.output_price ?? m.pricing?.output;
+    // Requesty: input_price/output_price. OpenRouter: pricing.prompt/completion, as strings.
+    const inP = m.input_price ?? m.pricing?.input ?? m.pricing?.prompt;
+    const outP = m.output_price ?? m.pricing?.output ?? m.pricing?.completion;
     if (inP != null) bits.push(`in ${perM(inP)}`);
     if (outP != null) bits.push(`out ${perM(outP)}`);
     // Non-chat models only have per-unit keys in `pricing`, e.g. input_character, input_second, output_image.
@@ -235,21 +274,42 @@ async function loadModels() {
   const btn = $('#key-form button');
   btn.disabled = true;
   status.textContent = 'Loading models…';
+  const forProvider = state.provider;
   try {
-    const resp = await callApi('/models/all', { method: 'GET' });
-    $('#models-raw').textContent = JSON.stringify(resp.data, null, 2);
-    if (!resp.ok) throw new Error(errorMessage(resp));
-    const list = Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.models || []);
+    const list = [];
+    const raw = {};
+    const skipped = [];
+    // The first path is required. The others add to it and are skipped on failure, e.g.
+    // OpenRouter's /embeddings/models, which browsers can't call directly (no CORS).
+    for (const [i, path] of provider().modelsPaths.entries()) {
+      let resp;
+      try {
+        resp = await callApi(path, { method: 'GET' });
+      } catch (err) {
+        if (i === 0) throw err;
+        skipped.push(`${path} (${err.message})`);
+        continue;
+      }
+      raw[path] = resp.data;
+      if (!resp.ok) {
+        if (i === 0) { $('#models-raw').textContent = JSON.stringify(resp.data, null, 2); throw new Error(errorMessage(resp)); }
+        skipped.push(`${path} (${errorMessage(resp)})`);
+        continue;
+      }
+      list.push(...(Array.isArray(resp.data) ? resp.data : (resp.data?.data || resp.data?.models || [])));
+    }
+    if (forProvider !== state.provider) return; // switched provider while loading
+    $('#models-raw').textContent = JSON.stringify(Object.keys(raw).length === 1 ? Object.values(raw)[0] : raw, null, 2);
     state.models = list
       .map((m) => (typeof m === 'string' ? { id: m } : m))
       .map((m) => ({ ...m, _category: categorize(m) }))
       .sort((a, b) => a.id.localeCompare(b.id));
     const counts = Object.keys(CATEGORY_LABEL).map((c) => `${modelsIn(c).length} ${c}`).join(', ');
-    status.textContent = `${state.models.length} models (${counts})`;
+    status.textContent = `${state.models.length} models (${counts})${skipped.length ? `. Skipped ${skipped.join(', ')}` : ''}`;
     refreshPickers();
     renderModelsTable();
   } catch (err) {
-    status.textContent = `Could not load models: ${err.message}`;
+    if (forProvider === state.provider) status.textContent = `Could not load models: ${err.message}`;
   } finally {
     btn.disabled = false;
   }
@@ -260,7 +320,7 @@ function renderModelsTable() {
   const filter = $('#model-filter').value.trim().toLowerCase();
   const rows = state.models.filter((m) => !filter || JSON.stringify(m).toLowerCase().includes(filter));
   // Show a handful of common scalar columns that actually exist in the data.
-  const candidates = ['context_window', 'max_output_tokens', 'input_price', 'output_price', 'cached_price',
+  const candidates = ['context_window', 'context_length', 'max_output_tokens', 'input_price', 'output_price', 'cached_price',
     'supports_vision', 'supports_tool_calling', 'supports_reasoning', 'supports_caching', 'supports_output_json_schema'];
   const cols = candidates.filter((c) => state.models.some((m) => m[c] != null && typeof m[c] !== 'object'));
   cols.splice(0, 0, ...['geolocation'].filter((c) => state.models.some((m) => m[c] != null)));
@@ -773,15 +833,37 @@ function init() {
   const savedTab = store.get('tab');
   if (savedTab) $(`.tabs button[data-tab="${savedTab}"]`)?.click();
 
-  // Key
-  const savedKey = store.get('requesty_key');
-  if (savedKey) { $('#api-key').value = savedKey; $('#remember-key').checked = true; }
+  // Endpoint and key. Keys are remembered per provider.
+  const keyName = () => `key_${state.provider}`;
+  const legacyKey = store.get('requesty_key');
+  if (legacyKey && !store.get('key_requesty')) store.set('key_requesty', legacyKey);
+  store.del('requesty_key');
+  const providerSelect = $('#provider');
+  providerSelect.replaceChildren(...Object.entries(PROVIDERS).map(([id, p]) => el('option', { value: id, text: p.label })));
+  const savedProvider = store.get('provider');
+  if (PROVIDERS[savedProvider]) state.provider = savedProvider;
+  providerSelect.value = state.provider;
+  $('#base-url').addEventListener('change', () => {
+    const url = baseUrl();
+    if (url && url !== provider().baseUrl) store.set(`base_${state.provider}`, url); else store.del(`base_${state.provider}`);
+  });
+  $('#reset-url').addEventListener('click', () => {
+    $('#base-url').value = provider().baseUrl;
+    store.del(`base_${state.provider}`);
+    $('#base-url').focus();
+  });
+  providerSelect.addEventListener('change', () => {
+    state.keys[state.provider] = apiKey();
+    state.provider = providerSelect.value;
+    store.set('provider', state.provider);
+    applyProvider();
+  });
   $('#key-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    if ($('#remember-key').checked && apiKey()) store.set('requesty_key', apiKey()); else store.del('requesty_key');
+    if ($('#remember-key').checked && apiKey()) store.set(keyName(), apiKey()); else store.del(keyName());
     loadModels();
   });
-  $('#remember-key').addEventListener('change', (e) => { if (!e.target.checked) store.del('requesty_key'); });
+  $('#remember-key').addEventListener('change', (e) => { if (!e.target.checked) store.del(keyName()); });
 
   // Pickers & forms
   $$('.model-picker').forEach(setupPicker);
@@ -823,10 +905,42 @@ function init() {
 
   $('#model-filter').addEventListener('input', renderModelsTable);
 
+  applyProvider();
+}
+
+// Fills the URL, key and links for the chosen provider, clears the old model list and
+// loads the new one when a key is available.
+function applyProvider() {
+  const p = provider();
+  $('#base-url').value = store.get(`base_${state.provider}`) || p.baseUrl;
+  const saved = store.get(`key_${state.provider}`);
+  $('#api-key').value = state.keys[state.provider] ?? saved ?? '';
+  $('#remember-key').checked = Boolean(saved);
+  const link = $('#signup-link');
+  link.hidden = !p.signup;
+  if (p.signup) { link.href = p.signup.href; link.textContent = p.signup.text; }
+  $$('.tabs button').forEach((b) => {
+    const off = p.unsupported?.includes(b.dataset.tab);
+    b.classList.toggle('unsupported', Boolean(off));
+    b.title = off ? `${p.label} has no endpoint for this tab` : '';
+  });
+
+  state.models = [];
+  $('#models-raw').textContent = '';
+  refreshPickers();
+  renderModelsTable();
+
+  const hasEnvKey = () => Boolean(state.config?.providers?.[state.provider]?.hasEnvKey);
+  const showKeyHint = () => {
+    $('#api-key').placeholder = hasEnvKey() ? `Using ${p.keyEnv} from server (optional override)` : `${p.label} API key (${p.keyHint})`;
+  };
+  showKeyHint();
+  $('#models-status').textContent = 'No models loaded.';
   serverConfig.then((cfg) => {
-    if (!cfg) $('#models-status').textContent = 'No models loaded. Calling Requesty directly from the browser.';
-    if (cfg?.hasEnvKey && !apiKey()) $('#api-key').placeholder = 'Using REQUESTY_API_KEY from server (optional override)';
-    if (apiKey() || cfg?.hasEnvKey) loadModels();
+    if (p !== provider()) return;
+    showKeyHint();
+    if (!cfg) $('#models-status').textContent = `No models loaded. Calling ${p.label} directly from the browser.`;
+    if (apiKey() || hasEnvKey()) loadModels();
   });
 }
 

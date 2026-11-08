@@ -17,15 +17,22 @@
 <body>
 <header class="topbar">
   <h1>LLM PlayGround</h1>
+  <div class="endpoint-picker">
+    <label for="provider" class="sr-only">Endpoint</label>
+    <select id="provider" title="Provider or router"></select>
+    <label for="base-url" class="sr-only">Base URL</label>
+    <input id="base-url" type="text" placeholder="Base URL, e.g. http://localhost:11434/v1" spellcheck="false" title="Base URL. Edit it to use another region or a compatible endpoint.">
+    <button type="button" id="reset-url" class="icon" title="Reset to the provider's default URL">↺</button>
+  </div>
   <form id="key-form" class="key-form" autocomplete="off">
     <label for="api-key" class="sr-only">API key</label>
-    <input id="api-key" type="password" placeholder="Requesty API key (sk-…)" spellcheck="false">
+    <input id="api-key" type="password" placeholder="API key" spellcheck="false">
     <label class="inline"><input id="remember-key" type="checkbox"> Remember</label>
     <button type="submit">Load models</button>
   </form>
   <div id="models-status" class="muted small">No models loaded.</div>
   <div class="topbar-links small">
-    <a href="https://app.requesty.ai/join?ref=b1f2b1e1" target="_blank" rel="noopener">No key? Sign up for Requesty</a>
+    <a id="signup-link" href="https://app.requesty.ai/join?ref=b1f2b1e1" target="_blank" rel="noopener">No key? Sign up for Requesty</a>
     <a href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener">Source on GitHub</a>
   </div>
 </header>

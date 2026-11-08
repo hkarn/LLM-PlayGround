@@ -1,13 +1,15 @@
 # LLM PlayGround
 
-A web playground for LLM providers and routers, plus a place for small LLM-based experiments such as games. Live at https://hkarn.github.io/LLM-PlayGround/. Forked by copy from requesty-tester, so Requesty is the only provider so far; more providers and routers are planned.
+A web playground for LLM providers and routers, plus a place for small LLM-based experiments such as games. Live at https://hkarn.github.io/LLM-PlayGround/. Forked by copy from requesty-tester. Endpoints so far: Requesty, OpenRouter and a custom OpenAI-compatible URL.
 
 - Run: `node server.js` (Node 18+, no dependencies), then open http://127.0.0.1:3000. Docker: `docker compose up`.
-- `server.js` serves `public/` and proxies `/api/*` to `REQUESTY_BASE_URL` (default `https://router.requesty.ai/v1`).
-- Without `server.js` (GitHub Pages), `app.js` finds no `config` and calls Requesty directly, which allows CORS. Keep every path in `public/` relative so it works from the `/LLM-PlayGround/` subfolder.
+- Endpoints are `PROVIDERS` in `app.js` (label, suggested `baseUrl`, `modelsPaths`, `keyEnv`, `unsupported` tabs). The base URL field is editable; each provider keeps its own key and edited URL in `localStorage`.
+- `server.js` serves `public/` and proxies `/api/*` to the `X-Upstream-Base` header the page sends. Its own `PROVIDERS` maps a provider to its domain and server key env var (`REQUESTY_API_KEY`, `OPENROUTER_API_KEY`); a server key is only sent to that domain over https. Other hosts need `ALLOW_ANY_UPSTREAM` (default on only for a loopback `HOST`). Add new providers in both files.
+- Without `server.js` (GitHub Pages), `app.js` finds no `config` and calls the base URL directly. Requesty and OpenRouter allow CORS. Keep every path in `public/` relative so it works from the `/LLM-PlayGround/` subfolder.
 - Workflows: `docker.yml` pushes `ghcr.io/hkarn/llm-playground` on `main`; `pages.yml` publishes `public/` to Pages.
 - The UI is plain JS in `public/app.js`, with one handler per tab in `handlers`.
 - The Requesty API source of truth is `docs/requesty-inference-openapi.json`. Check request and response formats there before changing a handler. Put specs for new providers in `docs/` too.
+- OpenRouter: models come from `/models` plus `/embeddings/models`; each model's `endpoints` array (e.g. `/api/v1/embeddings`, `/api/v1/images`) decides its tab. Pricing is `pricing.prompt`/`completion` as strings per token. It has no `/decisions` or `/images/edits`.
 - Keep it dependency-free: no build step and no npm packages.
 
 ## Where the live Requesty API differs from the spec

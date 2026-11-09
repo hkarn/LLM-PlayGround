@@ -264,7 +264,7 @@ export function renderGroupChat(root) {
     });
     if (run.current) {
       items.push(el('div', { class: 'gc-msg typing' }, avatar(run.current.name, run.current.color),
-        el('div', { class: 'bubble' }, el('div', { class: 'small muted', text: run.current.name }), el('span', { class: 'dots', text: '…' }))));
+        el('div', { class: 'bubble' }, el('div', { class: 'small muted', text: run.current.name }), el('span', { class: 'gc-dots', text: '…' }))));
     }
     if (!items.length) items.push(el('div', { class: 'muted gc-empty', text: 'Say something to start, or press "Another round" to let the characters open the chat.' }));
     log.replaceChildren(...items);

@@ -135,6 +135,25 @@
         "2026-11-08: photoreal face as first frame: kept; a square frame stayed square"
       ]
     },
+    "bytedance/seedance-1-5-pro": {
+      "label": "Seedance 1.5 Pro",
+      "frames": [
+        "first_frame",
+        "last_frame"
+      ],
+      "audio": "optional",
+      "faces": "kept AI-made faces",
+      "default": {
+        "duration": 4,
+        "resolution": "480p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false
+      },
+      "note": "First and last frame, 4–12 s, from 480p. Kept AI-made faces, unlike Seedance 2.0. Audio can be turned on or off (off is half the price). With audio on it may invent dialogue that fits the scene. Priced per video token, so the price is an estimate.",
+      "tested": [
+        "2026-11-09 (owner): AI-made faces as first frame at the lowest settings: faces kept, about a tenth of HappyHorse 1.1's price; the audio switch works both ways; with audio on it invented dialogue that fitted the story"
+      ]
+    },
     "x-ai/grok-imagine-video": {
       "label": "Grok Imagine",
       "frames": [

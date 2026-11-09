@@ -40,6 +40,7 @@ These are cheap tests, one or two runs per model with plain pictures (November 2
 | --- | --- |
 | Mischief 1 | The cheapest. Needs a first frame; 16:9, 3 or 5 s. Kept a realistic face |
 | Grok Imagine 1.5 lite | Text or first frame, 1–15 s. Always has audio. Keeps the frame's shape whatever aspect ratio you ask for. Kept a realistic face |
+| Seedance 1.5 Pro | First and last frame, 4–12 s, from 480p. Kept AI-made faces (unlike Seedance 2.0). Audio can be turned off (half the price); with audio on it may invent dialogue that fits the scene. Priced per video token (an estimate) |
 | Grok Imagine | Like 1.5 lite, about twice the price |
 | Gemini Omni 1.2 Flash | Text, first frame, or first and last. 360p is the cheap tier. Always has audio |
 | Kling 3.0 Standard | First and last frame, 3–15 s, 720p. Audio can be turned on or off (off is cheaper). Kept realistic characters with mildly alien faces |

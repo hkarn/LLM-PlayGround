@@ -13,8 +13,10 @@
   --link: #3f3fc4;
   --link-visited: #6b3fb8;
 }
+/* Dark colours: from the system setting while the theme is Auto, or chosen with the theme toggle
+   (data-theme on <html>, set by the script in index.html and ui/theme.js). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme=light]) {
     --bg: #131417;
     --surface: #1c1d21;
     --text: #e8e9ec;
@@ -30,11 +32,28 @@
     --link-visited: #d0b0ff;
   }
 }
+:root[data-theme=dark] {
+  --bg: #131417;
+  --surface: #1c1d21;
+  --text: #e8e9ec;
+  --muted: #9a9ea8;
+  --border: #33353b;
+  --accent: #8b8bf0;
+  --accent-text: #111;
+  --ok: #4fc283;
+  --err: #ff7a70;
+  --code-bg: #24262b;
+  --highlight: #2c2c4a;
+  --link: #a8b0ff;
+  --link-visited: #d0b0ff;
+}
 
 * { box-sizing: border-box; }
 /* Thin scrollbars in the theme's own colours (page, settings panel, text boxes), instead of the
    browser's light grey ones; color-scheme lets the browser draw the rest of its controls dark too. */
 :root { color-scheme: light dark; }
+:root[data-theme=light] { color-scheme: light; }
+:root[data-theme=dark] { color-scheme: dark; }
 * { scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
 body {
   margin: 0;
@@ -115,7 +134,16 @@ html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
 .models-status { color: var(--muted); overflow-wrap: anywhere; }
 .models-status.err { color: var(--err); }
 .conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
-.gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
+/* Icon buttons at the end of the bar: the theme toggle and the GitHub link (one SVG in the text
+   colour, so it suits both themes). */
+.icon-link {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; padding: 0; border: none; border-radius: 8px; background: none;
+  color: var(--muted); cursor: pointer;
+}
+.icon-link:hover, .icon-link:visited:hover { color: var(--text); background: var(--bg); }
+.icon-link:visited { color: var(--muted); }
+.icon-link svg { width: 20px; height: 20px; }
 /* The fitting steps. The tabs sit in .nav-wrap, which lays out as if it weren't there until .menu
    folds it into a drop-down under #nav-menu. */
 .nav-wrap { display: contents; }
@@ -143,7 +171,14 @@ html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
 }
 .topbar.menu .nav-wrap .tabs button.active, .topbar.menu .nav-wrap .tester-toggle.active { border-left-color: var(--accent); background: var(--highlight); }
 .topbar.menu h1 { font-size: 15px; }
-.topbar.tight .conn-state, .topbar.tight .gh-link { display: none; }
+.topbar.tight .conn-state, .topbar.tight .gh-link, .topbar.tight #theme-toggle { display: none; }
+/* The theme entry in the drop-down: only there once the icon has left the bar. */
+.theme-item { display: none; }
+.topbar.tight .nav-wrap.open .theme-item {
+  display: block; text-align: left; padding: 9px 12px; margin-top: 4px; border: none;
+  border-top: 1px solid var(--border); border-radius: 0 0 6px 6px; background: none; color: var(--muted); cursor: pointer;
+}
+.topbar.tight .nav-wrap.open .theme-item:hover { color: var(--text); }
 .topbar.tight .conn-chip { padding: 6px 10px; gap: 6px; }
 .topbar.tiny h1 { font-size: 13.5px; margin-right: 2px; }
 .topbar.tiny .nav-menu { padding: 6px 8px; }

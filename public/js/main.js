@@ -8,6 +8,7 @@ import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
 import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
+import { setupTheme } from './ui/theme.js';
 import { setupTopBar } from './ui/top-bar.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
@@ -18,6 +19,8 @@ import { runStep } from './ui/run-step.js';
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
 export async function init() {
+  setupTheme(); // first, so the toggle works even if the provider list fails to load
+
   // Tabs
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;

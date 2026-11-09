@@ -62,7 +62,7 @@ A key typed in the page always wins over the one in `.env`. Only do this on your
 
 | Where | What |
 | --- | --- |
-| **Welcome** | What the site is, how to start, links to every tool, and for each provider how hard it is to set up, the steps and its sign-up link (click the **LLM PlayGround** title to get back here) |
+| **Welcome** | What the site is, how to start, links to every tool, and for each provider how hard it is to set up, the steps and its sign-up link (click the **LLM PlayGround** title to get back here). The sun, moon or half circle at the top right switches between light, dark and your system's setting |
 | **Tools** | Draw the DreamGen Scene · Animate the DreamGen Scene · Video Generator |
 | **Games** | AI Group Chat |
 | **API tester ▸** | Chat, Decision, Embeddings, Rerank, Image, Image edit, Video, Speech, Transcriptions |

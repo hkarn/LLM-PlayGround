@@ -12,6 +12,8 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="LLM PlayGround">
   <meta name="twitter:description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM tools and games. Works with OpenRouter, Requesty, LLM Gateway or any OpenAI-compatible endpoint. Bring your own API key.">
+  <!-- The theme chosen with the toggle (ui/theme.js), set before the page draws so it never flashes. -->
+  <script>try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch { /* storage blocked */ }</script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -33,6 +35,8 @@
   <nav class="tabs main-tabs" role="tablist" aria-label="Models">
     <button role="tab" data-tab="models">Filter<span class="opt"> models</span></button>
   </nav>
+  <!-- The theme toggle's place on a narrow screen, where the icon leaves the bar (ui/theme.js). -->
+  <button type="button" class="theme-item" hidden></button>
   </div>
   <!-- Connection: a chip that shows the provider, URL and model status, and opens the settings. -->
   <div class="conn">
@@ -66,7 +70,9 @@
       <p class="conn-signup small muted">No key? Get one at <span id="signup-links"></span> · <a href="#providers">Which provider?</a></p>
     </div>
   </div>
-  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener"><span class="opt">Source on </span>GitHub</a>
+  <!-- Theme: Auto (follow the system), Light or Dark; each click moves to the next. -->
+  <button type="button" id="theme-toggle" class="icon-link" title="Theme: Auto" aria-label="Theme: Auto"></button>
+  <a class="gh-link icon-link" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener" title="Source on GitHub" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
 </header>
 
 <nav id="tester-tabs" class="tabs tester-tabs" role="tablist" aria-label="API tester" hidden>

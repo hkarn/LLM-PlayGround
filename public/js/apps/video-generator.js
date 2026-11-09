@@ -1,11 +1,11 @@
 /* LLM PlayGround: Tool: Video Generator. Makes a clip with one of the tested video models in the
    provider file's videoModels, offering only that model's options and showing the price before
    sending. The Video tab stays the raw tester for every video model. */
-import { state, store } from '../core.js';
+import { PROVIDERS, state, store } from '../core.js';
 import { $, el } from '../ui/dom.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
-import { downloadVideo, formatUsd, runVideoJob } from '../ui/video-job.js';
+import { downloadVideo, priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
 const LOG_KEY = 'videogen:jobs'; // finished jobs (no video data): model, prompt, cost, job id
@@ -26,7 +26,7 @@ export function renderVideoGenerator(root) {
     el('div', { class: 'placeholder-note' },
       el('p', { class: 'small', style: 'margin: 0' },
         'Only video models we have run for real are listed, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). ',
-        'The price is estimated from the model\'s published prices before you send; the billed cost is shown after. ',
+        'Prices are relative, from $ (cheapest) to $$$$$: estimated from the model\'s published prices before you send, and what was billed after. ',
         'For any other video model, and the raw request and response, use the ', el('a', { href: '#video', text: 'Video tab' }), '.')),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Make a clip' }), form, out),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Your clips' }),
@@ -56,6 +56,8 @@ export function renderVideoGenerator(root) {
       ...entries.map((e) => {
         const url = clips.get(e.id);
         const fetchAgain = el('button', { type: 'button', class: 'secondary', text: 'Fetch the video again', onclick: async () => {
+          // Job ids belong to one provider; the button is only drawn for it, and checked again here.
+          if (e.provider !== state.provider) { drawGallery(); return; }
           fetchAgain.disabled = true;
           const v = await downloadVideo(e.id).catch((err) => ({ ok: false, error: err.message }));
           if (v.ok) { clips.set(e.id, URL.createObjectURL(v.blob)); drawGallery(); } else { fetchAgain.replaceWith(el('span', { class: 'error small', text: v.error })); }
@@ -64,9 +66,10 @@ export function renderVideoGenerator(root) {
         return el('div', { class: 'vg-clip' },
           url ? player(url, e.id) : null,
           el('div', { class: 'small' }, el('strong', { text: e.label || e.model }), ` · ${[e.duration && `${e.duration} s`, e.resolution, e.aspect_ratio].filter(Boolean).join(' · ')}`,
-            e.cost != null ? ` · ${formatUsd(Number(e.cost))}` : '', ` · ${new Date(e.at).toLocaleString()}`),
+            e.cost != null ? ' · ' : '', e.cost != null ? priceTag(Number(e.cost)) : null, ` · ${new Date(e.at).toLocaleString()}`),
           el('div', { class: 'muted small vg-clip-prompt', text: e.prompt }),
           !url && e.provider === state.provider ? fetchAgain : null,
+          !url && e.provider !== state.provider ? el('div', { class: 'muted small', text: `Made on ${PROVIDERS[e.provider]?.label || e.provider}: switch to it to fetch the video again.` }) : null,
           el('button', { type: 'button', class: 'icon-btn', title: 'Remove from the list', 'aria-label': 'Remove from the list', text: '×',
             onclick: () => { saveLog(log().filter((x) => x.id !== e.id)); drawGallery(); } }));
       }));
@@ -87,20 +90,22 @@ export function renderVideoGenerator(root) {
         signal: form._abort?.signal,
         onStatus: (j, s) => { status.textContent = `Job ${j.id}: ${j.status || 'submitted'} · ${s} s. Checking every 5 s…`; },
       });
-      const facts = [`Took ${job.seconds} s.`, job.cost != null ? `Billed ${formatUsd(Number(job.cost))}.` : '',
-        est ? `Estimated ${formatUsd(est.usd)}.` : ''].filter(Boolean).join(' ');
+      // Prices only as the 1-5 scale: billed, and what was estimated before sending.
+      const facts = el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
+        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost)) : null,
+        est ? ' · estimated ' : '', est ? priceTag(est.usd, est) : null);
       const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       if (!job.ok || !job.blob) {
         out.replaceChildren(el('div', { class: 'output error', text: job.error || 'The job failed.' }),
           ...job.notes.map((n) => el('div', { class: 'muted small', text: n })),
-          el('div', { class: 'muted small', text: facts }), raw);
+          facts, raw);
         return;
       }
       const url = URL.createObjectURL(job.blob);
       clips.set(job.id, url);
       out.replaceChildren(player(url, job.id), ...job.notes.map((n) => el('div', { class: 'muted small', text: n })),
-        el('div', { class: 'muted small', text: facts }), raw);
+        facts, raw);
       saveLog([{ id: job.id, provider: state.provider, model: m.id, label: m.label, prompt: input.prompt, duration: input.duration,
         resolution: input.resolution, aspect_ratio: input.aspect_ratio, cost: job.cost, at: Date.now() }, ...log()]);
       drawGallery();
@@ -108,5 +113,7 @@ export function renderVideoGenerator(root) {
   });
 
   drawGallery();
+  // "Fetch the video again" is only offered on the provider that made the clip, so redraw on a switch.
+  $('#provider')?.addEventListener('change', () => setTimeout(drawGallery));
   $('textarea', form).focus();
 }

@@ -3,6 +3,7 @@
    Used by the Video Generator and Animate the DreamGen Scene; the Video tab keeps its own raw handler. */
 import { follow, read, send } from '../adapter.js';
 import { errorMessage } from '../core.js';
+import { el } from './dom.js';
 import { framePngOrJpeg } from './frame-image.js';
 import { wait } from './run-step.js';
 
@@ -102,4 +103,12 @@ export function estimateVideoCost(model, { duration, resolution, aspect_ratio: a
   return { usd, approx, basis };
 }
 
-export const formatUsd = (usd) => `$${usd < 0.1 ? usd.toFixed(3) : usd.toFixed(2)}`;
+// Prices are shown as a relative scale, never as an amount: 1 (cheapest) to 5, drawn as $$$$$ with
+// that many signs lit. The steps are USD per clip, at the top of each step.
+export const PRICE_STEPS = [0.025, 0.075, 0.15, 0.4];
+export const priceTier = (usd) => 1 + PRICE_STEPS.filter((top) => usd > top).length;
+export function priceTag(usd, { approx = false } = {}) {
+  const n = priceTier(usd);
+  return el('span', { class: 'price-tag', title: `Price ${n} of 5${approx ? ', estimated roughly' : ''}`, 'aria-label': `Price ${n} of 5` },
+    el('span', { class: 'on', text: '$'.repeat(n) }), el('span', { class: 'off', text: '$'.repeat(5 - n) }));
+}

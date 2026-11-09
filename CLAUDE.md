@@ -42,3 +42,7 @@ Found by testing with a real key; keep handling both shapes.
 - Only chat models have `input_price`/`output_price`/`context_window`. Others have a `pricing` object of per-unit keys (`input_character`, `input_second`, `output_image`, …). Chat `pricing` is an array of tiers.
 - Speech: non-OpenAI models (e.g. DeepInfra MiMo) return `500 [provider]` for OpenAI voice names like `alloy`. Leaving the voice out works. `/models/all` has no voice names, so `public/providers/speech-voices.json` lists them per model (a `match` pattern on the model id), taken from each provider's docs. Update it when Requesty adds speech models.
 - Transcriptions also return `language`, `duration` and `segments`. DeepInfra models can take about a minute on a cold start.
+
+## The @claude workflow on GitHub
+- A `@claude` mention in an issue runs `.github/workflows/claude.yml`, which is read-only. Only when running in that workflow (the prompt says you are helping with a GitHub issue, and Bash/Edit/Write are denied): review the issue against the code on `main`; if it's already done or no longer applies, say so and suggest closing it; otherwise reply with a concrete plan (files, steps, tests owed, open questions). Don't try to change files or push there. Every other session, wherever it runs, works on issues as usual.
+- Copilot reads `.github/copilot-instructions.md`, which points to this file; keep the rules here, not there.

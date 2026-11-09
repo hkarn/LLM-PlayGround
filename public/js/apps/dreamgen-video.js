@@ -11,7 +11,7 @@ import { rememberModel } from '../ui/remember.js';
 import { renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
-import { formatUsd, runVideoJob } from '../ui/video-job.js';
+import { priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
 export const MOTION_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write a motion prompt for an image-to-video model. The clip starts from a still picture of the final moment of the last scene (the image prompt it was drawn from may follow the export) and lasts only a few seconds.
@@ -85,7 +85,7 @@ export function renderDreamGenVideo(root) {
       el('ol', {},
         el('li', {}, 'Start from a scene picture: the last one drawn in ', el('a', { href: '#tools/dreamgen-scene', text: 'Draw the DreamGen Scene' }), ', or one you upload. It is the clip\'s first frame.'),
         el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene.' }),
-        el('li', { text: 'Pick one of the video models we have tested with a first frame. Some keep a face, some refuse realistic faces; each card says which. The cheapest settings are chosen first, and the price is shown before you start.' }),
+        el('li', { text: 'Pick a video model that takes a first frame: one we have tested (some keep a face, some refuse realistic faces; each card says which), or any other your key has, untested. The cheapest settings are chosen first, and the price is shown before you start as $ to $$$$$, from cheapest to dearest.' }),
         el('li', { text: 'The clip plays here when it is done, which can take a minute or two, and can be downloaded.' })),
       el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
@@ -189,7 +189,10 @@ export function renderDreamGenVideo(root) {
         signal: clipForm._abort?.signal,
         onStatus: (j, s) => { status.textContent = `Job ${j.id}: ${j.status || 'submitted'} · ${s} s. Checking every 5 s…`; },
       });
-      const facts = [`Took ${job.seconds} s.`, job.cost != null ? `Billed ${formatUsd(Number(job.cost))}.` : '', est ? `Estimated ${formatUsd(est.usd)}.` : ''].filter(Boolean).join(' ');
+      // Prices only as the 1-5 scale ($$$$$): billed, and what was estimated before sending.
+      const facts = () => el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
+        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost)) : null,
+        est ? ' · estimated ' : '', est ? priceTag(est.usd, est) : null);
       const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
@@ -197,7 +200,7 @@ export function renderDreamGenVideo(root) {
         const refused = /guideline|policy|safety|sensitive|face|person/i.test(job.error || '');
         clipOut.replaceChildren(...[el('div', { class: 'output error', text: job.error || 'The job failed.' }),
           refused ? el('div', { class: 'small', text: 'A refusal like this usually means the model won\'t take this picture (for example a realistic face). Try a model whose card says it kept the face, rather than rewording the prompt.' }) : null,
-          ...notes, el('div', { class: 'muted small', text: facts }), raw].filter(Boolean));
+          ...notes, facts(), raw].filter(Boolean));
         return;
       }
       // Only the newest clip is shown, so the one before it can be freed.
@@ -207,7 +210,7 @@ export function renderDreamGenVideo(root) {
       clipOut.replaceChildren(el('div', { class: 'output' },
         el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),
         el('div', {}, el('a', { href: url, download: `scene-${job.id}.mp4`, text: 'Download' }))),
-      ...notes, el('div', { class: 'muted small', text: facts }), raw);
+      ...notes, facts(), raw);
     });
   });
 

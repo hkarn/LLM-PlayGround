@@ -50,7 +50,7 @@ export function renderDreamGenVideo(root) {
   const imagePrompt = el('textarea', { name: 'image_prompt', rows: 3, placeholder: 'Optional: what the picture shows (filled in from Draw the DreamGen Scene).' });
   const motionForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
     el('div', { class: 'tool-settings' },
-      el('div', { class: 'model-picker', 'data-category': 'chat' }),
+      el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
       el('details', {}, el('summary', { text: 'System prompt' }),
         el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
         el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { motionForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })),

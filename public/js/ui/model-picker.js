@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: the model picker (dropdown of the provider's models, typed id, metadata). */
-import { CATEGORY_LABEL, modelFilterOn, modelsIn, state, visibleModels } from '../core.js';
+import { CATEGORY_LABEL, CURATED, modelFilterOn, modelsIn, state, store, visibleModels } from '../core.js';
 import { $, $$, el } from './dom.js';
 import { pre } from './result.js';
 
@@ -11,13 +11,42 @@ export function setupPicker(picker) {
   const select = el('select', { name: 'model' });
   const custom = el('input', { name: 'model_custom', placeholder: 'or type a model id, e.g. openai/gpt-4o-mini', spellcheck: 'false' });
   const showAll = el('input', { type: 'checkbox' });
+  // "curated": only the models we have tested for this kind (providers/curated-models.json), the
+  // entries whose id is on the current key. Remembered per kind; a picker can start it on with
+  // data-curated="on" (the DreamGen tools).
+  const curated = el('input', { type: 'checkbox' });
+  const curatedLabel = el('label', { class: 'inline small', title: 'Only models we have tested for this' }, curated, 'curated');
+  // Remembered separately for the tools (data-curated set) and the raw tester tabs.
+  const curatedKey = `picker_curated_${category}_${picker.dataset.curated ? 'tools' : 'tabs'}`;
+  curated.checked = (store.get(curatedKey) ?? (picker.dataset.curated === 'on' ? '1' : '0')) === '1';
+  // The curated entries on this key: { <model id>: entry }, in the file's order. An entry names a
+  // model ("claude-haiku-5.5"); it matches an id whose last part is that name, ignoring case, . versus -,
+  // a region (@eu), a variant (:flex) and, failing an exact match, a trailing date tag (-0731).
+  // A model of the picker's kind wins, then the first plain match (no region or variant), so one
+  // entry shows once.
+  const norm = (x) => String(x).toLowerCase().replace(/\./g, '-');
+  const nameOf = (id) => norm(String(id).replace(/^~/, '').split('/').pop().replace(/[@:].*$/, ''));
+  const curatedList = () => {
+    const entries = CURATED[category];
+    if (!Array.isArray(entries)) return null;
+    const found = {};
+    for (const e of entries) {
+      const want = norm(e.name);
+      const named = state.models.filter((m) => nameOf(m.id) === want || nameOf(m.id).replace(/-\d{4}$/, '') === want);
+      // Models of this picker's kind first: Requesty lists Gemini's image models as chat models too.
+      const hits = [...named.filter((m) => m._category === category), ...named.filter((m) => m._category !== category)];
+      const pick = hits.find((m) => !/[@:]/.test(m.id) && nameOf(m.id) === want) || hits.find((m) => !/[@:]/.test(m.id)) || hits[0];
+      if (pick && !found[pick.id]) found[pick.id] = e;
+    }
+    return found;
+  };
   const info = el('div', { class: 'model-info' });
   // Shown while the model filter (All models tab) hides some of the list.
   const filterNote = el('p', { class: 'muted small filter-note', hidden: true }, 'Model filter on. ', el('a', { href: '#models', text: 'Edit it' }));
 
   picker.replaceChildren(
     el('label', { text: `Model (${CATEGORY_LABEL[category]})` }),
-    el('div', { class: 'row' }, select, el('label', { class: 'inline small' }, showAll, 'show all')),
+    el('div', { class: 'row' }, select, curatedLabel, el('label', { class: 'inline small' }, showAll, 'show all')),
     filterNote,
     custom,
     info,
@@ -25,14 +54,20 @@ export function setupPicker(picker) {
 
   const fill = () => {
     const prev = select.value;
-    const list = showAll.checked ? visibleModels() : modelsIn(category);
+    const tested = curatedList();
+    curatedLabel.hidden = !Array.isArray(CURATED[category]);
+    const onlyTested = Boolean(tested && curated.checked);
+    let list = showAll.checked ? visibleModels() : modelsIn(category);
+    // Curated: the tested models, in the file's order (cheapest first).
+    if (onlyTested) list = Object.keys(tested).map((id) => list.find((m) => m.id === id) || visibleModels().find((m) => m.id === id)).filter(Boolean);
     filterNote.hidden = !modelFilterOn() || !state.models.length;
     const empty = !state.models.length ? 'Load models first'
+      : onlyTested ? 'None of the curated models is on this key – untick "curated"'
       : modelFilterOn() && !visibleModels().length ? 'No models match the model filter'
         : `No ${category} models ${modelFilterOn() ? 'match the model filter' : 'detected'} – tick "show all"`;
     select.replaceChildren(
       ...(list.length ? [] : [el('option', { value: '', text: empty })]),
-      ...list.map((m) => el('option', { value: m.id, text: showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
+      ...list.map((m) => el('option', { value: m.id, text: onlyTested && tested[m.id] ? `${tested[m.id].label} · ${tested[m.id].price}` : showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
     );
     // Keep the current choice; otherwise the first model in the list stays selected.
     if (list.some((m) => m.id === prev)) select.value = prev;
@@ -62,10 +97,14 @@ export function setupPicker(picker) {
     if (m.geolocation) bits.push(m.geolocation);
     if (m.owned_by) bits.push(`by ${m.owned_by}`);
     if (m.description) bits.push(String(m.description).slice(0, 140));
+    // What our tests found, for a curated model.
+    const note = curatedList()?.[m.id]?.note;
+    if (note) bits.unshift(`Tested: ${note}`);
     info.append(bits.join(' · '), ' ', el('details', {}, el('summary', { class: 'small', text: 'model metadata' }), pre(stripPrivate(m))));
   };
   select.addEventListener('change', showInfo);
   showAll.addEventListener('change', fill);
+  curated.addEventListener('change', () => { store.set(curatedKey, curated.checked ? '1' : '0'); fill(); });
   picker._fill = fill;
   fill();
 }

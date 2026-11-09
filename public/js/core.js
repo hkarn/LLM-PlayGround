@@ -31,6 +31,10 @@ export const ASSET_VERSION = 'dev';
 export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.
 export const TEMPLATES = { endpoints: {} };
+// The shared list of tested models (providers/curated-models.json): per kind (chat, image …), entries
+// { label, price, note, ids: { <router>: <model id> } }. One list for every router; the picker shows
+// the entries whose id is on the current key.
+export const CURATED = {};
 
 async function fetchData(file) {
   const res = await fetch(`providers/${file}?v=${ASSET_VERSION}`);
@@ -40,8 +44,9 @@ async function fetchData(file) {
 
 // Loads every provider file once. Voice lists are shared between files that name the same one.
 export async function loadProviders() {
-  const { providers: ids, templates } = await fetchData('index.json');
+  const { providers: ids, templates, curated } = await fetchData('index.json');
   if (templates) TEMPLATES.endpoints = (await fetchData(templates)).endpoints || {};
+  if (curated) Object.assign(CURATED, await fetchData(curated).catch(() => ({})));
   const lists = {};
   for (const id of ids) {
     let p = await fetchData(`${id}.json`);

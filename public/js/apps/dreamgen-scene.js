@@ -10,6 +10,7 @@ import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
 import { renderImages, renderResult } from '../ui/result.js';
+import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
@@ -69,7 +70,7 @@ export function renderDreamGenScene(root) {
   const undoBtn = el('button', { type: 'button', class: 'secondary', text: 'Undo', disabled: '', onclick: () => { if (undo.length) setExport(undo.pop(), { keepUndo: true }); } });
   const trimNote = el('div', { class: 'muted small' });
   const chatSettings = el('div', { class: 'tool-settings' },
-    el('div', { class: 'model-picker', 'data-category': 'chat' }),
+    el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
     el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
       el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { promptForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })),
@@ -131,7 +132,7 @@ export function renderDreamGenScene(root) {
 
   // 4. Image
   const imageSettings = el('div', { class: 'tool-settings' },
-    el('div', { class: 'model-picker', 'data-category': 'image' }),
+    el('div', { class: 'model-picker', 'data-category': 'image', 'data-curated': 'on' }),
     el('div', { class: 'grid3' },
       el('label', {}, 'Size', el('select', { name: 'size' }, el('option', { value: '', text: 'default' }),
         ...['auto', '1024x1024', '1536x1024', '1024x1536'].map((v) => el('option', { text: v })))),
@@ -293,7 +294,9 @@ export function renderDreamGenScene(root) {
       };
       // With portraits it is an image edit; the provider's template decides how they travel.
       const kind = portraits.refs.length ? 'imageEdit' : 'image';
-      const input = kind === 'imageEdit' ? { ...fields, images: portraits.refs.map((r) => r.file) } : fields;
+      // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
+      // and JSON exports embed WebP).
+      const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(portraits.refs.map((r) => asJpeg(r.file))) } : fields;
       const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
       const { rendered, shown } = renderImages(resp, 'png', kind);
       renderResult(imageOut, { resp: shown, request, curl, rendered });

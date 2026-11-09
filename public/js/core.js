@@ -68,6 +68,7 @@ export const state = {
   keys: {},           // keys typed this session, per provider, so switching back keeps them
   viaServer: false,   // true when server.js serves the page and proxies /api/*
   config: null,       // server.js `config`, or null on a static host
+  modelFilter: { providers: [], models: [] }, // narrows every model list; kept per provider by ui/model-filter.js
 };
 export const provider = () => PROVIDERS[state.provider];
 export const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
@@ -133,7 +134,34 @@ export function categorize(model) {
   return 'chat';
 }
 
-export const modelsIn = (category) => state.models.filter((m) => m._category === category);
+/* ------------------------------------------------------------------ */
+/* Model filter                                                        */
+/* ------------------------------------------------------------------ */
+// A model id is "<maker>/<name>", sometimes with a region or variant after it (@eu, :free, :flex).
+// A leading "~" (an OpenRouter alias such as ~z-ai/glm-latest) is not part of the maker.
+export function splitModelId(id) {
+  const s = String(id).replace(/^~/, '');
+  const i = s.indexOf('/');
+  return i < 0 ? { maker: '', name: s } : { maker: s.slice(0, i), name: s.slice(i + 1) };
+}
+// Providers match the maker exactly; a model row matches every name that starts with it, so
+// "GLM-5.3" keeps glm-5.3, glm-5.3-flash, glm-5.3:batch … A row with a "/" is matched against the
+// whole id instead. Case is ignored, and a trailing "*" is allowed. Empty lists filter nothing.
+export function passesModelFilter(m, f = state.modelFilter) {
+  const { maker, name } = splitModelId(m.id);
+  const low = (x) => String(x).toLowerCase();
+  const full = low(String(m.id).replace(/^~/, ''));
+  if (f.providers.length && !f.providers.some((p) => low(p) === low(maker))) return false;
+  if (f.models.length && !f.models.some((row) => {
+    const prefix = low(row).replace(/\*+$/, '');
+    return prefix.includes('/') ? full.startsWith(prefix) : low(name).startsWith(prefix);
+  })) return false;
+  return true;
+}
+export const modelFilterOn = () => Boolean(state.modelFilter.providers.length || state.modelFilter.models.length);
+// The models every list shows: the loaded list narrowed by the model filter.
+export const visibleModels = () => state.models.filter((m) => passesModelFilter(m));
+export const modelsIn = (category) => visibleModels().filter((m) => m._category === category);
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
@@ -266,7 +294,7 @@ export async function loadModels() {
 export function renderModelsTable() {
   const table = $('#models-table');
   const filter = $('#model-filter').value.trim().toLowerCase();
-  const rows = state.models.filter((m) => !filter || JSON.stringify(m).toLowerCase().includes(filter));
+  const rows = visibleModels().filter((m) => !filter || JSON.stringify(m).toLowerCase().includes(filter));
   // Show a handful of common scalar columns that actually exist in the data.
   const candidates = ['context_window', 'context_length', 'max_output_tokens', 'input_price', 'output_price', 'cached_price',
     'supports_vision', 'supports_tool_calling', 'supports_reasoning', 'supports_caching', 'supports_output_json_schema'];

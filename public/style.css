@@ -51,12 +51,20 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .small { font-size: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel. */
-.topbar {
-  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px;
-  padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+/* Masthead: the top bar and the API tester tabs, kept at the top while the page scrolls. main.js
+   writes its height into --masthead-h, so jumps and sticky panels stop below it.
+   On a phone it wraps to three rows, so there it scrolls away with the page (and --masthead-h is 0). */
+@media (min-width: 701px) {
+  .masthead { position: sticky; top: 0; z-index: 30; }
+  html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
 }
-.topbar h1 { font-size: 17px; margin: 0 12px 0 0; padding: 12px 0; white-space: nowrap; }
+/* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel.
+   It stays on one line as long as it can: the tabs, the chip's label and the GitHub link shrink first. */
+.topbar {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 clamp(2px, .6vw, 8px);
+  padding: 0 clamp(10px, 1.6vw, 20px); background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.topbar h1 { font-size: 17px; margin: 0 clamp(4px, 1vw, 12px) 0 0; padding: 12px 0; white-space: nowrap; }
 .topbar .tabs { padding: 0; border: none; background: none; }
 .tabs button.unsupported { opacity: .45; }
 
@@ -67,7 +75,7 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .tabs[hidden] { display: none; }
 .tabs button, .tester-toggle {
   background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
-  padding: 14px 14px 12px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  padding: 14px clamp(7px, 1vw, 14px) 12px; color: var(--muted); cursor: pointer; white-space: nowrap;
 }
 .tabs button.active, .tester-toggle.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 .tester-toggle .caret { color: var(--muted); font-weight: 400; margin-left: 2px; }
@@ -77,7 +85,7 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .tester-tabs button.active { border-color: var(--accent); font-weight: 500; }
 .tester-tabs .tab-sep { align-self: stretch; margin: 4px 6px; }
 
-.conn { position: relative; margin-left: auto; padding: 8px 0; min-width: 0; }
+.conn { position: relative; margin-left: auto; padding: 8px 0; min-width: 0; flex: 0 1 auto; }
 .conn-chip {
   display: flex; align-items: center; gap: 8px; max-width: 100%;
   border-radius: 999px; padding: 6px 14px; background: var(--bg); white-space: nowrap;
@@ -109,6 +117,15 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .models-status.err { color: var(--err); }
 .conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
 .gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
+@media (max-width: 1150px) {
+  .gh-long { display: none; }
+  .conn-label { max-width: 200px; }
+}
+@media (max-width: 900px) {
+  .topbar h1 { font-size: 15px; }
+  .conn-chip { padding: 6px 10px; gap: 6px; }
+  .conn-state { display: none; }
+}
 /* Narrow screens: the chip and the GitHub link share their own line (the chip's label shortens
    to fit), and the panel spans the width. */
 @media (max-width: 700px) {
@@ -318,7 +335,7 @@ button.danger { color: var(--err); }
 .tool-layout > .tool-main { grid-column: 1; grid-row: 1; }
 .tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tool-panel {
-  position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+  position: sticky; top: calc(var(--masthead-h, 0px) + 12px); max-height: calc(100vh - var(--masthead-h, 0px) - 24px); overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
 }
 .tool-panel-head { display: none; }
@@ -393,7 +410,6 @@ button.danger { color: var(--err); }
 .welcome-start li { margin: 3px 0; }
 .welcome a.app-card { text-decoration: none; color: inherit; }
 .welcome-privacy p { max-width: 760px; }
-#provider-list { scroll-margin-top: 80px; }
 .providers-intro { max-width: 760px; margin-bottom: 14px; }
 .providers-intro h2 { margin: 0 0 6px; font-size: 22px; }
 .provider-cards { display: flex; flex-direction: column; gap: 16px; }

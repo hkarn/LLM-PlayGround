@@ -75,6 +75,12 @@ export async function init() {
     { href: '#chat', title: 'API tester', icon: TESTER_ICON, blurb: 'Send a raw request to any endpoint (chat, images, video, speech, embeddings …) and see the full answer.' },
     { href: '#models', title: 'Filter models', icon: FILTER_ICON, blurb: 'Narrow every model list on the page to the makers and models you care about.' },
   ];
+  // The sticky masthead's height, for scroll-padding and the tools' sticky settings panel.
+  const masthead = $('.masthead');
+  const setMastheadH = () => document.documentElement.style.setProperty('--masthead-h',
+    `${getComputedStyle(masthead).position === 'sticky' ? masthead.offsetHeight : 0}px`);
+  new ResizeObserver(setMastheadH).observe(masthead);
+  window.addEventListener('resize', setMastheadH);
   // The title opens the welcome page, at the top, even when its hash is already #providers.
   $('.topbar h1 a').addEventListener('click', (e) => {
     e.preventDefault();

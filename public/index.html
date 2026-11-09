@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- The masthead (top bar and the API tester tabs) stays at the top while the page scrolls. -->
+<div class="masthead">
 <header class="topbar">
   <h1><a href="#providers" title="Welcome page">LLM PlayGround</a></h1>
   <nav class="tabs main-tabs" role="tablist" aria-label="Sections">
@@ -60,7 +62,7 @@
       <p class="conn-signup small muted">No key? Get one at <span id="signup-links"></span> · <a href="#providers">Which provider?</a></p>
     </div>
   </div>
-  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener">Source on GitHub</a>
+  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener"><span class="gh-long">Source on </span>GitHub</a>
 </header>
 
 <nav id="tester-tabs" class="tabs tester-tabs" role="tablist" aria-label="API tester" hidden>
@@ -74,6 +76,7 @@
   <button role="tab" data-tab="speech">Speech</button>
   <button role="tab" data-tab="transcription">Transcriptions</button>
 </nav>
+</div>
 
 <main>
   <!-- WELCOME (data-tab providers): what the site is, the tools, and how to get a key from each provider; drawn from the guide in providers/<id>.json by js/providers-guide.js. -->

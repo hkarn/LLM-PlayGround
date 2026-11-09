@@ -46,10 +46,8 @@ export async function init() {
     value: id, text: unavailable(p) ? `${p.label} (needs your own server)` : p.label,
     disabled: unavailable(p) || undefined, title: unavailable(p) ? p.needsServerReason : undefined,
   })));
-  for (const p of Object.values(PROVIDERS).filter((x) => unavailable(x) && x.signup)) {
-    $('#signup-link').after(el('a', { href: p.signup.href, target: '_blank', rel: 'noopener', title: p.needsServerReason, text: `${p.label}: get a key (needs your own server)` }));
-  }
   state.provider = Object.keys(PROVIDERS).find((id) => !unavailable(PROVIDERS[id]));
+  showSignupLinks(state.provider, unavailable);
   const savedProvider = store.get('provider');
   if (PROVIDERS[savedProvider] && !unavailable(PROVIDERS[savedProvider])) state.provider = savedProvider;
   providerSelect.value = state.provider;
@@ -73,6 +71,7 @@ export async function init() {
     choose: (id) => {
       providerSelect.value = id;
       providerSelect.dispatchEvent(new Event('change'));
+      openConnection(true);
       $('#api-key').focus();
     },
   });
@@ -82,6 +81,13 @@ export async function init() {
     loadModels();
   });
   $('#remember-key').addEventListener('change', (e) => { if (!e.target.checked) store.del(keyName()); });
+  setupConnectionChip();
+  // API tester: opens the endpoint tab used last; the row of endpoint tabs shows while one is open.
+  $('#tester-toggle').addEventListener('click', () => {
+    const last = store.get('testerTab');
+    const btn = $$('#tester-tabs [data-tab]').find((b) => b.dataset.tab === last) || $('#tester-tabs [data-tab]');
+    btn.click();
+  });
 
   // Pickers & forms
   $$('.model-picker').forEach(setupPicker);
@@ -140,9 +146,6 @@ export function applyProvider() {
   const saved = store.get(`key_${state.provider}`);
   $('#api-key').value = state.keys[state.provider] ?? saved ?? '';
   $('#remember-key').checked = Boolean(saved);
-  const link = $('#signup-link');
-  link.hidden = !p.signup;
-  if (p.signup) { link.href = p.signup.href; link.textContent = p.signup.text; }
   $$('.tabs button').forEach((b) => {
     const off = p.unsupported?.includes(b.dataset.tab);
     b.classList.toggle('unsupported', Boolean(off));
@@ -166,6 +169,63 @@ export function applyProvider() {
     if (!cfg) $('#models-status').textContent = `No models loaded. Calling ${p.label} directly from the browser.`;
     if (apiKey() || hasEnvKey()) loadModels();
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Connection chip                                                     */
+/* ------------------------------------------------------------------ */
+// The chip in the top bar names the provider and host and shows the model status; it opens the
+// panel with the provider, base URL and key. The status text itself is written by loadModels.
+function setupConnectionChip() {
+  const chip = $('#conn-chip');
+  const panel = $('#conn-panel');
+  chip.addEventListener('click', () => openConnection(panel.hidden));
+  document.addEventListener('pointerdown', (e) => {
+    if (!panel.hidden && !e.target.closest('.conn')) openConnection(false);
+  });
+  panel.addEventListener('click', (e) => { if (e.target.closest('a')) openConnection(false); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) { openConnection(false); chip.focus(); }
+  });
+  new MutationObserver(updateChip).observe($('#models-status'), { childList: true, characterData: true, subtree: true });
+  $('#base-url').addEventListener('input', updateChip);
+  $('#api-key').addEventListener('input', updateChip);
+}
+
+function openConnection(open) {
+  $('#conn-panel').hidden = !open;
+  $('#conn-chip').setAttribute('aria-expanded', String(open));
+}
+
+function updateChip() {
+  const p = provider();
+  const status = $('#models-status');
+  const text = status.textContent;
+  let host = '';
+  try { host = new URL(baseUrl()).host; } catch { /* no URL yet, or not a full URL */ }
+  $('#conn-label').textContent = host ? `${p.label} · ${host}` : p.label;
+  const hasKey = Boolean(apiKey() || state.config?.providers?.[state.provider]?.hasEnvKey);
+  const [chipState, short] = text.startsWith('Loading') ? ['loading', 'Loading…']
+    : text.startsWith('Could not') ? ['err', 'Not connected']
+      : state.models.length ? ['ok', `${state.models.length} models`]
+        : hasKey ? ['', 'No models'] : ['', 'Add API key'];
+  $('#conn-chip').dataset.state = chipState;
+  $('#conn-state').textContent = short;
+  $('#conn-chip').title = `${p.label}: ${text}`;
+  status.classList.toggle('err', chipState === 'err');
+}
+
+// "No key? Get one at …": the easiest provider (the default, first in providers/index.json) and the
+// ones whose signup link is a referral (signup.referral in their file). The Providers tab has the rest.
+function showSignupLinks(easiest, unavailable) {
+  const links = Object.entries(PROVIDERS)
+    .filter(([id, p]) => p.signup && (id === easiest || p.signup.referral))
+    .map(([id, p]) => el('a', {
+      href: p.signup.href, target: '_blank', rel: 'noopener',
+      title: unavailable(p) ? p.needsServerReason : p.signup.text,
+      text: id === easiest ? `${p.label} (easiest)` : unavailable(p) ? `${p.label} (needs your own server)` : p.label,
+    }));
+  $('#signup-links').replaceChildren(...links.flatMap((a, i) => (i ? [' · ', a] : [a])));
 }
 
 init();

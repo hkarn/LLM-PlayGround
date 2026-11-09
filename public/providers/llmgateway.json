@@ -16,7 +16,8 @@
   "keyHint": "llmgtwy_…",
   "signup": {
     "href": "https://llmgateway.io/?ref=LucsNqyxkxzf3rsY9aaN",
-    "text": "No key? Sign up for LLM Gateway"
+    "text": "No key? Sign up for LLM Gateway",
+    "referral": true
   },
   "server": {
     "domain": "llmgateway.io"

@@ -345,6 +345,8 @@ button.danger { color: var(--err); }
 .tool-layout .vg-model strong { font-size: 15px; }
 .tool-layout input, .tool-layout select, .tool-layout textarea, .tool-layout button { font-size: 15px; }
 .tool-layout .tool-about > summary { font-size: 15.5px; }
+/* A text box in a folded section (System prompt) fills the width, with its Reset button below it. */
+.tool-layout details > textarea { display: block; width: 100%; box-sizing: border-box; margin: 8px 0 6px; resize: vertical; }
 /* Video model cards: the name and the price only; the details are in the tooltip and, for the
    chosen model, in the note under the cards. */
 .vg-model { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }

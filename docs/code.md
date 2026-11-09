@@ -13,7 +13,7 @@ Plain JavaScript modules with no build step and no dependencies. `public/index.h
 | `public/js/testers.js` | The API tester tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `video-generator.js`, `group-chat.js` |
 | `public/js/hubs.js` | The Games and Tools launchers, the list of apps (`APPS`), tab switching and direct links (`#tools/…`) |
-| `public/js/providers-guide.js` | The Welcome tab: what the site is, cards for the tools and games (passed in by `main.js`), and one wide box per provider, from the `guide` in its settings file |
+| `public/js/providers-guide.js` | The Welcome page (opened by the logo; its tab button is hidden): what the site is, cards for the tools and games (passed in by `main.js`), and one wide box per provider, from the `guide` in its settings file |
 | `public/js/main.js` | Start-up: the tabs, the connection chip and panel, and the forms |
 | `public/providers/*.json` | One settings file per provider (below) |
 | `public/style.css` | All styles, with the light and dark colours as variables at the top |
@@ -37,7 +37,7 @@ Each provider is `public/providers/<id>.json`, and `index.json` lists them in or
 | `suggest`, `speechVoices` | Option and voice lists where no model list gives them |
 | `categorize` | Which field decides a model's tab, when the list has no endpoints or `api` field |
 | `videoModels` | The tested video models, with their notes, defaults, audio and face behaviour, and every test run |
-| `guide` | The provider's box on the Welcome tab: setup level 1–4, summary, steps, what's good and what to watch |
+| `guide` | The provider's box on the Welcome page: setup level 1–4, summary, steps, what's good and what to watch |
 | `needsServer`, `extends`, `attributionHeaders` | Works only through the server; starts from another file; whether direct calls send `HTTP-Referer`/`X-Title` |
 
 `openai-standard.json` holds the standard OpenAI-style request and response templates every provider starts from. A provider's `endpoints.<kind>` replaces keys of them. The template rules are in that file's `_notes`.

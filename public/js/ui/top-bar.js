@@ -109,7 +109,8 @@ export function setupTopBar() {
   // which endpoint).
   // Every label sits in the button, stacked in one grid cell with only the current one visible, so
   // the button is as wide as the longest and the bar looks the same whichever tab is open.
-  const name = (b) => (b.id === 'tester-toggle' ? 'API tester'
+  // The Welcome tab is hidden (the logo is its link), so on that page the button just says Menu.
+  const name = (b) => (b.hidden ? 'Menu' : b.id === 'tester-toggle' ? 'API tester'
     : [...b.childNodes].filter((n) => !n.classList?.contains('opt')).map((n) => n.textContent).join('').trim());
   const items = $$('.tabs button, #tester-toggle', nav);
   const current = $('.nav-current', menuBtn);
@@ -117,6 +118,9 @@ export function setupTopBar() {
   const label = () => {
     const open = $('#tester-toggle').classList.contains('active') ? $('#tester-toggle') : items.find((b) => b.classList.contains('active'));
     items.forEach((b, i) => current.children[i].classList.toggle('on', b === open));
+    // The logo stands in for the hidden Welcome tab, so it carries the "you are here" state.
+    const home = $('.topbar h1 a');
+    if (open?.dataset.tab === 'providers') home.setAttribute('aria-current', 'page'); else home.removeAttribute('aria-current');
     fit();
   };
   // Watch only the tab buttons and the chip's text, not the bar's own classes (fit sets those).

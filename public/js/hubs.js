@@ -3,7 +3,7 @@ import { fill } from './adapter.js';
 import { renderDreamGenScene } from './apps/dreamgen-scene.js';
 import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';
-import { renderVideoGeneratorPlaceholder } from './apps/video-generator.js';
+import { renderVideoGenerator } from './apps/video-generator.js';
 import { store } from './core.js';
 import { $, $$, el } from './ui/dom.js';
 
@@ -39,8 +39,8 @@ export const APPS = {
       blurb: 'Turn the last scene of a DreamGen session export into an image prompt, add reference portraits, and draw it.', render: renderDreamGenScene },
     { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo, status: 'Coming soon',
       blurb: 'Turn a scene picture into a short clip, with motion written from the last scene of the session.', render: renderDreamGenVideoPlaceholder },
-    { id: 'video-generator', title: 'Video Generator', icon: ICONS.video, status: 'Coming soon',
-      blurb: 'Make videos with models whose options we have tested, with the right settings for each.', render: renderVideoGeneratorPlaceholder },
+    { id: 'video-generator', title: 'Video Generator', icon: ICONS.video,
+      blurb: 'Make short clips with video models we have tested, each with its own settings and the price shown first.', render: renderVideoGenerator },
   ],
 };
 

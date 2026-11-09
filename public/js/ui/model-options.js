@@ -53,6 +53,7 @@ export function setupModelOptions(form) {
       // Some video models list which frame images and whether audio they take.
       const frames = m?.supported_frame_images;
       form.elements.first_frame.disabled = Array.isArray(frames) && !frames.includes('first_frame');
+      form.elements.last_frame.disabled = !Array.isArray(frames) || !frames.includes('last_frame');
       form.elements.generate_audio.disabled = m?.generate_audio === false;
     }
     if (kind === 'image' || kind === 'imageEdit') {

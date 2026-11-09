@@ -233,8 +233,12 @@ export const handlers = {
   async video(form, out) {
     const picked = form.elements.first_frame.files[0];
     if (picked && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
+    const pickedLast = form.elements.last_frame.files[0];
+    if (pickedLast && form.elements.last_frame.disabled) throw new Error('This model takes no last frame image. Clear the file or pick another model.');
     // JPEG and PNG go as they are; other formats (e.g. WebP) would fail the job after submit, so they go as PNG.
-    const { file: frame, note: frameNote } = await framePngOrJpeg(picked);
+    const { file: frame, note: firstNote } = await framePngOrJpeg(picked);
+    const { file: lastFrame, note: lastNote } = await framePngOrJpeg(pickedLast);
+    const frameNote = [firstNote, lastNote].filter(Boolean).join(' ');
     const showResult = (args) => {
       renderResult(out, args);
       if (frameNote) $('.status-line', out)?.after(el('div', { class: 'muted small', text: frameNote }));
@@ -246,6 +250,7 @@ export const handlers = {
       resolution: str(form, 'resolution'), aspect_ratio: str(form, 'aspect_ratio'),
       generate_audio: (!form.elements.generate_audio.disabled && form.elements.generate_audio.checked) || undefined,
       first_frame: frame ? [frame] : undefined,
+      last_frame: lastFrame ? [lastFrame] : undefined,
     }, { signal });
     let job = read('video', resp);
     const { id } = job;

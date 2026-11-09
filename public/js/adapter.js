@@ -18,7 +18,9 @@ function get(vars, path) {
 
 // Fills a request template. "{{name}}" alone keeps the value's type, and the key is left out when
 // it is missing or empty; text around {{…}} makes a string. {each, as} maps a list (each entry is
-// "item"); a "..." key copies an object's keys in at that point (overwriting earlier keys in place).
+// "item"; inside a list, an {each, as} entry adds its items to that list, and the list is left out
+// when such entries give nothing); a "..." key copies an object's keys in at that point (overwriting
+// earlier keys in place).
 export function fill(tpl, vars) {
   if (typeof tpl === 'string') {
     const whole = tpl.match(/^\{\{([\w.]+)\}\}$/);
@@ -28,7 +30,11 @@ export function fill(tpl, vars) {
     }
     return tpl.replace(/\{\{([\w.]+)\}\}/g, (_, p) => (empty(get(vars, p)) ? '' : String(get(vars, p))));
   }
-  if (Array.isArray(tpl)) return tpl.map((t) => fill(t, vars)).filter((v) => v !== undefined);
+  if (Array.isArray(tpl)) {
+    const isEach = (t) => Boolean(t && typeof t === 'object' && !Array.isArray(t) && t.each);
+    const list = tpl.flatMap((t) => (isEach(t) ? (fill(t, vars) || []) : [fill(t, vars)])).filter((v) => v !== undefined);
+    return !list.length && tpl.some(isEach) ? undefined : list;
+  }
   if (tpl && typeof tpl === 'object') {
     if (tpl.each) {
       const list = get(vars, tpl.each);

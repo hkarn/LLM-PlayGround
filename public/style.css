@@ -306,10 +306,12 @@ button.danger { color: var(--err); }
 .scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
 .notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
 
-/* Tool pages: the settings panel on the left, the steps on the right (ui/tool-layout.js). On a
-   narrow screen the panel folds into a Settings button above the steps. */
+/* Tool pages: the steps on the left, the settings panel on the right (ui/tool-layout.js), so the
+   work has the focus. On a narrow screen the panel folds into a Settings button above the steps. */
 .panel.hub:has(.tool-layout) { max-width: 1320px; }
-.tool-layout { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.tool-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 16px; align-items: start; }
+.tool-layout > .tool-panel { grid-column: 2; grid-row: 1; }
+.tool-layout > .tool-main { grid-column: 1; grid-row: 1; }
 .tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tool-panel {
   position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
@@ -327,12 +329,28 @@ button.danger { color: var(--err); }
 .tool-panel .model-picker select { min-width: 0; flex: 1 1 100%; }
 @media (max-width: 900px) {
   .tool-layout { grid-template-columns: minmax(0, 1fr); }
+  .tool-layout > .tool-panel, .tool-layout > .tool-main { grid-column: 1; grid-row: auto; }
   .tool-panel { position: static; max-height: none; }
   .tool-panel-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .tool-panel-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .tool-panel.open .tool-panel-head { margin-bottom: 14px; }
   .tool-panel:not(.open) .tool-panel-body { display: none; }
 }
+/* Tool pages read larger than the testers: the testers stay compact, the tools are for reading. */
+.tool-layout { font-size: 15px; }
+.tool-layout .small, .tool-layout .model-picker .model-info, .tool-layout .vs-price { font-size: 14px; }
+.tool-layout label, .tool-layout details summary, .tool-layout .status-line { font-size: 14.5px; }
+.tool-layout .tool-step h3, .tool-layout .panel-section h3 { font-size: 17px; }
+.tool-layout .scene-export, .tool-layout pre, .tool-layout .mono { font-size: 13.5px; }
+.tool-layout .vg-model strong { font-size: 15px; }
+.tool-layout input, .tool-layout select, .tool-layout textarea, .tool-layout button { font-size: 15px; }
+.tool-layout .tool-about > summary { font-size: 15.5px; }
+/* A tool's "How it works · Privacy", folded after the first visit (aboutBox). */
+.tool-about { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; }
+.tool-about > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.tool-about-body { padding-top: 8px; }
+.tool-about-body ol { margin: 0 0 8px; padding-left: 20px; }
+.tool-about-body p { margin: 6px 0 0; }
 /* The tools fold the status, request, response and cURL into one "Request details". */
 .request-details > summary { color: var(--muted); font-size: 13px; }
 .request-details[open] { display: flex; flex-direction: column; gap: 6px; }

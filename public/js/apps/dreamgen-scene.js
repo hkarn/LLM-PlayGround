@@ -14,7 +14,7 @@ import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
-import { panelSection, toolLayout } from '../ui/tool-layout.js';
+import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
 
@@ -146,8 +146,7 @@ export function renderDreamGenScene(root) {
   const imageOut = el('div', { class: 'result' });
 
   const main = [
-    el('div', { class: 'placeholder-note' },
-      el('strong', { text: 'How it works' }),
+    aboutBox('dreamgen-scene',
       el('ol', {},
         el('li', {}, 'Load a session export from ', el('a', { href: 'https://dreamgen.com/', target: '_blank', rel: 'noopener', text: 'DreamGen' }),
           ' (Markdown or JSON). Nothing leaves the browser until you press a button.'),

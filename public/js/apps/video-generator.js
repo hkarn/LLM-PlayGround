@@ -7,7 +7,7 @@ import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
 import { downloadVideo, priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
-import { panelSection, toolLayout } from '../ui/tool-layout.js';
+import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 const LOG_KEY = 'videogen:jobs'; // finished jobs (no video data): model, prompt, cost, job id
 const LOG_MAX = 20;
@@ -30,8 +30,8 @@ export function renderVideoGenerator(root) {
     panel: [panelSection('Video model', settings.root)],
     summary: () => settings.model()?.label || settings.model()?.id || '',
     main: [
-    el('div', { class: 'placeholder-note' },
-      el('p', { class: 'small', style: 'margin: 0' },
+    aboutBox('video-generator',
+      el('p', { class: 'small' },
         'Video models we have run for real come first, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). Any other video model your key has is under Other video model, untested. ',
         'Prices are the provider\'s listed price before you send and what it billed after; where only an estimate is possible, they show as $ (cheapest) to $$$$$. ',
         'For any other video model, and the raw request and response, use the ', el('a', { href: '#video', text: 'Video tab' }), '.')),

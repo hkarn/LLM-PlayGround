@@ -12,7 +12,7 @@ import { renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
-import { panelSection, toolLayout } from '../ui/tool-layout.js';
+import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 import { priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
@@ -85,8 +85,7 @@ export function renderDreamGenVideo(root) {
   const clipOut = el('div', { class: 'result' });
 
   const main = [
-    el('div', { class: 'placeholder-note' },
-      el('strong', { text: 'How it works' }),
+    aboutBox('dreamgen-video',
       el('ol', {},
         el('li', {}, 'Start from a scene picture: the last one drawn in ', el('a', { href: '#tools/dreamgen-scene', text: 'Draw the DreamGen Scene' }), ', or one you upload. It is the clip\'s first frame.'),
         el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene.' }),

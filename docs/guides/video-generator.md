@@ -10,7 +10,7 @@ You need an API key for a provider with video models, loaded in the connection p
 
 ## Settings
 
-The **settings panel** on the left holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own.
+The **settings panel** on the right holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
 
 - **Video model:** pick a card. Each card shows:
    - which pictures the model takes (first frame, or first and last);

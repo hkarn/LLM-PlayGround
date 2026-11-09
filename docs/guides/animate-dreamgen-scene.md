@@ -11,7 +11,7 @@ Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/L
 
 ## Settings
 
-The **settings panel** on the left holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed.
+The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
 
 - **Prompt writer:** the **chat model** that writes the motion prompt, its **Max tokens** and **System prompt**.
 - **Video model:** pick a card. Only models that take a first frame are offered. The cards show what each one takes and what we found when we tested it:

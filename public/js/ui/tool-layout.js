@@ -1,8 +1,8 @@
-/* LLM PlayGround: UI component: the layout of a tool page. The settings (the models and their
-   options, the style, the advanced bits) sit in a panel on the left, and the steps, with what
-   changes on every run, in the main column. On a narrow screen the panel folds into a Settings
-   button above the steps. Used by every tool that has one model of each kind; the API tester
-   tabs keep their own layout. */
+/* LLM PlayGround: UI component: the layout of a tool page. The steps, with what changes on every
+   run, fill the main column, and the settings (the models and their options, the style, the
+   advanced bits) sit in a panel on the right. On a narrow screen the panel folds into a Settings
+   button above the steps. Used by every tool that has one model of each kind; the API tester tabs
+   keep their own layout. */
 import { store } from '../core.js';
 import { el } from './dom.js';
 
@@ -11,7 +11,21 @@ export function panelSection(title, ...children) {
   return el('section', { class: 'panel-section' }, el('h3', { text: title }), ...children);
 }
 
-// Puts `panel` (a list of panelSection nodes) beside `main` (the steps) in `root`.
+// A tool's "How it works" (and privacy) text, folded. It is open on the first visit to the tool and
+// then as the user last left it, so a returning user goes straight to the steps.
+export function aboutBox(id, ...children) {
+  const key = `about_open_${id}`;
+  const summary = el('summary', { text: 'How it works · Privacy' });
+  const box = el('details', { class: 'tool-about', open: (store.get(key) ?? '1') === '1' || undefined },
+    summary, el('div', { class: 'tool-about-body' }, ...children));
+  // The first visit counts as seen: next time it starts folded unless the user opened it again.
+  if (store.get(key) == null) store.set(key, '0');
+  // Only the user's own clicks are saved: the browser also fires "toggle" when the box is drawn open.
+  summary.addEventListener('click', () => setTimeout(() => store.set(key, box.open ? '1' : '0')));
+  return box;
+}
+
+// Puts `main` (the steps) beside `panel` (a list of panelSection nodes) in `root`.
 // summary(): a short line shown beside the Settings button while the panel is folded on a narrow
 // screen, such as the chosen models. Returns { refresh() } to redraw that line.
 export function toolLayout(root, { panel, main, summary = () => '' }) {
@@ -37,6 +51,8 @@ export function toolLayout(root, { panel, main, summary = () => '' }) {
   });
   body.addEventListener('change', () => setTimeout(refresh));
   document.addEventListener('models-changed', () => setTimeout(refresh));
+  // The panel comes first in the page, so on a narrow screen its Settings button sits above the
+  // steps; on a wide screen the stylesheet puts it in the right-hand column.
   root.append(el('div', { class: 'tool-layout' }, aside, el('div', { class: 'tool-main' }, ...main)));
   refresh();
   return { refresh };

@@ -11,7 +11,7 @@ Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-
 
 ## Settings
 
-The **settings panel** on the left holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed.
+The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
 
 - **Prompt writer:** the **chat model** that reads the export and writes the image prompt. Any good general model works. **curated** shows only the models we have tested for this tool. **Max tokens** and the **System prompt** (with **Reset to default**) are there too.
 - **Image model:** the model that draws, and its size, aspect ratio, resolution and quality (the choices follow the model).

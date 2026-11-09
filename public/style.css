@@ -493,6 +493,11 @@ button.danger { color: var(--err); }
 .lg-paper { fill: var(--surface); }
 .topbar.tiny .logo .logo-word { display: none; }
 .topbar h1 a:hover { opacity: .8; }
+/* The logo is the Welcome link: underlined like an active tab while the Welcome page is open. */
+.topbar h1 { align-self: stretch; display: flex; align-items: center; padding: 0; }
+.topbar h1 a { align-self: stretch; border-bottom: 2px solid transparent; padding: 6px 0 4px; }
+.topbar h1 a[aria-current=page] { border-bottom-color: var(--accent); }
+.topbar.wrapped h1 a { border-bottom-width: 0; }
 /* The welcome page (Providers tab): intro, tool cards, then one wide box per provider. */
 .welcome { max-width: 1100px; margin-inline: auto; display: flex; flex-direction: column; gap: 26px; font-size: 15px; line-height: 1.5; }
 .welcome section > h3 { margin: 0 0 10px; font-size: 17px; }

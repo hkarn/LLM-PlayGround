@@ -10,10 +10,14 @@ const REPO = 'https://github.com/hkarn/LLM-PlayGround';
 // static host). choose(id): picks a provider in the top bar. apps: [{ href, title, blurb, icon,
 // status?, video? }] for the "What you can do" cards; icon(paths) draws an app's icon.
 export function renderProviderGuide(container, { unavailable, choose, apps = [], icon }) {
-  // Video tools need a provider file with tested video models (videoModels); today only OpenRouter.
+  // Video: the providers with tested video models (videoModels, today OpenRouter) first, then any
+  // other whose file doesn't mark video unsupported (LLM Gateway: its models, untested).
   const videoRouters = Object.values(PROVIDERS).filter((p) => p.videoModels).map((p) => p.label);
+  const videoUntested = Object.values(PROVIDERS)
+    .filter((p) => !p.videoModels && !p.unsupported?.includes('video') && !p.keyOptional && !p.extends)
+    .map((p) => `${p.label}${p.needsServer ? ' (through your own server)' : ''}`);
   const videoNote = videoRouters.length
-    ? `Video works only with ${videoRouters.join(' or ')} for now; the other providers here have no video models.`
+    ? `Video works with ${videoRouters.join(' or ')}${videoUntested.length ? `, and with ${videoUntested.join(' or ')}, whose video models are untested here` : ''}. The other providers have no video.`
     : '';
   const easiest = Object.values(PROVIDERS).find((p) => p.guide && !unavailable(p));
 

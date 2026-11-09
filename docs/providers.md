@@ -1,6 +1,6 @@
 # Providers
 
-The playground sends your requests to one provider (or router) at a time. Pick it in the connection panel at the top of the page (click the chip), or with **Use this one** in its box on the Welcome page (click the logo at the top left). For now only OpenRouter has video models, so the video tools need it.
+The playground sends your requests to one provider (or router) at a time. Pick it in the connection panel at the top of the page (click the chip), or with **Use this one** in its box on the Welcome page (click the logo at the top left). Video works with OpenRouter (tested models first) and with LLM Gateway through your own server (its models untested, without prices).
 
 ## The providers
 
@@ -41,7 +41,7 @@ Option dropdowns follow the chosen model:
 
 ## Video models
 
-The Video Generator and Animate the DreamGen Scene list the video models we have run for real first, from `videoModels` in the provider's settings file (OpenRouter has twelve). Each card shows the model's name and price; its tooltip, and the box under the cards for the chosen model, say which frames it takes, its audio, and whether it kept a face in our tests. Any other video model your key can use is under **Other video model**, marked untested. See the [Video Generator guide](guides/video-generator.md).
+The Video Generator and Animate the DreamGen Scene list the video models we have run for real first, from `videoModels` in the provider's settings file (OpenRouter has twelve). Each card shows the model's name and price; its tooltip, and the box under the cards for the chosen model, say which frames it takes, its audio, and whether it kept a face in our tests. Any other video model your key can use is under **Other video model**, marked untested; on LLM Gateway, which has no tested models yet, that is all of them. See the [Video Generator guide](guides/video-generator.md).
 
 ## Adding a provider
 

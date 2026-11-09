@@ -295,19 +295,11 @@ export function str(form, name) {
   const v = form.elements[name]?.value?.trim();
   return v ? v : undefined;
 }
-export function compact(obj) {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== ''));
-}
 export function lines(text) { return text.split('\n').map((s) => s.trim()).filter(Boolean); }
 
 /* ------------------------------------------------------------------ */
 /* Small utilities                                                     */
 /* ------------------------------------------------------------------ */
-export function messageText(msg) {
-  if (typeof msg.content === 'string') return msg.content;
-  if (Array.isArray(msg.content)) return msg.content.map((p) => p.text ?? '').join('');
-  return '';
-}
 export function usageLine(data, choice) {
   const parts = [];
   if (data?.model) parts.push(`model: ${data.provider ? `${data.provider}/` : ''}${data.model}`);

@@ -4,7 +4,10 @@
     "request: a template. \"{{name}}\" alone is replaced by that input value with its type kept, and the key is left out when the value is missing or empty (the same rule as disabled fields never being sent). \"{{a.b}}\" reads a nested value. {\"each\": \"list\", \"as\": template} makes one entry per item of an input list, each read as \"item\". A \"...\": \"{{obj}}\" key copies an object's keys in at that point.",
     "body: \"json\" (default) or \"multipart\". For multipart, request gives the form fields in order and files the file fields: {\"each\": list, \"field\": name} for every item, {\"one\": name, \"field\": name} for a single file.",
     "drops: inputs this endpoint cannot take; the page says when one was left out.",
-    "response: where each value is in the answer. \"$.a.b[0].c\" is a path; \"[*]\" takes every item. {\"path\": \"$.x[*]\", \"as\": {name: key}} reads a list of objects. text that comes back as a list of parts is joined."
+    "response: where each value is in the answer. \"$.a.b[0].c\" is a path; \"[*]\" takes every item. {\"path\": \"$.x[*]\", \"as\": {name: key}} reads a list of objects. text that comes back as a list of parts is joined.",
+    "A File (or Blob) anywhere inside an input that the template uses is sent as a data URL in JSON bodies, and shown as a placeholder. A top-level list of Files becomes items {name, dataUrl} for {each, as}.",
+    "filesFirst: true puts the multipart file fields before the other fields (transcriptions, as sent before the adapter).",
+    "Follow-up calls of an async job (video) are paths after the endpoint's path, filled from the job's values: poll and content. They are GET requests."
   ],
   "endpoints": {
     "chat": {
@@ -19,7 +22,9 @@
       "response": {
         "text": "$.choices[0].message.content",
         "model": "$.model",
-        "usage": "$.usage"
+        "usage": "$.usage",
+        "toolCalls": "$.choices[0].message.tool_calls",
+        "finish": "$.choices[0].finish_reason"
       }
     },
     "image": {
@@ -35,7 +40,15 @@
         "output_format": "{{output_format}}"
       },
       "response": {
-        "images": { "path": "$.data[*]", "as": { "b64": "b64_json", "url": "url", "mime": "media_type", "revised": "revised_prompt" } },
+        "images": {
+          "path": "$.data[*]",
+          "as": {
+            "b64": "b64_json",
+            "url": "url",
+            "mime": "media_type",
+            "revised": "revised_prompt"
+          }
+        },
         "usage": "$.usage"
       }
     },
@@ -54,8 +67,114 @@
         { "one": "mask", "field": "mask" }
       ],
       "response": {
-        "images": { "path": "$.data[*]", "as": { "b64": "b64_json", "url": "url", "mime": "media_type", "revised": "revised_prompt" } },
+        "images": {
+          "path": "$.data[*]",
+          "as": {
+            "b64": "b64_json",
+            "url": "url",
+            "mime": "media_type",
+            "revised": "revised_prompt"
+          }
+        },
         "usage": "$.usage"
+      }
+    },
+    "decision": {
+      "request": {
+        "model": "{{model}}",
+        "state": "{{state}}",
+        "questions": "{{questions}}"
+      },
+      "response": {
+        "answers": "$.answers",
+        "usage": "$.usage"
+      }
+    },
+    "embeddings": {
+      "request": {
+        "model": "{{model}}",
+        "input": "{{input}}",
+        "dimensions": "{{dimensions}}",
+        "encoding_format": "{{encoding_format}}"
+      },
+      "response": {
+        "vectors": "$.data[*].embedding",
+        "usage": "$.usage"
+      }
+    },
+    "rerank": {
+      "request": {
+        "model": "{{model}}",
+        "query": "{{query}}",
+        "documents": "{{documents}}",
+        "top_n": "{{top_n}}"
+      },
+      "response": {
+        "results": {
+          "path": "$.results[*]",
+          "as": {
+            "index": "index",
+            "score": "relevance_score",
+            "text": "document.text"
+          }
+        },
+        "usage": "$.usage"
+      }
+    },
+    "speech": {
+      "request": {
+        "model": "{{model}}",
+        "input": "{{input}}",
+        "voice": "{{voice}}",
+        "response_format": "{{response_format}}",
+        "speed": "{{speed}}",
+        "instructions": "{{instructions}}"
+      },
+      "response": {}
+    },
+    "transcription": {
+      "body": "multipart",
+      "filesFirst": true,
+      "request": {
+        "model": "{{model}}",
+        "language": "{{language}}"
+      },
+      "files": [
+        { "one": "file", "field": "file" }
+      ],
+      "response": {
+        "text": "$.text",
+        "language": "$.language",
+        "duration": "$.duration",
+        "usage": "$.usage"
+      }
+    },
+    "video": {
+      "request": {
+        "model": "{{model}}",
+        "prompt": "{{prompt}}",
+        "duration": "{{duration}}",
+        "resolution": "{{resolution}}",
+        "aspect_ratio": "{{aspect_ratio}}",
+        "generate_audio": "{{generate_audio}}",
+        "frame_images": {
+          "each": "first_frame",
+          "as": {
+            "type": "image_url",
+            "image_url": {
+              "url": "{{item.dataUrl}}"
+            },
+            "frame_type": "first_frame"
+          }
+        }
+      },
+      "poll": "/{{id}}",
+      "content": "/{{id}}/content?index=0",
+      "response": {
+        "id": "$.id",
+        "status": "$.status",
+        "error": "$.error",
+        "cost": "$.usage.cost"
       }
     }
   }

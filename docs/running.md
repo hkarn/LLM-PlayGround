@@ -36,8 +36,10 @@ docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/hkarn/llm-playground:latest
 To build from source, switch `image:` to `build: .` in `docker-compose.yml`, or run:
 
 ```bash
-docker build -t llm-playground . && docker run --rm -p 3000:3000 llm-playground
+docker build -t llm-playground . && docker run --rm -p 127.0.0.1:3000:3000 llm-playground
 ```
+
+The `127.0.0.1:` in these commands keeps the playground on your own computer. A plain `-p 3000:3000` would publish it on every network interface, so anyone on your network could open it, and use any server key you gave it.
 
 > If the GHCR package is private (the default for a new package), run `docker login ghcr.io` first, or make it public under **GitHub → Packages → llm-playground → Package settings**.
 

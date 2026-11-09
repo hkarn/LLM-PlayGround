@@ -1,6 +1,6 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
 import { read } from './adapter.js';
-import { apiKey, baseUrl, defaultBaseUrl, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
+import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { renderProviderGuide } from './providers-guide.js';
 import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
@@ -170,6 +170,7 @@ export function applyProvider() {
     if (p !== provider()) return;
     showKeyHint();
     if (!cfg) $('#models-status').textContent = `No models loaded. Calling ${p.label} directly from the browser.`;
+    updateChip(); // the server key, if any, is known now
     if (apiKey() || hasEnvKey()) loadModels();
   });
 }
@@ -207,11 +208,18 @@ function updateChip() {
   let host = '';
   try { host = new URL(baseUrl()).host; } catch { /* no URL yet, or not a full URL */ }
   $('#conn-label').textContent = host ? `${p.label} · ${host}` : p.label;
-  const hasKey = Boolean(apiKey() || state.config?.providers?.[state.provider]?.hasEnvKey);
-  const [chipState, short] = text.startsWith('Loading') ? ['loading', 'Loading…']
-    : text.startsWith('Could not') ? ['err', 'Not connected']
-      : state.models.length ? ['ok', `${state.models.length} models`]
-        : hasKey ? ['', 'No models'] : ['', 'Add API key'];
+  // Green needs a key as well as a model list: lists are often public, requests never are.
+  const ready = keyReady();
+  // Once a key is typed, the "add a key" message has done its job.
+  if (ready && text.startsWith('Add an API key first')) { status.textContent = 'No models loaded. Press Load models.'; return; }
+  const loading = text.startsWith('Loading');
+  const [chipState, short] = loading ? ['loading', 'Loading…']
+    : !ready ? ['', 'Add API key']
+      : text.startsWith('Could not') ? ['err', 'Not connected']
+        : state.models.length ? ['ok', `${state.models.length} models`] : ['', 'No models'];
+  const btn = $('#key-form button');
+  btn.disabled = loading || !ready;
+  btn.title = ready ? '' : 'Type an API key first';
   $('#conn-chip').dataset.state = chipState;
   $('#conn-state').textContent = short;
   $('#conn-chip').title = `${p.label}: ${text}`;

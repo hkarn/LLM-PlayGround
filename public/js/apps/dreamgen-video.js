@@ -11,6 +11,7 @@ import { rememberModel } from '../ui/remember.js';
 import { renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
+import { sceneStylePicker } from '../ui/scene-styles.js';
 import { priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
@@ -67,6 +68,7 @@ export function renderDreamGenVideo(root) {
     el('button', { type: 'submit', class: 'primary', text: 'Write motion prompt' }));
   const motionOut = el('div', { class: 'result' });
   const motion = el('textarea', { name: 'motion', rows: 3, placeholder: 'e.g. The man on the wall turns his head toward the empty space beside him; the streetlight flickers; the river runs on.' });
+  const style = sceneStylePicker();
   const countExport = () => {
     exportCount.textContent = exportBox.value ? `(about ${tokensFor(exportBox.value).toLocaleString()} tokens)` : '';
   };
@@ -93,12 +95,17 @@ export function renderDreamGenVideo(root) {
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
       preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
-      el('label', {}, 'Motion prompt (sent to the video model)', motion)),
+      el('label', {}, 'Motion prompt (sent to the video model)', motion),
+      el('div', { class: 'grid3' },
+        el('label', {}, 'Picture style', style.select),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom)),
+      el('div', { class: 'muted small', text: 'The style is added to the end of the motion prompt when the clip is made ("Style: …"). It is shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Model, settings and the clip' }), clipForm, clipOut));
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   rememberModel(motionForm, 'motion', ['max_tokens']);
-  keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'dgvideo:settings-model'] });
+  style.sync();
+  keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'dgvideo:settings-model', 'style_custom'] });
   countExport();
 
   // The handoff from Draw the DreamGen Scene: offered when there is one, and taken at once when
@@ -178,8 +185,10 @@ export function renderDreamGenVideo(root) {
     e.preventDefault();
     runStep(clipForm, clipOut, async () => {
       if (!st.frame) throw new Error('Choose a scene picture first (step 1).');
-      const prompt = motion.value.trim();
-      if (!prompt) throw new Error('Write a motion prompt first (step 2).');
+      const motionText = motion.value.trim();
+      if (!motionText) throw new Error('Write a motion prompt first (step 2).');
+      // The picture style goes at the end, as Draw the DreamGen Scene adds it to the image prompt.
+      const prompt = style.withStyle(motionText);
       const m = settings.model();
       if (!m) throw new Error('Pick a video model first.');
       const est = settings.price();

@@ -1,6 +1,6 @@
 /* LLM PlayGround: Tool: Draw the DreamGen Scene. */
 import { read, send } from '../adapter.js';
-import { curlFor, ep, lines, num, parseJsonLoose, store, str, usageLine } from '../core.js';
+import { curlFor, ep, lines, num, parseJsonLoose, str, usageLine } from '../core.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $, $$, el } from '../ui/dom.js';
@@ -11,6 +11,7 @@ import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
 import { renderImages, renderResult } from '../ui/result.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
+import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
 import { settingsToggle } from '../ui/settings-toggle.js';
 
@@ -53,20 +54,6 @@ List every character visible in the picture, the player's character included whe
 - Someone who has just left or vanished: make the absence visible and specific, such as the empty place where they were, a dent in a cushion, a cup still steaming, the other characters' eyes on that spot. Never draw the absent person.
 - Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
-
-// Picture styles added to the end of the image prompt. "" leaves the style to the prompt.
-export const SCENE_STYLES = [
-  ['', 'None'],
-  ['Photorealistic, like a photograph taken on location: natural light, real skin and fabric texture, shallow depth of field.', 'Photoreal'],
-  ['Cinematic film still: anamorphic widescreen look, dramatic but natural lighting, subtle film grain, colour-graded.', 'Cinematic still'],
-  ['Digital painting in the style of fantasy concept art: painterly brushwork, rich light and atmosphere.', 'Digital painting'],
-  ['Classical oil painting: visible brushstrokes, rich pigments, chiaroscuro lighting, canvas texture.', 'Oil painting'],
-  ['Watercolour illustration: soft washes, loose edges, paper texture, muted colours.', 'Watercolour'],
-  ['Anime style: clean line art, cel shading, expressive faces, detailed painted background.', 'Anime'],
-  ['Comic book / graphic novel panel: bold ink outlines, flat colours with hard shadows.', 'Comic / graphic novel'],
-  ['Pencil sketch: graphite on paper, hatching and smudged shading, no colour.', 'Pencil sketch'],
-  ['custom', 'Custom…'],
-];
 
 export function renderDreamGenScene(root) {
   const st = { session: null };
@@ -132,16 +119,9 @@ export function renderDreamGenScene(root) {
   const charList = el('div', { class: 'scene-chars' });
   const addNames = el('input', { type: 'checkbox', checked: '' });
   const portraits = refPortraits({ extra: el('label', { class: 'inline small' }, addNames, 'Add the portrait names to the prompt') });
-  // The picture style is added to the prompt when it is drawn or copied, and remembered.
-  const styleSelect = el('select', { name: 'style' }, ...SCENE_STYLES.map(([v, t]) => el('option', { value: v, text: t })));
-  const styleCustom = el('input', { name: 'style_custom', placeholder: 'e.g. 1980s fantasy paperback cover, airbrushed' });
-  const syncStyle = () => { styleCustom.closest('label').hidden = styleSelect.value !== 'custom'; };
-  styleSelect.value = SCENE_STYLES.some(([v]) => v === store.get('dgscene_style')) ? store.get('dgscene_style') : '';
-  styleCustom.value = store.get('dgscene_style_custom') || '';
-  styleSelect.addEventListener('change', () => { store.set('dgscene_style', styleSelect.value); syncStyle(); });
-  styleCustom.addEventListener('input', () => store.set('dgscene_style_custom', styleCustom.value));
-  const styleText = () => (styleSelect.value === 'custom' ? styleCustom.value.trim() : styleSelect.value);
-  const withStyle = (text) => (styleText() ? `${text}\n\nStyle: ${styleText()}` : text);
+  // The picture style is added to the prompt when it is drawn or copied, and remembered (shared
+  // with Animate the DreamGen Scene, so the clip keeps the picture's style).
+  const { select: styleSelect, custom: styleCustom, sync: syncStyle, withStyle } = sceneStylePicker();
   // The prompt as written, with its style; the reference-name lines are only for step 4, where the portraits go too.
   const copyRow = copyButton({
     label: 'Copy prompt', getText: () => (promptBox.value.trim() ? withStyle(promptBox.value.trim()) : ''),

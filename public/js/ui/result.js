@@ -60,7 +60,7 @@ function shortenBase64(v) {
   if (typeof v === 'string') {
     const data = v.match(/^data:[\w/+.-]+;base64,/);
     const body = data ? v.slice(data[0].length) : v;
-    return body.length > 2000 && /^[A-Za-z0-9+/=]+$/.test(body.slice(0, 200)) ? `<${data ? data[0] : ''}${body.length.toLocaleString()} base64 chars>` : v;
+    return body.length > 2000 && /^[A-Za-z0-9+/=]+$/.test(body) ? `<${data ? data[0] : ''}${body.length.toLocaleString()} base64 chars>` : v;
   }
   if (Array.isArray(v)) return v.map(shortenBase64);
   if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shortenBase64(x)]));

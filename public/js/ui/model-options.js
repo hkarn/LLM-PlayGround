@@ -26,7 +26,7 @@ export function optionsFromModel(kind, name, m) {
 
 export function setupModelOptions(form) {
   const kind = form.dataset.kind;
-  const selects = $$('select', form).filter((s) => !['model', 'voice_preset'].includes(s.name) && !s.closest('.model-picker'));
+  const selects = $$('select', form).filter((s) => !['model', 'voice_preset', 'generate_audio'].includes(s.name) && !s.closest('.model-picker'));
   // Remember the options from index.html as the last fallback.
   for (const s of selects) {
     s._orig = [...s.options].filter((o) => o.value !== '').map((o) => o.value);
@@ -58,7 +58,22 @@ export function setupModelOptions(form) {
       const frames = m?.supported_frame_images;
       form.elements.first_frame.disabled = Array.isArray(frames) && !frames.includes('first_frame');
       form.elements.last_frame.disabled = !Array.isArray(frames) || !frames.includes('last_frame');
-      form.elements.generate_audio.disabled = m?.generate_audio === false;
+      // Audio: default (nothing sent: the provider decides), on or off. A model whose list says it
+      // has no sound gets "not supported" and one that always adds sound (audio_always) "always on":
+      // both send nothing, since some providers refuse the field (LLM Gateway's MiniMax Hailuo
+      // refuses even audio: false). Otherwise the user's choice is kept across models.
+      const audio = form.elements.generate_audio;
+      const fixed = m?.audio_always ? 'always on' : m?.generate_audio === false ? 'not supported' : '';
+      if (fixed) {
+        if (!audio.disabled) audio.dataset.choice = audio.value;
+        audio.replaceChildren(el('option', { value: '', text: fixed }));
+        audio.disabled = true;
+      } else if (audio.disabled || audio.options.length < 3) {
+        audio.replaceChildren(el('option', { value: '', text: 'default' }), el('option', { value: 'true', text: 'on' }), el('option', { value: 'false', text: 'off' }));
+        audio.disabled = false;
+        audio.value = audio.dataset.choice || '';
+      }
+      audio.title = m?.audio_always ? 'This model always adds sound.' : m?.generate_audio === false ? 'This model makes no sound.' : 'default sends nothing, so the provider decides.';
     }
     if (kind === 'image' || kind === 'imageEdit') {
       const n = m?.supported_parameters?.n;

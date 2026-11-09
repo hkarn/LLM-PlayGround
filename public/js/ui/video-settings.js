@@ -16,13 +16,13 @@ export function testedVideoModels() {
 }
 
 // Any other loaded video model (the model filter applies), described only by its list entry.
-// Audio: "optional" where the list says the model has audio, "off" where it says not, and
-// "unknown" (sent only when ticked) where it says nothing.
+// Audio: "always" where the list says the model always adds sound (audio_always), "optional" where
+// it has audio, "off" where it says not, and "unknown" (sent only when ticked) where it says nothing.
 function untestedVideoModel(meta) {
   return {
     id: meta.id, label: meta.name || meta.id, untested: true, meta,
     frames: Array.isArray(meta.supported_frame_images) ? meta.supported_frame_images : [],
-    audio: meta.generate_audio === true ? 'optional' : meta.generate_audio === false ? 'off' : 'unknown',
+    audio: meta.audio_always ? 'always' : meta.generate_audio === true ? 'optional' : meta.generate_audio === false ? 'off' : 'unknown',
     note: 'Not tested here: its options and price come from the provider\'s model list, and it may still refuse some of them, or a picture.',
   };
 }

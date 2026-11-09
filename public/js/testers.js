@@ -252,12 +252,9 @@ export const handlers = {
     };
     const signal = form._abort?.signal;
     const t0 = Date.now();
-    // Audio: ticked sends true. Unticked sends false when the model's list says it can make sound
-    // (generate_audio true), since some providers add sound unless told not to (LLM Gateway's audio
-    // defaults to true); otherwise it is left out, as before.
-    const audioBox = form.elements.generate_audio;
-    const canSound = state.models.find((m) => m.id === chosenModel(form))?.generate_audio === true;
-    const generateAudio = audioBox.disabled ? undefined : audioBox.checked ? true : canSound ? false : undefined;
+    // Audio: on sends true, off false, default (or a greyed-out field) nothing, so the provider decides.
+    const audioChoice = str(form, 'generate_audio');
+    const generateAudio = audioChoice === 'true' ? true : audioChoice === 'false' ? false : undefined;
     let { resp, request: shownReq, curl } = await send('video', {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(), duration: num(form, 'duration'),
       resolution: str(form, 'resolution'), aspect_ratio: str(form, 'aspect_ratio'),

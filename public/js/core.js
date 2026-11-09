@@ -116,7 +116,8 @@ export const store = {
 // from wherever that provider keeps the facts, per tab: { "<tab>": { "<field>": rule } }. A rule is a
 // path ("providers.0.supportedVideoSizes"), or { "if": [conditions], "value": v, "else": w } where a
 // condition is a path that holds something (not empty, not false) or "path:item" (a list holding
-// item), any one being enough. A field the model already has is kept.
+// item), any one being enough; "all" instead of "if" needs every one, and "!" before a condition
+// turns it around. A field the model already has is kept.
 const pathIn = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 const holds = (v) => v != null && v !== false && !(Array.isArray(v) && !v.length) && v !== '';
 function modelFields(model) {
@@ -127,12 +128,14 @@ function modelFields(model) {
     let value;
     if (typeof rule === 'string') value = pathIn(model, rule);
     else {
-      const met = (rule.if || []).some((c) => {
+      const test = (c) => {
+        if (c.startsWith('!')) return !test(c.slice(1));
         const cut = c.indexOf(':');
         if (cut < 0) return holds(pathIn(model, c));
         const list = pathIn(model, c.slice(0, cut));
         return Array.isArray(list) && list.includes(c.slice(cut + 1));
-      });
+      };
+      const met = rule.all ? rule.all.every(test) : (rule.if || []).some(test);
       value = met ? rule.value : rule.else;
     }
     if (value !== undefined) model[field] = value;

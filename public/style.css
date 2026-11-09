@@ -51,15 +51,14 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .small { font-size: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* Masthead: the top bar and the API tester tabs, kept at the top while the page scrolls. main.js
-   writes its height into --masthead-h, so jumps and sticky panels stop below it.
-   On a phone it wraps to three rows, so there it scrolls away with the page (and --masthead-h is 0). */
-@media (min-width: 701px) {
-  .masthead { position: sticky; top: 0; z-index: 30; }
-  html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
-}
+/* Masthead: the top bar and the API tester tabs, kept at the top while the page scrolls.
+   ui/top-bar.js writes its height into --masthead-h, so jumps and sticky panels stop below it.
+   When even the shortest bar wraps (.wrapped), it scrolls away with the page instead. */
+.masthead { position: sticky; top: 0; z-index: 30; }
+.masthead.wrapped { position: static; }
+html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
 /* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel.
-   It stays on one line as long as it can: the tabs, the chip's label and the GitHub link shrink first. */
+   It stays on one line as long as it can; ui/top-bar.js adds .short, .menu and .tight in turn. */
 .topbar {
   position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 clamp(2px, .6vw, 8px);
   padding: 0 clamp(10px, 1.6vw, 20px); background: var(--surface); border-bottom: 1px solid var(--border);
@@ -117,23 +116,39 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .models-status.err { color: var(--err); }
 .conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
 .gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
-@media (max-width: 1150px) {
-  .gh-long { display: none; }
-  .conn-label { max-width: 200px; }
+/* The fitting steps. The tabs sit in .nav-wrap, which lays out as if it weren't there until .menu
+   folds it into a drop-down under #nav-menu. */
+.nav-wrap { display: contents; }
+.nav-menu { display: none; }
+.topbar.short .opt { display: none; }
+.topbar.menu .nav-menu {
+  display: flex; align-items: center; gap: 6px; white-space: nowrap; margin: 8px 0;
+  padding: 6px 12px; border-radius: 8px; background: var(--bg); font-weight: 600;
 }
-@media (max-width: 900px) {
-  .topbar h1 { font-size: 15px; }
-  .conn-chip { padding: 6px 10px; gap: 6px; }
-  .conn-state { display: none; }
+.nav-menu .burger, .nav-menu .caret { color: var(--muted); font-weight: 400; }
+.nav-menu[aria-expanded=true] { border-color: var(--accent); }
+.topbar.menu .nav-wrap { display: none; }
+.topbar.menu .nav-wrap.open {
+  display: flex; flex-direction: column; position: absolute; top: calc(100% - 4px); z-index: 25;
+  min-width: 200px; padding: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
 }
-/* Narrow screens: the chip and the GitHub link share their own line (the chip's label shortens
-   to fit), and the panel spans the width. */
-@media (max-width: 700px) {
-  .conn { position: static; margin-left: 0; flex: 1 1 180px; min-width: 0; display: flex; }
-  .conn-chip { min-width: 0; }
-  .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
-  .gh-link { flex: none; }
+.topbar.menu .nav-wrap .tabs { flex-direction: column; gap: 0; overflow: visible; }
+.topbar.menu .nav-wrap .tabs button, .topbar.menu .nav-wrap .tester-toggle {
+  text-align: left; padding: 9px 12px; border-bottom: none; border-left: 3px solid transparent; border-radius: 6px;
 }
+.topbar.menu .nav-wrap .tabs button.active, .topbar.menu .nav-wrap .tester-toggle.active { border-left-color: var(--accent); background: var(--highlight); }
+.topbar.menu h1 { font-size: 15px; }
+.topbar.tight .conn-state, .topbar.tight .gh-link { display: none; }
+.topbar.tight .conn-chip { padding: 6px 10px; gap: 6px; }
+.topbar.tiny h1 { font-size: 13.5px; margin-right: 2px; }
+.topbar.tiny .nav-menu { padding: 6px 8px; }
+.topbar.tiny .nav-menu .burger { display: none; }
+/* When even that wraps: the chip gets its own line, its label shortens, and the panel spans the width. */
+.topbar.wrapped .conn { position: static; margin-left: 0; flex: 1 1 180px; min-width: 0; display: flex; }
+.topbar.wrapped .conn-chip { min-width: 0; }
+.topbar.wrapped .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
+@media (max-width: 700px) { .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); } .conn { position: static; } }
 
 main { max-width: 1400px; margin: 0 auto; padding: 20px; }
 .panel { display: none; }

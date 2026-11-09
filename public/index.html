@@ -19,6 +19,9 @@
 <div class="masthead">
 <header class="topbar">
   <h1><a href="#providers" title="Welcome page">LLM PlayGround</a></h1>
+  <!-- When the bar gets too narrow, the tabs fold into this drop-down (ui/top-bar.js). -->
+  <button type="button" id="nav-menu" class="nav-menu" aria-controls="nav-wrap" aria-expanded="false"><span class="burger" aria-hidden="true">☰</span> <span class="nav-current">Welcome</span> <span class="caret" aria-hidden="true">▾</span></button>
+  <div id="nav-wrap" class="nav-wrap">
   <nav class="tabs main-tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-tab="providers" class="active">Welcome</button>
     <button role="tab" data-tab="games" class="hub-tab">Games</button>
@@ -28,8 +31,9 @@
   <button type="button" id="tester-toggle" class="tester-toggle" aria-controls="tester-tabs" aria-expanded="false">API tester <span class="caret" aria-hidden="true">▸</span></button>
   <!-- The model filter and model list: it narrows every model list on the page, tools and games too. -->
   <nav class="tabs main-tabs" role="tablist" aria-label="Models">
-    <button role="tab" data-tab="models">Filter models</button>
+    <button role="tab" data-tab="models">Filter<span class="opt"> models</span></button>
   </nav>
+  </div>
   <!-- Connection: a chip that shows the provider, URL and model status, and opens the settings. -->
   <div class="conn">
     <button type="button" id="conn-chip" class="conn-chip" aria-controls="conn-panel" aria-expanded="false" title="Provider, URL and API key">
@@ -62,7 +66,7 @@
       <p class="conn-signup small muted">No key? Get one at <span id="signup-links"></span> · <a href="#providers">Which provider?</a></p>
     </div>
   </div>
-  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener"><span class="gh-long">Source on </span>GitHub</a>
+  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener"><span class="opt">Source on </span>GitHub</a>
 </header>
 
 <nav id="tester-tabs" class="tabs tester-tabs" role="tablist" aria-label="API tester" hidden>

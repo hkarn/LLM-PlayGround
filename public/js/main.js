@@ -8,6 +8,7 @@ import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
 import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
+import { setupTopBar } from './ui/top-bar.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
 import { renderException } from './ui/result.js';
@@ -75,12 +76,7 @@ export async function init() {
     { href: '#chat', title: 'API tester', icon: TESTER_ICON, blurb: 'Send a raw request to any endpoint (chat, images, video, speech, embeddings …) and see the full answer.' },
     { href: '#models', title: 'Filter models', icon: FILTER_ICON, blurb: 'Narrow every model list on the page to the makers and models you care about.' },
   ];
-  // The sticky masthead's height, for scroll-padding and the tools' sticky settings panel.
-  const masthead = $('.masthead');
-  const setMastheadH = () => document.documentElement.style.setProperty('--masthead-h',
-    `${getComputedStyle(masthead).position === 'sticky' ? masthead.offsetHeight : 0}px`);
-  new ResizeObserver(setMastheadH).observe(masthead);
-  window.addEventListener('resize', setMastheadH);
+  setupTopBar();
   // The title opens the welcome page, at the top, even when its hash is already #providers.
   $('.topbar h1 a').addEventListener('click', (e) => {
     e.preventDefault();
@@ -238,7 +234,7 @@ function updateChip() {
   const text = status.textContent;
   let host = '';
   try { host = new URL(baseUrl()).host; } catch { /* no URL yet, or not a full URL */ }
-  $('#conn-label').textContent = host ? `${p.label} · ${host}` : p.label;
+  $('#conn-label').replaceChildren(p.label, ...(host ? [el('span', { class: 'opt', text: ` · ${host}` })] : []));
   // Green needs a key as well as a model list: lists are often public, requests never are.
   const ready = keyReady();
   // Once a key is typed, the "add a key" message has done its job.

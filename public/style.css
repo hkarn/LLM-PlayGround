@@ -105,11 +105,13 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .models-status.err { color: var(--err); }
 .conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
 .gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
-/* Narrow screens: the chip takes its own line and the panel spans the width. */
+/* Narrow screens: the chip and the GitHub link share their own line (the chip's label shortens
+   to fit), and the panel spans the width. */
 @media (max-width: 700px) {
-  .conn { position: static; margin-left: 0; flex: 1 1 100%; display: flex; }
+  .conn { position: static; margin-left: 0; flex: 1 1 180px; min-width: 0; display: flex; }
+  .conn-chip { min-width: 0; }
   .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
-  .gh-link { display: none; }
+  .gh-link { flex: none; }
 }
 
 main { max-width: 1400px; margin: 0 auto; padding: 20px; }

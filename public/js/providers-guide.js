@@ -73,7 +73,10 @@ export function renderProviderGuide(container, { unavailable, choose, apps = [],
     const step = (done, current, ...children) => el('li', { class: done ? 'done' : current ? 'current' : '' },
       done ? el('span', { class: 'tick', 'aria-label': 'done', text: '✓ ' }) : null, ...children);
     const steps = el('ol', {}, [
-      step(hasKey, !hasKey, toProviders, ' and get an API key from it', easiest ? `; ${easiest.label} is the easiest start.` : '.'),
+      // A provider that needs no key (keyOptional, e.g. Custom) has nothing to get: its step says so.
+      p?.keyOptional
+        ? step(true, false, toProviders, `; ${p.label} needs no API key, only its address (base URL) in the connection chip.`)
+        : step(hasKey, !hasKey, toProviders, ' and get an API key from it', easiest ? `; ${easiest.label} is the easiest start.` : '.'),
       step(loaded, hasKey && !loaded, openChip, hasKey ? ' and press Load models.' : ' at the top right, paste the key and press Load models.'),
       step(false, loaded, 'Pick a tool or game below, or try any model in the API tester.'),
     ]);
@@ -89,6 +92,10 @@ export function renderProviderGuide(container, { unavailable, choose, apps = [],
   document.addEventListener('models-changed', drawStart);
   document.getElementById('provider')?.addEventListener('change', () => setTimeout(drawStart));
   document.getElementById('api-key')?.addEventListener('input', drawStart);
+  // The connection status line changes on every load (started, failed, done), also when a saved key
+  // is put back at start-up without an input event, so the steps follow that too.
+  const status = document.getElementById('models-status');
+  if (status) new MutationObserver(drawStart).observe(status, { childList: true, characterData: true, subtree: true });
 
   container.replaceChildren(
     el('div', { class: 'welcome' }, [

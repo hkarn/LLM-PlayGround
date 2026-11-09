@@ -65,7 +65,8 @@ A key typed in the page always wins over the one in `.env`. Only do this on your
 | **Providers** | How hard each provider is to set up, the steps, and its sign-up link |
 | **Tools** | Draw the DreamGen Scene · Animate the DreamGen Scene · Video Generator |
 | **Games** | AI Group Chat |
-| **API tester ▸** | Chat, Decision, Embeddings, Rerank, Image, Image edit, Video, Speech, Transcriptions, and All models (with a model filter that narrows every list on the page) |
+| **API tester ▸** | Chat, Decision, Embeddings, Rerank, Image, Image edit, Video, Speech, Transcriptions |
+| **Filter models** | A model filter that narrows every model list on the page, and the full model list |
 
 Every tab and tool has its own link, such as `#tools/dreamgen-scene` or `#chat`, so you can bookmark it or share it.
 

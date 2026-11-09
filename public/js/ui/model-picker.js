@@ -12,7 +12,7 @@ export function setupPicker(picker) {
   const custom = el('input', { name: 'model_custom', placeholder: 'or type a model id, e.g. openai/gpt-4o-mini', spellcheck: 'false' });
   const showAll = el('input', { type: 'checkbox' });
   const info = el('div', { class: 'model-info' });
-  // Shown while the model filter (All models tab) hides some of the list.
+  // Shown while the model filter (Filter models tab) hides some of the list.
   const filterNote = el('p', { class: 'muted small filter-note', hidden: true }, 'Model filter on. ', el('a', { href: '#models', text: 'Edit it' }));
 
   picker.replaceChildren(

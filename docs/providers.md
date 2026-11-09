@@ -30,7 +30,7 @@ The base URL can be edited, for example for a regional endpoint; **↺** puts th
 - **LLM Gateway:** the tab comes from what the model outputs (`architecture.output_modalities`).
 - **Custom:** `GET /v1/models`.
 
-Tick **show all**, or type any model id, to use a model the list doesn't put in that tab. The [model filter](guides/api-tester.md#the-model-filter) on the All models tab narrows every list on the page.
+Tick **show all**, or type any model id, to use a model the list doesn't put in that tab. The [model filter](guides/api-tester.md#the-model-filter) on the Filter models tab narrows every list on the page.
 
 Option dropdowns follow the chosen model:
 

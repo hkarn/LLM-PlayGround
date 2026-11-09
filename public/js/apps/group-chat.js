@@ -468,7 +468,7 @@ export function renderGroupChat(root) {
     el('div', { class: 'row' },
       el('button', {
         type: 'button', class: 'secondary', text: 'Clear chat',
-        onclick: () => { if (run.busy || !s.log.length || !confirm('Delete all messages in this chat?')) return; s.log = []; run.queue = []; save(); renderLog(); renderQueue(); renderCharacters(); },
+        onclick: () => { if (run.busy || !s.log.length || !confirm('Delete all messages in this chat?')) return; s.log = []; s.decisionCost = 0; run.queue = []; save(); renderLog(); renderQueue(); renderCharacters(); },
       }),
       el('button', {
         type: 'button', class: 'secondary', text: 'Reset characters',

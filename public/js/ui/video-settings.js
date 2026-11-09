@@ -31,6 +31,16 @@ function untestedVideoModel(meta) {
 // share one chat and one image model (ui/remember.js). Before 2026-11 the Video Generator kept it
 // under its own key, which is read once as a fallback.
 const SHARED_KEY = 'tools:video';
+
+// The marks on a model's row (lucide-style paths, drawn in the text colour).
+const MARK = {
+  start: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 9"/>',
+  end: '<rect x="3" y="5" width="13" height="14" rx="2"/><path d="M19 8v8"/><path d="M21 12h-5"/>',
+  sound: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6a8 8 0 0 1 0 12"/>',
+  soundOpt: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 12h5"/><path d="M19.5 9.5v5"/>',
+  mute: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 10l4 4M21 10l-4 4"/>',
+  face: '<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".8"/><circle cx="15" cy="10" r=".8"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/>',
+};
 const OLD_KEY = 'videogen:settings';
 
 // opts: { firstFrameOnly: offer only models that take a first frame and leave out the frame inputs
@@ -67,8 +77,19 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   const lastLabel = el('label', {}, 'Last frame', last);
   const modelNote = el('div', { class: 'vg-model-note small' });
   const price = el('div', { class: 'vs-price' });
+  // What the marks mean, once, under the list (Animate offers only models that take a start picture,
+  // so it leaves the picture marks out).
+  const legendItem = (paths, text, cls = '') => {
+    const s = el('span', { class: `vg-mark ${cls}`, 'aria-hidden': 'true' });
+    s.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+    return el('span', { class: 'vg-legend-item' }, s, text);
+  };
+  const legend = el('div', { class: 'vg-legend muted small' },
+    ...(firstFrameOnly ? [] : [legendItem(MARK.start, 'start picture (accent: needed)'), legendItem(MARK.end, 'end picture')]),
+    legendItem(MARK.sound, 'always sound'), legendItem(MARK.soundOpt, 'sound optional'), legendItem(MARK.mute, 'no sound', 'dim'),
+    legendItem(MARK.face, 'kept a face (filled: a realistic one)'));
   const root = el('div', { class: 'video-settings' },
-    notice, cards, modelNote,
+    notice, cards, legend, modelNote,
     el('div', { class: 'grid3' }, duration, resolution, aspect, audioLabel));
   const frames = firstFrameOnly ? null : el('div', { class: 'grid3' }, firstLabel, lastLabel);
   // Saved only when the user changes something here: a tool that offers fewer models (Animate
@@ -122,15 +143,35 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
       const est = m.meta && estimateVideoCost(m.meta, { ...m.default, generate_audio: m.audio === 'always' ? true : m.default?.generate_audio, frames: m.needsFirstFrame || firstFrameOnly ? 1 : 0 });
       const radio = el('input', { type: 'radio', name: 'video-model', value: m.id, checked: m.id === chosen || undefined,
         onchange: () => { chosen = m.id; touched = true; applyModel(true); } });
-      // A card shows only the name and the price of its cheapest clip; what the model takes and what
-      // we found are in its tooltip, and under the cards for the chosen one (a phone has no hover).
+      // One row per model: its name, small marks for what matters when choosing (start and end
+      // picture, sound, a face kept in our tests) and the price of its cheapest clip. The words are in
+      // the tooltip, the legend under the list, and the box for the chosen model (a phone has no hover).
       const cheapest = est ? `Price for ${m.default?.duration} s ${m.default?.resolution || ''}`.trim() : '';
       return el('label', { class: `vg-model${m.id === chosen ? ' chosen' : ''}`, title: [m.label || m.id, ...facts(m), cheapest, m.id].filter(Boolean).join('\n') },
-        el('span', { class: 'vg-model-head' }, radio, el('strong', { text: m.label || m.id })),
+        radio, el('strong', { class: 'vg-model-name', text: m.label || m.id }), marks(m),
         est ? el('span', { class: 'vg-model-price' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx || Boolean(m.priceFactor), amount: est.usd }))
-          : el('span', { class: 'muted small', text: m.meta ? '' : 'not in the loaded list' }));
+          : el('span', { class: 'muted small vg-model-price', text: m.meta ? '' : 'not listed' }));
     }), ...(rest.length ? [otherCard(rest)] : []));
+    legend.hidden = !list.length;
     applyModel(false);
+  }
+
+  // The marks of a row: inline SVG in the text colour; each has its meaning as a tooltip and label.
+  function marks(m) {
+    const icon = (paths, label, cls = '') => {
+      const s = el('span', { class: `vg-mark ${cls}`, title: label, 'aria-label': label, role: 'img' });
+      s.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+      return s;
+    };
+    const out = [];
+    if (!firstFrameOnly && m.frames?.includes('first_frame')) out.push(icon(MARK.start, m.needsFirstFrame ? 'Needs a start picture' : 'Can start from a picture', m.needsFirstFrame ? 'need' : ''));
+    if (!firstFrameOnly && m.frames?.includes('last_frame')) out.push(icon(MARK.end, 'Can end on a picture'));
+    if (m.audio === 'always') out.push(icon(MARK.sound, 'Always has sound'));
+    else if (m.audio === 'optional') out.push(icon(MARK.soundOpt, 'Sound can be turned on or off'));
+    else if (m.audio === 'off') out.push(icon(MARK.mute, 'No sound', 'dim'));
+    if (/^kept the face/i.test(m.faces || '')) out.push(icon(MARK.face, `Faces: ${m.faces} (a realistic one)`, 'full'));
+    else if (/kept/i.test(m.faces || '')) out.push(icon(MARK.face, `Faces: ${m.faces}`));
+    return el('span', { class: 'vg-marks' }, ...out);
   }
 
   // "Other video model": every other video model the key lists, untested, in one dropdown.
@@ -142,8 +183,7 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
       onchange: () => { chosen = pick.value; touched = true; applyModel(true); } });
     pick.addEventListener('change', () => { chosen = pick.value; radio.checked = true; touched = true; applyModel(true); });
     return el('label', { class: `vg-model vg-other${isOther ? ' chosen' : ''}`, title: `${rest.length} more video models on this key, not tested here` },
-      el('span', { class: 'vg-model-head' }, radio, el('strong', { text: `Other video model (${rest.length}, untested)` })),
-      pick);
+      radio, el('strong', { class: 'vg-model-name', text: `Other video model (${rest.length}, untested)` }), pick);
   }
 
   // What a model takes and what we found, as short lines: for a card's tooltip and the chosen model.

@@ -6,6 +6,7 @@
    this. Kept only in this browser (localStorage "tools:videojobs"). */
 import { keyReady, PROVIDERS, state, store } from '../core.js';
 import { el } from './dom.js';
+import { clip, fileName } from './media.js';
 import { downloadVideo, JOB_DONE, priceTag, submitVideoJob, watchVideoJob } from './video-job.js';
 
 const KEY = 'tools:videojobs';
@@ -179,14 +180,14 @@ export function videoJobsList() {
         el('span', { class: 'muted small', text: [TOOLS[j.tool], new Date(j.at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })].filter(Boolean).join(' · ') }),
         el('button', { type: 'button', class: 'icon-btn', title: 'Remove from the list', 'aria-label': 'Remove from the list', text: '×',
           onclick: () => { watching.get(j.id)?.ac.abort(); save(load().filter((x) => x.id !== j.id)); } })),
-      url ? el('video', { controls: '', src: url, muted: '', loop: '', playsinline: '' }) : null,
+      url ? clip({ src: url, name: fileName(j.tool === 'dreamgen-video' ? 'scene-clip' : 'video', 'mp4'), autoplay: false }) : null,
       el('div', { class: 'small' }, el('span', { class: `vj-status${running ? ' live' : ''}`, text: status }),
         j.cost != null ? ' · ' : '', j.cost != null ? priceTag(Number(j.cost), { amount: Number(j.cost) }) : null,
         [j.duration && ` · ${j.duration} s`, j.resolution && ` · ${j.resolution}`].filter(Boolean).join('')),
       j.error ? el('div', { class: 'error small', text: j.error }) : null,
       !here ? el('div', { class: 'muted small', text: `Made on ${PROVIDERS[j.provider]?.label || j.provider}: switch to it to check or fetch it.` }) : null,
       el('div', { class: 'muted small vj-prompt', text: j.prompt || '' }),
-      (buttons.length || url) ? el('div', { class: 'row' }, ...buttons, url ? el('a', { href: url, download: `video-${j.id}.mp4`, text: 'Download' }) : null) : null);
+      buttons.length ? el('div', { class: 'row' }, ...buttons) : null);
   };
   // A tool drawn again leaves its old list behind: that one stops listening once it is off the page.
   let shown = false;

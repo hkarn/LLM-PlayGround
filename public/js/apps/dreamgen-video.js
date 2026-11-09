@@ -4,6 +4,7 @@
 import { read, send } from '../adapter.js';
 import { curlFor, ep, num, usageLine } from '../core.js';
 import { $, $$, el } from '../ui/dom.js';
+import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
@@ -241,10 +242,9 @@ export function renderDreamGenVideo(root) {
           clipOut.replaceChildren(...[el('div', { class: 'output error', text: r.error || 'The job failed.' }), refusalHint(r.error), ...notes, facts, raw].filter(Boolean));
           return;
         }
-        clipOut.replaceChildren(el('div', { class: 'output' },
-          el('video', { controls: '', src: r.url, autoplay: '', muted: '', loop: '', playsinline: '' }),
-          el('div', {}, el('a', { href: r.url, download: `scene-${job.id}.mp4`, text: 'Download' }))),
-        ...notes, facts, raw);
+        // In the clip's bar: Request details, Retry (a new job with the same picture and motion) and Download.
+        clipOut.replaceChildren(el('div', { class: 'output' }, clip({ src: r.url, name: fileName('scene-clip', 'mp4'), left: raw, retry: () => clipForm.requestSubmit() })),
+          ...notes, facts);
       });
     });
   });

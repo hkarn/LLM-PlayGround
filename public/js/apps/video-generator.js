@@ -3,6 +3,7 @@
    sending. A job is watched in the background (ui/video-jobs.js), so the next clip can be started at
    once; the jobs list is in the settings panel. The Video tab stays the raw tester for every model. */
 import { $, el } from '../ui/dom.js';
+import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
 import { priceTag } from '../ui/video-job.js';
@@ -42,9 +43,6 @@ export function renderVideoGenerator(root) {
 
   keepDrafts(form, 'videogen');
 
-  const player = (url, id) => el('div', { class: 'output' },
-    el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),
-    el('div', {}, el('a', { href: url, download: `video-${id}.mp4`, text: 'Download' })));
   const details = (job) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
     el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
 
@@ -74,8 +72,11 @@ export function renderVideoGenerator(root) {
         if (out.dataset.job !== job.id) return;
         const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
           r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
-        // Request details as sent, with the job's last answer (its end status and cost).
-        out.replaceChildren(r.ok && r.url ? player(r.url, job.id) : el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, details({ ...job, resp: r.resp || job.resp }));
+        // Request details as sent, with the job's last answer (its end status and cost): in the
+        // clip's bar, beside Retry (the same settings again, as a new job) and Download.
+        const raw = details({ ...job, resp: r.resp || job.resp });
+        if (!r.ok || !r.url) { out.replaceChildren(el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, raw); return; }
+        out.replaceChildren(el('div', { class: 'output' }, clip({ src: r.url, name: fileName('video', 'mp4'), left: raw, retry: () => form.requestSubmit() })), ...notes, facts);
       });
     });
   });

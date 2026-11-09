@@ -306,7 +306,8 @@ export function renderDreamGenScene(root) {
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(portraits.refs.map((r) => asJpeg(r.file))) } : fields;
       const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
-      const { rendered, shown } = renderImages(resp, 'png', kind);
+      // Retry draws the same prompt again (the button sits in the picture's bar).
+      const { rendered, shown } = renderImages(resp, 'png', kind, { name: 'scene', retry: () => imageForm.requestSubmit() });
       renderResult(imageOut, { resp: shown, request, curl, rendered, quiet: true });
       // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
       const img = resp.ok ? read(kind, resp).images?.[0] : undefined;

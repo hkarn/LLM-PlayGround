@@ -24,7 +24,7 @@ Write what moves in the next few seconds of that moment, in one or two sentences
 Keep it to what can happen in three to five seconds and stays in the frame. No new characters, no cuts or scene changes, no dialogue, sounds or thoughts. Do not describe the picture again. Reply with the motion prompt only.`;
 
 export function renderDreamGenVideo(root) {
-  const st = { frame: null, frameUrl: null };
+  const st = { frame: null, frameUrl: null, clipUrl: null }; // object URLs are freed when replaced
 
   // 1. Scene picture
   const preview = el('div', { class: 'vg-stage', text: 'No picture yet.' });
@@ -200,7 +200,10 @@ export function renderDreamGenVideo(root) {
           ...notes, el('div', { class: 'muted small', text: facts }), raw].filter(Boolean));
         return;
       }
+      // Only the newest clip is shown, so the one before it can be freed.
+      if (st.clipUrl) URL.revokeObjectURL(st.clipUrl);
       const url = URL.createObjectURL(job.blob);
+      st.clipUrl = url;
       clipOut.replaceChildren(el('div', { class: 'output' },
         el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),
         el('div', {}, el('a', { href: url, download: `scene-${job.id}.mp4`, text: 'Download' }))),

@@ -25,8 +25,8 @@ export function renderVideoGenerator(root) {
   root.append(
     el('div', { class: 'placeholder-note' },
       el('p', { class: 'small', style: 'margin: 0' },
-        'Only video models we have run for real are listed, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). ',
-        'Prices are relative, from $ (cheapest) to $$$$$: estimated from the model\'s published prices before you send, and what was billed after. ',
+        'Video models we have run for real come first, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). Any other video model your key has is under Other video model, untested. ',
+        'Prices show as $ (cheapest) to $$$$$, with the provider\'s own figures beside them: estimated from its listed prices before you send, and what it billed after. ',
         'For any other video model, and the raw request and response, use the ', el('a', { href: '#video', text: 'Video tab' }), '.')),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Make a clip' }), form, out),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Your clips' }),
@@ -66,7 +66,7 @@ export function renderVideoGenerator(root) {
         return el('div', { class: 'vg-clip' },
           url ? player(url, e.id) : null,
           el('div', { class: 'small' }, el('strong', { text: e.label || e.model }), ` · ${[e.duration && `${e.duration} s`, e.resolution, e.aspect_ratio].filter(Boolean).join(' · ')}`,
-            e.cost != null ? ' · ' : '', e.cost != null ? priceTag(Number(e.cost)) : null, ` · ${new Date(e.at).toLocaleString()}`),
+            e.cost != null ? ' · ' : '', e.cost != null ? priceTag(Number(e.cost), { amount: Number(e.cost) }) : null, ` · ${new Date(e.at).toLocaleString()}`),
           el('div', { class: 'muted small vg-clip-prompt', text: e.prompt }),
           !url && e.provider === state.provider ? fetchAgain : null,
           !url && e.provider !== state.provider ? el('div', { class: 'muted small', text: `Made on ${PROVIDERS[e.provider]?.label || e.provider}: switch to it to fetch the video again.` }) : null,
@@ -92,8 +92,8 @@ export function renderVideoGenerator(root) {
       });
       // Prices only as the 1-5 scale: billed, and what was estimated before sending.
       const facts = el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
-        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost)) : null,
-        est ? ' · estimated ' : '', est ? priceTag(est.usd, est) : null);
+        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost), { amount: Number(job.cost) }) : null,
+        est ? ' · estimated ' : '', est ? priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }) : null);
       const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       if (!job.ok || !job.blob) {

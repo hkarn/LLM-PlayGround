@@ -99,7 +99,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
         el('span', { class: 'vg-model-head' }, radio, el('strong', { text: m.label || m.id })),
         el('span', { class: 'muted small', text: [m.frames?.includes('last_frame') ? 'first + last frame' : 'first frame', m.needsFirstFrame ? '(needed)' : '', AUDIO_TEXT[m.audio] || ''].filter(Boolean).join(' · ') }),
         m.faces ? el('span', { class: 'muted small', text: `Faces: ${m.faces}` }) : null,
-        est ? el('span', { class: 'small' }, priceTag(est.usd * (m.priceFactor || 1), est), ` for ${m.default?.duration} s ${m.default?.resolution || ''}`)
+        est ? el('span', { class: 'small' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx, amount: est.usd }), ` listed, for ${m.default?.duration} s ${m.default?.resolution || ''}`)
           : el('span', { class: 'small', text: m.meta ? '' : 'not in the loaded list' }));
     }), ...(rest.length ? [otherCard(rest)] : []));
     applyModel(false);
@@ -168,7 +168,8 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     const v = read();
     const frameCount = externalFrames + (v.first_frame ? 1 : 0) + (v.last_frame ? 1 : 0);
     const est = estimateVideoCost(m.meta, { ...v, generate_audio: m.audio === 'always' ? true : v.generate_audio, frames: frameCount });
-    return est && { ...est, usd: est.usd * (m.priceFactor || 1) };
+    // usd: for the scale (with priceFactor); listedUsd: the provider's own figure, which is shown.
+    return est && { ...est, listedUsd: est.usd, usd: est.usd * (m.priceFactor || 1) };
   }
 
   function update() {
@@ -182,7 +183,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     }
     const est = priceNow();
     price.replaceChildren(...(!m ? [] : est
-      ? ['Price ', priceTag(est.usd, est), m.priceSeen ? ` · ${m.priceSeen}` : '', m.untested ? ' · from the listed prices of an untested model' : '']
+      ? ['Price ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), ' from the listed prices', m.priceSeen ? ` · ${m.priceSeen}` : '', m.untested ? ' (untested model)' : '']
       : [m.meta ? 'Price: not given in the model list.' : 'Price: load models to see it.']));
   }
 

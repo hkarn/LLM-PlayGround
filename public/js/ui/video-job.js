@@ -103,12 +103,17 @@ export function estimateVideoCost(model, { duration, resolution, aspect_ratio: a
   return { usd, approx, basis };
 }
 
-// Prices are shown as a relative scale, never as an amount: 1 (cheapest) to 5, drawn as $$$$$ with
-// that many signs lit. The steps are USD per clip, at the top of each step.
+// Prices are shown as a relative scale: 1 (cheapest) to 5, drawn as $$$$$ with that many signs lit.
+// The steps are USD per clip, at the top of each step. An exact amount is shown beside it only
+// when it comes from the provider (its listed prices, or the cost it reports for a job), never
+// from our own tests.
 export const PRICE_STEPS = [0.025, 0.075, 0.15, 0.4];
 export const priceTier = (usd) => 1 + PRICE_STEPS.filter((top) => usd > top).length;
-export function priceTag(usd, { approx = false } = {}) {
+export const formatUsd = (usd) => `$${usd < 0.1 ? usd.toFixed(3) : usd.toFixed(2)}`;
+// opts.amount: a provider's figure to print after the signs; opts.approx: it is an estimate.
+export function priceTag(usd, { approx = false, amount } = {}) {
   const n = priceTier(usd);
   return el('span', { class: 'price-tag', title: `Price ${n} of 5${approx ? ', estimated roughly' : ''}`, 'aria-label': `Price ${n} of 5` },
-    el('span', { class: 'on', text: '$'.repeat(n) }), el('span', { class: 'off', text: '$'.repeat(5 - n) }));
+    el('span', { class: 'on', text: '$'.repeat(n) }), el('span', { class: 'off', text: '$'.repeat(5 - n) }),
+    amount != null ? el('span', { class: 'price-amount', text: ` ${approx ? 'about ' : ''}${formatUsd(amount)}` }) : null);
 }

@@ -32,6 +32,10 @@
 }
 
 * { box-sizing: border-box; }
+/* Thin scrollbars in the theme's own colours (page, settings panel, text boxes), instead of the
+   browser's light grey ones; color-scheme lets the browser draw the rest of its controls dark too. */
+:root { color-scheme: light dark; }
+* { scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
 body {
   margin: 0;
   font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -306,9 +310,63 @@ button.danger { color: var(--err); }
 .scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
 .notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
 
-.settings-bar { align-items: center; }
-.tool-settings { display: flex; flex-direction: column; gap: 10px; }
-.tool-settings[hidden] { display: none; }
+/* Tool pages: the steps on the left, the settings panel on the right (ui/tool-layout.js), so the
+   work has the focus. On a narrow screen the panel folds into a Settings button above the steps. */
+.panel.hub:has(.tool-layout) { max-width: 1320px; }
+.tool-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 16px; align-items: start; }
+.tool-layout > .tool-panel { grid-column: 2; grid-row: 1; }
+.tool-layout > .tool-main { grid-column: 1; grid-row: 1; }
+.tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tool-panel {
+  position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+}
+.tool-panel-head { display: none; }
+.tool-panel-body { display: flex; flex-direction: column; gap: 14px; }
+.panel-section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel-section + .panel-section { border-top: 1px solid var(--border); padding-top: 14px; }
+.panel-section h3 { margin: 0; font-size: 15px; }
+.panel-section p { margin: 0; }
+.tool-panel .vg-models > .vg-model { flex-basis: 130px; }
+.tool-panel .vg-models > .vg-other { flex-basis: 100%; }
+.tool-panel .model-picker .row { flex-wrap: wrap; }
+.tool-panel .model-picker select { min-width: 0; flex: 1 1 100%; }
+@media (max-width: 900px) {
+  .tool-layout { grid-template-columns: minmax(0, 1fr); }
+  .tool-layout > .tool-panel, .tool-layout > .tool-main { grid-column: 1; grid-row: auto; }
+  .tool-panel { position: static; max-height: none; }
+  .tool-panel-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .tool-panel-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tool-panel.open .tool-panel-head { margin-bottom: 14px; }
+  .tool-panel:not(.open) .tool-panel-body { display: none; }
+}
+/* Tool pages read larger than the testers: the testers stay compact, the tools are for reading. */
+.tool-layout { font-size: 15px; }
+.tool-layout .small, .tool-layout .model-picker .model-info, .tool-layout .vs-price { font-size: 14px; }
+.tool-layout label, .tool-layout details summary, .tool-layout .status-line { font-size: 14.5px; }
+.tool-layout .tool-step h3, .tool-layout .panel-section h3 { font-size: 17px; }
+.tool-layout .scene-export, .tool-layout pre, .tool-layout .mono { font-size: 13.5px; }
+.tool-layout .vg-model strong { font-size: 15px; }
+.tool-layout input, .tool-layout select, .tool-layout textarea, .tool-layout button { font-size: 15px; }
+.tool-layout .tool-about > summary { font-size: 15.5px; }
+/* A text box in a folded section (System prompt) fills the width, with its Reset button below it. */
+.tool-layout details > textarea { display: block; width: 100%; box-sizing: border-box; margin: 8px 0 6px; resize: vertical; }
+/* Video model cards: the name and the price only; the details are in the tooltip and, for the
+   chosen model, in the note under the cards. */
+.vg-model { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+.vg-model-price { font-size: 15px; }
+.vg-model-note { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
+.vg-model-note:empty { display: none; }
+.vg-model-note ul { margin: 4px 0; padding-left: 18px; }
+/* A tool's "How it works · Privacy", folded after the first visit (aboutBox). */
+.tool-about { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; }
+.tool-about > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.tool-about-body { padding-top: 8px; }
+.tool-about-body ol { margin: 0 0 8px; padding-left: 20px; }
+.tool-about-body p { margin: 6px 0 0; }
+/* The tools fold the status, request, response and cURL into one "Request details". */
+.request-details > summary { color: var(--muted); font-size: 13px; }
+.request-details[open] { display: flex; flex-direction: column; gap: 6px; }
 
 /* Long file inputs (e.g. "Add portraits") must not push past the card on phones. */
 .tool-step input[type=file] { max-width: 100%; min-width: 0; }
@@ -353,20 +411,22 @@ a.button-link:hover { filter: brightness(1.08); }
 .mf-list legend { font-weight: 600; padding: 0 4px; }
 .mf-list p { margin: 0; }
 .mf-list .row input { flex: 1; min-width: 0; }
-/* The suggestion list under each filter input: as tall as about eight rows, scrolls for the rest. */
+/* A combobox (ui/combo.js: the model filter, AI Group Chat): its list is as tall as about eight
+   rows and scrolls for the rest. */
 .mf-add { align-items: flex-start; }
-.mf-combo { position: relative; flex: 1; min-width: 0; display: flex; }
-.mf-combo input { width: 100%; }
-.mf-suggest {
+.combo { position: relative; flex: 1; min-width: 0; display: flex; }
+.combo input { width: 100%; }
+.combo-list {
   position: absolute; z-index: 15; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: min(480px, calc(100vw - 48px));
   max-height: 300px; overflow-y: auto;
   list-style: none; margin: 0; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, .25);
 }
-.mf-suggest[hidden] { display: none; }
-.mf-suggest li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 7px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; white-space: nowrap; }
-.mf-suggest li[aria-selected=true], .mf-suggest li[role=option]:hover { background: var(--highlight); }
-.mf-suggest .mf-more { cursor: default; display: block; }
+.combo-list[hidden] { display: none; }
+.combo-list li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 7px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.combo-list li[aria-selected=true], .combo-list li[role=option]:hover { background: var(--highlight); }
+.combo-list li.current { font-weight: 600; }
+.combo-list .combo-more { cursor: default; display: block; }
 .mf-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .mf-rows:empty::before { content: "Empty: matches everything"; color: var(--muted); font-size: 12px; }
 .mf-rows li { display: flex; align-items: center; gap: 2px; padding: 2px 4px 2px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); }

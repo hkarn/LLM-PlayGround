@@ -7,7 +7,6 @@ import { modelsIn, provider, state, store } from '../core.js';
 import { $, $$, el } from './dom.js';
 import { estimateVideoCost, priceTag } from './video-job.js';
 
-const AUDIO_TEXT = { off: 'no audio', optional: 'audio optional', always: 'always has audio' };
 
 // Tested models of the current provider, in the file's order, with the loaded /videos/models entry
 // (options and prices) when models are loaded.
@@ -28,10 +27,19 @@ function untestedVideoModel(meta) {
   };
 }
 
-// opts: { key: storage key for the choices, firstFrameOnly: offer only models that take a first
-// frame and hide the frame inputs (the tool supplies the frame), frames: show frame inputs }.
-// Returns { root, refresh(), read(), model(), price(), setFrameCount(n) }.
-export function videoSettings({ key, firstFrameOnly = false, frames = true } = {}) {
+// The tools share one video choice (model, duration, resolution, aspect ratio, audio), as they
+// share one chat and one image model (ui/remember.js). Before 2026-11 the Video Generator kept it
+// under its own key, which is read once as a fallback.
+const SHARED_KEY = 'tools:video';
+const OLD_KEY = 'videogen:settings';
+
+// opts: { firstFrameOnly: offer only models that take a first frame and leave out the frame inputs
+// (the tool supplies the frame) }.
+// Returns { root, frames, price, refresh(), read(), model(), priceNow(), setFrameCount(n) }: root
+// (the model cards and options) goes in the tool's settings panel; frames (the first and last frame
+// inputs, or null) and price (the price line) go with the step that sends, near its button.
+export function videoSettings({ firstFrameOnly = false } = {}) {
+  const key = SHARED_KEY;
   // The choices are kept per provider (as ui/remember.js keeps models), so switching provider and
   // back restores them instead of falling back to the first model.
   const storeKey = () => `${key}_${state.provider}`;
@@ -39,7 +47,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
   let saved = {};
   let chosen;
   const loadSaved = () => {
-    try { saved = JSON.parse(store.get(storeKey()) || '{}') || {}; } catch { saved = {}; }
+    try { saved = JSON.parse(store.get(storeKey()) || store.get(`${OLD_KEY}_${state.provider}`) || '{}') || {}; } catch { saved = {}; }
     chosen = saved.model;
     savedFor = state.provider;
   };
@@ -57,13 +65,15 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
   const last = el('input', { type: 'file', name: 'last_frame', accept: 'image/*' });
   const firstLabel = el('label', {}, 'First frame', first);
   const lastLabel = el('label', {}, 'Last frame', last);
-  const modelNote = el('div', { class: 'muted small' });
+  const modelNote = el('div', { class: 'vg-model-note small' });
   const price = el('div', { class: 'vs-price' });
   const root = el('div', { class: 'video-settings' },
     notice, cards, modelNote,
-    el('div', { class: 'grid3' }, duration, resolution, aspect, audioLabel),
-    frames && !firstFrameOnly ? el('div', { class: 'grid3' }, firstLabel, lastLabel) : null,
-    price);
+    el('div', { class: 'grid3' }, duration, resolution, aspect, audioLabel));
+  const frames = firstFrameOnly ? null : el('div', { class: 'grid3' }, firstLabel, lastLabel);
+  // Saved only when the user changes something here: a tool that offers fewer models (Animate
+  // takes only first-frame models) falls back to its first one without overwriting the shared choice.
+  let touched = false;
 
   const takesFrame = (m) => !firstFrameOnly || m.frames?.includes('first_frame');
   const tested = () => testedVideoModels().filter(takesFrame);
@@ -93,14 +103,15 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     cards.replaceChildren(...list.map((m) => {
       // Priced as it will be sent: "always" models always pay for audio, whatever the default says.
       const est = m.meta && estimateVideoCost(m.meta, { ...m.default, generate_audio: m.audio === 'always' ? true : m.default?.generate_audio, frames: m.needsFirstFrame || firstFrameOnly ? 1 : 0 });
-      const radio = el('input', { type: 'radio', name: `${key}-model`, value: m.id, checked: m.id === chosen || undefined,
-        onchange: () => { chosen = m.id; applyModel(true); } });
-      return el('label', { class: `vg-model${m.id === chosen ? ' chosen' : ''}`, title: m.id },
+      const radio = el('input', { type: 'radio', name: 'video-model', value: m.id, checked: m.id === chosen || undefined,
+        onchange: () => { chosen = m.id; touched = true; applyModel(true); } });
+      // A card shows only the name and the price of its cheapest clip; what the model takes and what
+      // we found are in its tooltip, and under the cards for the chosen one (a phone has no hover).
+      const cheapest = est ? `Price for ${m.default?.duration} s ${m.default?.resolution || ''}`.trim() : '';
+      return el('label', { class: `vg-model${m.id === chosen ? ' chosen' : ''}`, title: [m.label || m.id, ...facts(m), cheapest, m.id].filter(Boolean).join('\n') },
         el('span', { class: 'vg-model-head' }, radio, el('strong', { text: m.label || m.id })),
-        el('span', { class: 'muted small', text: [m.frames?.includes('last_frame') ? 'first + last frame' : 'first frame', m.needsFirstFrame ? '(needed)' : '', AUDIO_TEXT[m.audio] || ''].filter(Boolean).join(' · ') }),
-        m.faces ? el('span', { class: 'muted small', text: `Faces: ${m.faces}` }) : null,
-        est ? el('span', { class: 'small' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx || Boolean(m.priceFactor), amount: est.usd }), ` for ${m.default?.duration} s ${m.default?.resolution || ''}`)
-          : el('span', { class: 'small', text: m.meta ? '' : 'not in the loaded list' }));
+        est ? el('span', { class: 'vg-model-price' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx || Boolean(m.priceFactor), amount: est.usd }))
+          : el('span', { class: 'muted small', text: m.meta ? '' : 'not in the loaded list' }));
     }), ...(rest.length ? [otherCard(rest)] : []));
     applyModel(false);
   }
@@ -110,13 +121,23 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     const isOther = rest.some((m) => m.id === chosen);
     const pick = el('select', { 'aria-label': 'Other video model' },
       ...rest.map((m) => el('option', { value: m.id, text: m.id, selected: m.id === chosen || undefined })));
-    const radio = el('input', { type: 'radio', name: `${key}-model`, value: '__other', checked: isOther || undefined,
-      onchange: () => { chosen = pick.value; applyModel(true); } });
-    pick.addEventListener('change', () => { chosen = pick.value; radio.checked = true; applyModel(true); });
-    return el('label', { class: `vg-model vg-other${isOther ? ' chosen' : ''}` },
-      el('span', { class: 'vg-model-head' }, radio, el('strong', { text: 'Other video model' })),
-      el('span', { class: 'muted small', text: `Untested: ${rest.length} more on this key` }),
+    const radio = el('input', { type: 'radio', name: 'video-model', value: '__other', checked: isOther || undefined,
+      onchange: () => { chosen = pick.value; touched = true; applyModel(true); } });
+    pick.addEventListener('change', () => { chosen = pick.value; radio.checked = true; touched = true; applyModel(true); });
+    return el('label', { class: `vg-model vg-other${isOther ? ' chosen' : ''}`, title: `${rest.length} more video models on this key, not tested here` },
+      el('span', { class: 'vg-model-head' }, radio, el('strong', { text: `Other video model (${rest.length}, untested)` })),
       pick);
+  }
+
+  // What a model takes and what we found, as short lines: for a card's tooltip and the chosen model.
+  function facts(m) {
+    if (!m) return [];
+    return [
+      // Animate supplies the one picture itself, so an end frame means nothing there.
+      firstFrameOnly ? '' : m.frames?.includes('last_frame') ? 'Starts from a picture, and can end on another' : m.frames?.includes('first_frame') ? `Starts from a picture${m.needsFirstFrame ? ' (needed)' : ''}` : 'Text only',
+      { off: 'No sound', optional: 'Sound can be turned on or off', always: 'Always has sound', unknown: '' }[m.audio] || '',
+      m.faces ? `Faces: ${m.faces}` : '',
+    ].filter(Boolean);
   }
 
   // Options for the chosen model: the loaded metadata, narrowed by the file's lists when it has them.
@@ -140,7 +161,9 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     firstLabel.firstChild.textContent = m?.needsFirstFrame ? 'First frame (needed)' : 'First frame (optional)';
     if (last.disabled) last.value = '';
     if (first.disabled) first.value = '';
-    modelNote.textContent = m?.note || '';
+    // The chosen model's facts, then its note (what our tests found, or that it is untested).
+    modelNote.replaceChildren(...(m ? [el('strong', { text: m.label || m.id }), el('ul', {}, ...facts(m).map((t) => el('li', { text: t }))),
+      m.note ? el('div', { text: m.note }) : null].filter(Boolean) : []));
     update();
   }
 
@@ -178,7 +201,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     const m = model();
     // Saved only once the model's options are known (its list entry is loaded): before that the
     // option lists are empty, and saving would wipe the choices.
-    if (m?.meta) {
+    if (m?.meta && touched) {
       saved = { model: chosen, duration: v.duration, resolution: v.resolution, aspect_ratio: v.aspect_ratio, generate_audio: v.generate_audio };
       store.set(storeKey(), JSON.stringify(saved));
     }
@@ -188,13 +211,27 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
       : [m.meta ? 'Price: not given in the model list.' : 'Price: load models to see it.']));
   }
 
-  root.addEventListener('change', (e) => { if (e.target.type !== 'radio' && !e.target.closest('.vg-other')) update(); });
-  document.addEventListener('models-changed', refresh);
+  root.addEventListener('change', (e) => { if (e.target.type !== 'radio' && !e.target.closest('.vg-other')) { touched = true; update(); } });
+  frames?.addEventListener('change', () => update());
+  // A tool is drawn again each time it is opened, so an earlier copy of these settings can be left
+  // behind. Once it has been on the page and is gone, it stops listening: otherwise a model reload
+  // or provider switch would make it save its old choice over the shared one.
+  let shown = false;
+  const onOuterChange = () => {
+    if (root.isConnected) { shown = true; refresh(); return; }
+    if (!shown) return; // not on the page yet
+    document.removeEventListener('models-changed', onOuterChange);
+    $('#provider')?.removeEventListener('change', onProvider);
+  };
+  const onProvider = () => setTimeout(onOuterChange);
+  document.addEventListener('models-changed', onOuterChange);
   // A provider switch clears the list without that event when there is no key to load with.
-  $('#provider')?.addEventListener('change', () => setTimeout(refresh));
+  $('#provider')?.addEventListener('change', onProvider);
   refresh();
+  // The tool appends the settings after this returns: from then on they count as shown.
+  setTimeout(() => { if (root.isConnected) shown = true; });
   return {
-    root, refresh, read, model, price: priceNow,
+    root, frames, price, refresh, read, model, priceNow,
     // Frames the tool supplies itself (Animate the DreamGen Scene's scene picture) count in the price.
     setFrameCount(n) { externalFrames = n; update(); },
   };

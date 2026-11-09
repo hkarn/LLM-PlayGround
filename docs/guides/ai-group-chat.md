@@ -26,7 +26,7 @@ Three example characters are ready: Ada the curious scientist, Bram the grumpy p
 - **✎** edits a character: its **Name**, its **Personality** (who they are and how they talk), its **Model**, and its **Colour**. Press **Done** to save, or **Remove** to delete it.
 - **+ Add character** adds a new one, up to eight.
 
-The **Model** field suggests the chat models loaded from your provider. Give characters different models to see how they compare. A character without a model uses the **Default model** from the chat settings.
+The **Model** field suggests the chat models loaded from your provider. Click it to see them all, listed by model name with the maker after it, even when a model is already filled in; type part of a name, such as `haiku` or `qwen`, to narrow the list. Give characters different models to see how they compare. A character without a model uses the **Default model** from the chat settings.
 
 Model ids differ between providers (for example `qwen/…` on OpenRouter but `alibaba/…` on Requesty). If you switch provider, check each character's model.
 

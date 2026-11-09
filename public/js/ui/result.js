@@ -10,8 +10,18 @@ export function pre(obj) {
   return el('pre', { class: 'mono' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
 }
 
-export function renderResult(container, { resp, request, curl, rendered }) {
+// quiet (the tools): the answer, or the error, first; the status line and the raw views folded into
+// one "Request details". The API tester tabs show them all, as a debugger should.
+export function renderResult(container, { resp, request, curl, rendered, quiet = false }) {
   container.replaceChildren();
+  if (quiet) {
+    const raw = el('div', {});
+    renderResult(raw, { resp, request, curl });
+    raw.querySelector('.output.error')?.remove();
+    container.append(...(resp.ok ? (rendered ? [rendered] : []) : [el('div', { class: 'output error', text: errorMessage(resp) })]),
+      el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes));
+    return;
+  }
   container.append(el('div', { class: 'status-line' },
     el('span', { class: `badge ${resp.ok ? 'ok' : 'err'}`, text: `${resp.status} ${resp.statusText || ''}`.trim() }),
     el('span', { class: 'muted', text: `${resp.ms} ms round-trip` }),

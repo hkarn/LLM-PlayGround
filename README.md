@@ -14,6 +14,7 @@ Pick an endpoint at the top of the page. Its base URL is filled in for you, and 
 | --- | --- | --- | --- |
 | **Requesty** | `https://router.requesty.ai/v1` | [Sign up through my referral link](https://app.requesty.ai/join?ref=b1f2b1e1) or at [requesty.ai](https://requesty.ai) | Every tab except Rerank and Video, which are greyed out |
 | **OpenRouter** | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | Every tab. Decisions go to `/api/alpha/decisions`, images and image edits to `/v1/images` (reference images as `input_references`) |
+| **LLM Gateway** | `https://api.llmgateway.io/v1` | [Sign up through my referral link](https://llmgateway.io/?ref=LucsNqyxkxzf3rsY9aaN) | **Only with your own server** (Docker or `node server.js`): its API does not allow calls from a browser page, so on GitHub Pages it is greyed out and only the sign-up link is shown. A model's tab comes from what it outputs; image edits go as JSON `images[]`, no mask. Server key: `LLMGATEWAY_API_KEY` |
 | **Custom** | (empty) | If the endpoint needs one | Any OpenAI-compatible API, e.g. a local Ollama at `http://localhost:11434/v1`. Decision, Rerank and Video are greyed out, since OpenAI has no standard format for them |
 
 Each endpoint keeps its own key, so switching back and forth doesn't lose it.

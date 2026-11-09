@@ -24,7 +24,8 @@ export const ASSET_VERSION = 'dev';
 // server key may be sent), unsupported (tabs that stay usable but are dimmed), endpoints (per tab:
 // path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, and the
 // request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
-// and speechVoices (a voice list file in providers/). "_notes" hold the comments.
+// speechVoices (a voice list file in providers/), categorize (which model field decides its tab) and
+// needsServer (no browser access: usable only through server.js). "_notes" hold the comments.
 export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.
 export const TEMPLATES = { endpoints: {} };
@@ -95,6 +96,15 @@ export const store = {
 // Requesty's GET /v1/models/all tags every model with its modality in `api`. OpenRouter lists
 // the endpoints each model works with in `endpoints`. The name-based fallback is for the rest.
 export function categorize(model) {
+  // A provider file can say which field lists what a model produces, and which value means which
+  // tab (first match wins), e.g. LLM Gateway's architecture.output_modalities.
+  const rule = provider()?.categorize;
+  if (rule) {
+    const value = rule.field.split('.').reduce((o, k) => o?.[k], model);
+    const values = Array.isArray(value) ? value : [value];
+    for (const [match, category] of rule.order) if (values.includes(match)) return category;
+    return 'other';
+  }
   if (model.api && CATEGORY_LABEL[model.api]) return model.api;
   if (Array.isArray(model.endpoints)) {
     const has = (suffix) => model.endpoints.some((e) => e.endsWith(suffix));

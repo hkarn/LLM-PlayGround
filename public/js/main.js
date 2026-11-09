@@ -36,10 +36,20 @@ export async function init() {
   const legacyKey = store.get('requesty_key');
   if (legacyKey && !store.get('key_requesty')) store.set('key_requesty', legacyKey);
   store.del('requesty_key');
+  // A provider marked needsServer (no CORS, e.g. LLM Gateway) works only through server.js. On a
+  // static page it is greyed out, and its sign-up link is shown next to the others instead.
+  await serverConfig;
+  const unavailable = (p) => Boolean(p.needsServer && !state.viaServer);
   const providerSelect = $('#provider');
-  providerSelect.replaceChildren(...Object.entries(PROVIDERS).map(([id, p]) => el('option', { value: id, text: p.label })));
+  providerSelect.replaceChildren(...Object.entries(PROVIDERS).map(([id, p]) => el('option', {
+    value: id, text: unavailable(p) ? `${p.label} (needs your own server)` : p.label,
+    disabled: unavailable(p) || undefined, title: unavailable(p) ? p.needsServerReason : undefined,
+  })));
+  for (const p of Object.values(PROVIDERS).filter((x) => unavailable(x) && x.signup)) {
+    $('#signup-link').after(el('a', { href: p.signup.href, target: '_blank', rel: 'noopener', title: p.needsServerReason, text: `${p.label}: get a key (needs your own server)` }));
+  }
   const savedProvider = store.get('provider');
-  if (PROVIDERS[savedProvider]) state.provider = savedProvider;
+  if (PROVIDERS[savedProvider] && !unavailable(PROVIDERS[savedProvider])) state.provider = savedProvider;
   providerSelect.value = state.provider;
   $('#base-url').addEventListener('change', () => {
     const url = baseUrl();

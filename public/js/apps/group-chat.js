@@ -1,6 +1,6 @@
 /* LLM PlayGround: Game: AI Group Chat. */
 import { read, send } from '../adapter.js';
-import { errorMessage, modelsIn, provider, state, store } from '../core.js';
+import { errorMessage, modelsIn, provider, PROVIDERS, state, store } from '../core.js';
 import { comboBox } from '../ui/combo.js';
 import { el } from '../ui/dom.js';
 
@@ -119,6 +119,50 @@ const gcStore = {
   },
   save(s) { store.set('groupchat', JSON.stringify(s)); },
 };
+
+// Export and import (JSON). The file holds the whole state (characters, settings, the chat) and the
+// provider it was made on; there is never a key in it. On import every field is checked and only
+// the known ones are kept, with the right types, so a hand-edited or foreign file can't break the page.
+const GC_FORMAT = 'llm-playground/group-chat';
+export function exportGroupChat(s) {
+  return { format: GC_FORMAT, version: 1, exported: new Date().toISOString(), provider: state.provider, chat: s };
+}
+export function readGroupChat(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error('This is not a JSON file.'); }
+  // Only the version this page writes is read: a later format may mean something else by a field.
+  if (data?.format === GC_FORMAT && data.version !== 1) throw new Error(`This export is version ${data.version}; this page reads version 1. Update the page and try again.`);
+  const chat = data?.format === GC_FORMAT ? data.chat : data;
+  if (!chat || !Array.isArray(chat.characters)) throw new Error('This is not an AI Group Chat export (it has no characters list).');
+  const str = (v, max = 20000) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const ids = new Set();
+  const characters = chat.characters.filter((c) => c && typeof c === 'object' && str(c.name).trim()).slice(0, 8).map((c, i) => {
+    let id = str(c.id, 40) || `c${i + 1}`;
+    while (ids.has(id)) id += 'x';
+    ids.add(id);
+    return { id, name: str(c.name, 80).trim(), persona: str(c.persona), model: str(c.model, 200),
+      color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : GC_COLORS[i % GC_COLORS.length], active: c.active !== false };
+  });
+  if (!characters.length) throw new Error('The file has no characters with a name.');
+  // No messages list at all is not a chat (null); Import chat refuses it, Import characters doesn't need it.
+  const log = !Array.isArray(chat.log) ? null : chat.log.filter((m) => m && typeof m.text === 'string').map((m, i) => ({
+    id: str(m.id, 40) || `m${i}`, from: str(m.from, 40) || 'user', name: str(m.name, 80), text: str(m.text, 100000),
+    ...(m.model ? { model: str(m.model, 200) } : {}), ...(m.usage && typeof m.usage === 'object' ? { usage: m.usage } : {}),
+    ...(m.error ? { error: true } : {}), ...(m.warn ? { warn: true } : {}),
+  }));
+  const d = GC_DEFAULT();
+  const num = (v, def) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : def);
+  const settings = {
+    userName: str(chat.userName, 80).trim() || d.userName, userBio: str(chat.userBio), scenario: typeof chat.scenario === 'string' ? str(chat.scenario) : d.scenario,
+    defaultModel: str(chat.defaultModel, 200), order: GC_ORDER[chat.order] ? chat.order : d.order,
+    decisionModels: Object.fromEntries(Object.entries(chat.decisionModels && typeof chat.decisionModels === 'object' ? chat.decisionModels : {}).map(([k, v]) => [str(k, 40), str(v, 200)])),
+    // Kept within what the fields allow (max tokens at least 1, temperature 0 to 2), as typing would.
+    decisionCost: Math.max(0, num(chat.decisionCost, 0)),
+    maxTokens: Math.max(1, Math.round(num(chat.maxTokens, d.maxTokens))),
+    temperature: Math.min(2, Math.max(0, num(chat.temperature, d.temperature))),
+  };
+  return { characters, log, settings, provider: str(data?.provider, 40) };
+}
 
 // A model field with the loaded chat models as suggestions (ui/combo.js): every model when the
 // field gets focus, even with a model already in it, narrowed once the user types. The list is read
@@ -428,6 +472,41 @@ export function renderGroupChat(root) {
     node.addEventListener('change', () => { s[key] = parse(node.value); save(); renderCharacters(); });
     return node;
   };
+  // Export and import. An import replaces what it loads (after a confirm), saves, and draws the app
+  // again from the saved state, so every field shows the loaded values.
+  function exportFile() {
+    const d = new Date();
+    const p2 = (x) => String(x).padStart(2, '0');
+    const name = `group-chat-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.json`;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(exportGroupChat(s), null, 2)], { type: 'application/json' }));
+    const a = el('a', { href: url, download: name });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  const importInput = el('input', { type: 'file', accept: '.json,application/json', hidden: '' });
+  let importWhat = 'chat';
+  const pickFile = (what) => { if (run.busy) return; importWhat = what; importInput.value = ''; importInput.click(); };
+  importInput.addEventListener('change', async () => {
+    const file = importInput.files[0];
+    if (!file) return;
+    let loaded;
+    try { loaded = readGroupChat(await file.text()); } catch (err) { note(`Import: ${err.message}`, { warn: true }); return; }
+    if (importWhat === 'chat' && !loaded.log) { note('Import: this file has characters but no messages list, so it is not a whole chat. Use Import characters… for a cast.', { warn: true }); return; }
+    const what = importWhat === 'chat'
+      ? `Replace this chat with ${file.name}: ${loaded.characters.length} characters, ${loaded.log.length} messages and its settings?`
+      : `Replace the characters with the ${loaded.characters.length} in ${file.name}? The chat and settings stay.`;
+    if (!confirm(what)) return;
+    const next = importWhat === 'chat' ? { ...GC_DEFAULT(), ...loaded.settings, characters: loaded.characters, log: loaded.log } : { ...s, characters: loaded.characters };
+    // Model ids belong to a provider: say so when the file was made on another one.
+    if (loaded.provider && loaded.provider !== state.provider) {
+      next.log = [...next.log, { id: uid(), from: 'note', name: '', error: true, warn: true,
+        text: `Imported from a chat made on ${PROVIDERS[loaded.provider]?.label || loaded.provider}. Model names differ between providers: check each character's model (and the default and decision models) before the next round.` }];
+    }
+    gcStore.save(next);
+    root.replaceChildren();
+    renderGroupChat(root);
+  });
+
   // Turn order, and the decision model it needs (kept per provider), shown only with that order.
   const orderSelect = bind(el('select', {}, ...Object.entries(GC_ORDER).map(([id, o]) => el('option', { value: id, text: o.label, selected: id === s.order || undefined }))), 'order');
   const decisionInput = modelField({ name: 'decision_model', value: s.decisionModels?.[state.provider] || '', placeholder: 'a decision model' }, 'decision');
@@ -473,7 +552,12 @@ export function renderGroupChat(root) {
       el('button', {
         type: 'button', class: 'secondary', text: 'Reset characters',
         onclick: () => { if (run.busy || !confirm('Replace the characters with the three examples?')) return; s.characters = GC_DEFAULT().characters; save(); renderCharacters(); },
-      })));
+      })),
+    el('div', { class: 'row' },
+      el('button', { type: 'button', class: 'secondary', text: 'Export', title: 'Save the characters, settings and chat as a JSON file', onclick: exportFile }),
+      el('button', { type: 'button', class: 'secondary', text: 'Import chat…', title: 'Load a whole chat from an export: characters, settings and messages', onclick: () => pickFile('chat') }),
+      el('button', { type: 'button', class: 'secondary', text: 'Import characters…', title: 'Load only the characters from an export; the chat stays', onclick: () => pickFile('characters') }),
+      importInput));
   // Only a click on the bar is remembered (the browser also fires "toggle" when it is drawn open).
   settingsSummary.addEventListener('click', () => setTimeout(() => store.set('gc_settings_open', settings.open ? 'yes' : 'no')));
   settings.addEventListener('change', updateSettingsLine);

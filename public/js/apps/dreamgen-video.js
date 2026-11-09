@@ -85,7 +85,7 @@ export function renderDreamGenVideo(root) {
       el('ol', {},
         el('li', {}, 'Start from a scene picture: the last one drawn in ', el('a', { href: '#tools/dreamgen-scene', text: 'Draw the DreamGen Scene' }), ', or one you upload. It is the clip\'s first frame.'),
         el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene.' }),
-        el('li', { text: 'Pick a video model that takes a first frame: one we have tested (some keep a face, some refuse realistic faces; each card says which), or any other your key has, untested. The cheapest settings are chosen first, and the price is shown before you start as $ to $$$$$, from cheapest to dearest.' }),
+        el('li', { text: 'Pick a video model that takes a first frame: one we have tested (some keep a face, some refuse realistic faces; each card says which), or any other your key has, untested. The cheapest settings are chosen first, and the price is shown before you start: the provider\'s listed price, or $ to $$$$$ where only an estimate is possible.' }),
         el('li', { text: 'The clip plays here when it is done, which can take a minute or two, and can be downloaded.' })),
       el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
@@ -191,8 +191,8 @@ export function renderDreamGenVideo(root) {
       });
       // Prices only as the 1-5 scale ($$$$$): billed, and what was estimated before sending.
       const facts = () => el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
-        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost)) : null,
-        est ? ' · estimated ' : '', est ? priceTag(est.usd, est) : null);
+        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost), { amount: Number(job.cost) }) : null,
+        est ? ' · estimated ' : '', est ? priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }) : null);
       const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));

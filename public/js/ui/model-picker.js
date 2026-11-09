@@ -64,6 +64,8 @@ export function setupPicker(picker) {
     if (onlyTested) list = Object.keys(tested).map((id) => list.find((m) => m.id === id) || visibleModels().find((m) => m.id === id)).filter(Boolean);
     filterNote.hidden = !modelFilterOn() || !state.models.length;
     const empty = !state.models.length ? 'Load models first'
+      // Curated models on the key, but all hidden by the model filter, is not the same as none on the key.
+      : onlyTested && Object.keys(tested).length ? 'The model filter hides every curated model – edit it or untick "curated"'
       : onlyTested ? 'None of the curated models is on this key – untick "curated"'
       : modelFilterOn() && !visibleModels().length ? 'No models match the model filter'
         : `No ${category} models ${modelFilterOn() ? 'match the model filter' : 'detected'} – tick "show all"`;

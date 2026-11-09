@@ -32,8 +32,8 @@ export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.
 export const TEMPLATES = { endpoints: {} };
 // The shared list of tested models (providers/curated-models.json): per kind (chat, image …), entries
-// { label, price, note, ids: { <router>: <model id> } }. One list for every router; the picker shows
-// the entries whose id is on the current key.
+// { name, label, price, note, draft? }. One list for every router: the picker matches each name against
+// the last part of the current key's model ids (see curatedList in ui/model-picker.js).
 export const CURATED = {};
 
 async function fetchData(file) {

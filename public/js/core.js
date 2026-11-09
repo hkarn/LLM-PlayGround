@@ -25,7 +25,9 @@ export const ASSET_VERSION = 'dev';
 // path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, and the
 // request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
 // speechVoices (a voice list file in providers/), categorize (which model field decides its tab) and
-// needsServer (no browser access: usable only through server.js). "_notes" hold the comments.
+// needsServer (no browser access: usable only through server.js), attributionHeaders (false: no
+// HTTP-Referer / X-Title on direct calls) and extends (another provider file to start from).
+// "_notes" hold the comments.
 export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.
 export const TEMPLATES = { endpoints: {} };
@@ -42,7 +44,12 @@ export async function loadProviders() {
   if (templates) TEMPLATES.endpoints = (await fetchData(templates)).endpoints || {};
   const lists = {};
   for (const id of ids) {
-    const p = await fetchData(`${id}.json`);
+    let p = await fetchData(`${id}.json`);
+    // extends: start from another provider file and override what this one lists (its notes stay its own).
+    if (p.extends) {
+      const { _notes, ...base } = await fetchData(p.extends);
+      p = { ...base, ...p };
+    }
     if (p.speechVoices) {
       lists[p.speechVoices] ??= fetchData(p.speechVoices).then((d) => d.voices.map((v) => ({ ...v, match: new RegExp(v.match, v.flags || '') })));
       p.speechVoices = await lists[p.speechVoices];
@@ -143,7 +150,11 @@ export async function callApi(path, { method = 'POST', json, formData, base = ba
     Object.assign(headers, { 'X-Upstream-Base': base, 'X-Upstream-Provider': state.provider });
   } else {
     // server.js adds these itself; direct calls send them so routers can attribute the app.
-    Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+    // A provider file can turn this off ("attributionHeaders": false) when its CORS allows only its own
+    // headers, as LLM Gateway's does; extra headers would make the browser's preflight fail.
+    if (provider()?.attributionHeaders !== false) {
+      Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+    }
   }
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }

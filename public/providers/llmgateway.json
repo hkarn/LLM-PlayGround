@@ -5,7 +5,8 @@
     "/v1/models needs no key. A model's tab comes from architecture.output_modalities (categorize); image+text models go to Image, text and audio+text to Chat, audio alone to Speech.",
     "Model ids are bare (gpt-4o: the gateway picks the provider and can fall back) or provider/model (pinned, no fallback).",
     "Image edits are JSON to /images/edits with the pictures as data URLs in images[].image_url (1-16), and no mask (endpoints.imageEdit). Image options have size, aspect_ratio and quality but no resolution.",
-    "Only the model list and the request formats were checked against the spec; no request has been made with a key yet."
+    "Checked 2026-11-09 through server.js with a key: the model list (291 models) and one chat call; the image edit format against the spec only.",
+    "attributionHeaders is false: its CORS allows only its own request headers (Content-Type, Authorization, x-api-key, x-session-id, …), so direct browser calls must not add HTTP-Referer and X-Title. llmgateway-self.json extends this file."
   ],
   "label": "LLM Gateway",
   "baseUrl": "https://api.llmgateway.io/v1",
@@ -21,6 +22,7 @@
   },
   "needsServer": true,
   "needsServerReason": "LLM Gateway does not allow calls from a browser page (no CORS), so it only works when you run your own server: Docker or node server.js.",
+  "attributionHeaders": false,
   "speechVoices": "speech-voices.json",
   "categorize": {
     "field": "architecture.output_modalities",
@@ -44,14 +46,23 @@
         "size": "{{size}}",
         "aspect_ratio": "{{aspect_ratio}}",
         "quality": "{{quality}}",
-        "images": { "each": "images", "as": { "image_url": "{{item.dataUrl}}" } }
+        "images": {
+          "each": "images",
+          "as": {
+            "image_url": "{{item.dataUrl}}"
+          }
+        }
       },
       "files": [],
       "drops": ["mask"]
     }
   },
   "suggest": {
-    "image": { "resolution": false },
-    "imageEdit": { "resolution": false }
+    "image": {
+      "resolution": false
+    },
+    "imageEdit": {
+      "resolution": false
+    }
   }
 }

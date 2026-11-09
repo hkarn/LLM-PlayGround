@@ -11,7 +11,8 @@
   "keyHint": "sk-…",
   "signup": {
     "href": "https://app.requesty.ai/join?ref=b1f2b1e1",
-    "text": "No key? Sign up for Requesty"
+    "text": "No key? Sign up for Requesty",
+    "referral": true
   },
   "server": {
     "domain": "requesty.ai"

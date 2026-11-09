@@ -47,31 +47,70 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .small { font-size: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
+/* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel. */
 .topbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
-  padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px;
+  padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.topbar h1 { font-size: 17px; margin: 0; }
-.key-form { display: flex; gap: 8px; align-items: center; flex: 1 1 420px; }
-.key-form input[type=password], .key-form input[type=text] { flex: 1; min-width: 0; }
-.endpoint-picker { display: flex; gap: 6px; align-items: center; flex: 1 1 300px; min-width: 0; max-width: 100%; }
-.endpoint-picker select { flex: 0 1 auto; min-width: 0; max-width: 45%; }
-.endpoint-picker button { flex: none; }
-.endpoint-picker input { flex: 1; min-width: 0; }
+.topbar h1 { font-size: 17px; margin: 0 12px 0 0; padding: 12px 0; white-space: nowrap; }
+.topbar .tabs { padding: 0; border: none; background: none; }
 .tabs button.unsupported { opacity: .45; }
-.topbar-links { display: flex; gap: 16px; margin-left: auto; }
-.topbar-links a { color: var(--accent); text-decoration: none; }
-.topbar-links a:hover { text-decoration: underline; }
 
 .tabs {
   display: flex; gap: 2px; padding: 0 16px; overflow-x: auto;
   background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.tabs button {
+.tabs[hidden] { display: none; }
+.tabs button, .tester-toggle {
   background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
-  padding: 10px 14px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  padding: 14px 14px 12px; color: var(--muted); cursor: pointer; white-space: nowrap;
 }
-.tabs button.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tabs button.active, .tester-toggle.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tester-toggle .caret { color: var(--muted); font-weight: 400; margin-left: 2px; }
+/* The endpoint tabs: a row of pills under the top bar while one of them is open. */
+.tester-tabs { gap: 4px; padding: 7px 20px; background: var(--bg); align-items: center; }
+.tester-tabs button { border: 1px solid transparent; border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.tester-tabs button.active { border-color: var(--accent); font-weight: 500; }
+.tester-tabs .tab-sep { align-self: stretch; margin: 4px 6px; }
+
+.conn { position: relative; margin-left: auto; padding: 8px 0; min-width: 0; }
+.conn-chip {
+  display: flex; align-items: center; gap: 8px; max-width: 100%;
+  border-radius: 999px; padding: 6px 14px; background: var(--bg); white-space: nowrap;
+}
+.conn-chip[aria-expanded=true] { border-color: var(--accent); }
+.conn-chip .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.conn-chip[data-state=ok] .dot { background: var(--ok); }
+.conn-chip[data-state=err] .dot { background: var(--err); }
+.conn-chip[data-state=loading] .dot { background: var(--accent); }
+.conn-label { min-width: 0; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.conn-state { font-size: 12px; color: var(--muted); }
+.conn-chip[data-state=err] .conn-state { color: var(--err); }
+.conn-chip .caret { color: var(--muted); }
+.conn-panel {
+  position: absolute; right: 0; top: calc(100% - 2px); z-index: 20;
+  width: min(460px, calc(100vw - 32px)); box-sizing: border-box; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.conn-panel[hidden] { display: none; }
+.conn-panel p { margin: 0; }
+.conn-field { display: flex; flex-direction: column; gap: 4px; }
+.conn-row { display: flex; gap: 8px; align-items: center; }
+.conn-row input { flex: 1; min-width: 0; }
+.conn-row button[type=submit] { margin-left: auto; }
+.key-form { display: flex; flex-direction: column; gap: 10px; }
+.models-status { color: var(--muted); overflow-wrap: anywhere; }
+.models-status.err { color: var(--err); }
+.conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
+.gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
+/* Narrow screens: the chip takes its own line and the panel spans the width. */
+@media (max-width: 700px) {
+  .conn { position: static; margin-left: 0; flex: 1 1 100%; display: flex; }
+  .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
+  .gh-link { display: none; }
+}
 
 main { max-width: 1400px; margin: 0 auto; padding: 20px; }
 .panel { display: none; }

@@ -5,7 +5,7 @@ import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';
 import { renderVideoGeneratorPlaceholder } from './apps/video-generator.js';
 import { store } from './core.js';
-import { $$, el } from './ui/dom.js';
+import { $, $$, el } from './ui/dom.js';
 
 /* ------------------------------------------------------------------ */
 /* Games and Tools                                                     */
@@ -107,6 +107,14 @@ export function showTab(tab) {
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
   store.set('tab', tab);
+  // The endpoint tabs (API tester) fold into one toggle in the top bar and show while one is open.
+  const inTester = Boolean(btn.closest('#tester-tabs'));
+  $('#tester-tabs').hidden = !inTester;
+  const toggle = $('#tester-toggle');
+  toggle.classList.toggle('active', inTester);
+  toggle.setAttribute('aria-expanded', String(inTester));
+  $('.caret', toggle).textContent = inTester ? '▾' : '▸';
+  if (inTester) store.set('testerTab', tab);
   return true;
 }
 export function route() {

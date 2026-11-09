@@ -17,32 +17,49 @@
 <body>
 <header class="topbar">
   <h1>LLM PlayGround</h1>
-  <div class="endpoint-picker">
-    <label for="provider" class="sr-only">Endpoint</label>
-    <select id="provider" title="Provider or router"></select>
-    <label for="base-url" class="sr-only">Base URL</label>
-    <input id="base-url" type="text" placeholder="Base URL, e.g. http://localhost:11434/v1" spellcheck="false" title="Base URL. Edit it to use another region or a compatible endpoint.">
-    <button type="button" id="reset-url" class="icon" title="Reset to the provider's default URL">↺</button>
+  <nav class="tabs main-tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="providers" class="active">Providers</button>
+    <button role="tab" data-tab="games" class="hub-tab">Games</button>
+    <button role="tab" data-tab="tools" class="hub-tab">Tools</button>
+  </nav>
+  <!-- Opens the endpoint tabs below (the raw API tester); they show while one of them is open. -->
+  <button type="button" id="tester-toggle" class="tester-toggle" aria-controls="tester-tabs" aria-expanded="false">API tester <span class="caret" aria-hidden="true">▸</span></button>
+  <!-- Connection: a chip that shows the provider, URL and model status, and opens the settings. -->
+  <div class="conn">
+    <button type="button" id="conn-chip" class="conn-chip" aria-controls="conn-panel" aria-expanded="false" title="Provider, URL and API key">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="conn-label" class="conn-label">Connection</span>
+      <span id="conn-state" class="conn-state"></span>
+      <span class="caret" aria-hidden="true">▾</span>
+    </button>
+    <div id="conn-panel" class="conn-panel" role="group" aria-label="Connection" hidden>
+      <label>Provider
+        <select id="provider" title="Provider or router"></select>
+      </label>
+      <div class="conn-field">
+        <label for="base-url">Base URL</label>
+        <div class="conn-row">
+          <input id="base-url" type="text" placeholder="Base URL, e.g. http://localhost:11434/v1" spellcheck="false" title="Base URL. Edit it to use another region or a compatible endpoint.">
+          <button type="button" id="reset-url" class="icon" title="Reset to the provider's default URL" aria-label="Reset to the provider's default URL">↺</button>
+        </div>
+      </div>
+      <form id="key-form" class="key-form" autocomplete="off">
+        <label>API key
+          <input id="api-key" type="password" placeholder="API key" spellcheck="false">
+        </label>
+        <div class="conn-row">
+          <label class="inline"><input id="remember-key" type="checkbox"> Remember on this device</label>
+          <button type="submit">Load models</button>
+        </div>
+      </form>
+      <p id="models-status" class="models-status small" role="status">No models loaded.</p>
+      <p class="conn-signup small muted">No key? Get one at <span id="signup-links"></span> · <a href="#providers">Which provider?</a></p>
+    </div>
   </div>
-  <form id="key-form" class="key-form" autocomplete="off">
-    <label for="api-key" class="sr-only">API key</label>
-    <input id="api-key" type="password" placeholder="API key" spellcheck="false">
-    <label class="inline"><input id="remember-key" type="checkbox"> Remember</label>
-    <button type="submit">Load models</button>
-  </form>
-  <div id="models-status" class="muted small">No models loaded.</div>
-  <div class="topbar-links small">
-    <a id="signup-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">No key? Get one at OpenRouter</a>
-    <a href="#providers">Which provider?</a>
-    <a href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener">Source on GitHub</a>
-  </div>
+  <a class="gh-link small" href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener">Source on GitHub</a>
 </header>
 
-<nav class="tabs" role="tablist">
-  <button role="tab" data-tab="providers" class="active">Providers</button>
-  <button role="tab" data-tab="games" class="hub-tab">Games</button>
-  <button role="tab" data-tab="tools" class="hub-tab">Tools</button>
-  <span class="tab-sep" aria-hidden="true"></span>
+<nav id="tester-tabs" class="tabs tester-tabs" role="tablist" aria-label="API tester" hidden>
   <button role="tab" data-tab="chat">Chat</button>
   <button role="tab" data-tab="decision">Decision</button>
   <button role="tab" data-tab="embeddings">Embeddings</button>
@@ -52,6 +69,7 @@
   <button role="tab" data-tab="video">Video</button>
   <button role="tab" data-tab="speech">Speech</button>
   <button role="tab" data-tab="transcription">Transcriptions</button>
+  <span class="tab-sep" aria-hidden="true"></span>
   <button role="tab" data-tab="models">All models</button>
 </nav>
 

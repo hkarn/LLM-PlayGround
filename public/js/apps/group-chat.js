@@ -438,8 +438,20 @@ export function renderGroupChat(root) {
   showDecision();
   // The provider may change while the chat is open: show that provider's decision model.
   document.getElementById('provider')?.addEventListener('change', () => { decisionInput.input.value = s.decisionModels?.[state.provider] || ''; });
-  const settings = el('details', { class: 'gc-settings' },
-    el('summary', { text: 'Chat settings' }),
+  // The settings bar: open on the first visit, then as the user left it. Folded, it still shows the
+  // main choices, so it is clear there is something to set.
+  const settingsLine = el('span', { class: 'gc-settings-line muted' });
+  const updateSettingsLine = () => {
+    const decision = s.order === 'decision' ? (s.decisionModels?.[state.provider] || 'no decision model') : '';
+    settingsLine.textContent = [
+      s.userName || 'You',
+      `${(GC_ORDER[s.order] || GC_ORDER.random).label}${decision ? ` (${decision})` : ''}`,
+      s.defaultModel ? `default ${s.defaultModel}` : 'no default model',
+    ].join(' · ');
+  };
+  const settingsSummary = el('summary', {}, el('strong', { text: '⚙ Chat settings' }), settingsLine);
+  const settings = el('details', { class: 'gc-settings', open: store.get('gc_settings_open') !== 'no' || undefined },
+    settingsSummary,
     el('div', { class: 'grid3' },
       field('Your name', bind(el('input', { value: s.userName }), 'userName', (v) => v.trim() || 'You')),
       field('Default model', (() => { const f = modelField({ name: 'default_model', value: s.defaultModel, placeholder: 'used when a character has none' }); bind(f.input, 'defaultModel', (v) => v.trim()); return f.wrap; })()),
@@ -458,6 +470,11 @@ export function renderGroupChat(root) {
         type: 'button', class: 'secondary', text: 'Reset characters',
         onclick: () => { if (run.busy || !confirm('Replace the characters with the three examples?')) return; s.characters = GC_DEFAULT().characters; save(); renderCharacters(); },
       })));
+  // Only a click on the bar is remembered (the browser also fires "toggle" when it is drawn open).
+  settingsSummary.addEventListener('click', () => setTimeout(() => store.set('gc_settings_open', settings.open ? 'yes' : 'no')));
+  settings.addEventListener('change', updateSettingsLine);
+  document.getElementById('provider')?.addEventListener('change', updateSettingsLine);
+  updateSettingsLine();
 
   root.append(
     el('div', { class: 'groupchat' },

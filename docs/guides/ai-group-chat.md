@@ -32,7 +32,7 @@ Model ids differ between providers (for example `qwen/…` on OpenRouter but `al
 
 ## Chat settings
 
-Open **Chat settings** above the chat:
+The **⚙ Chat settings** bar sits above the chat. It's open on your first visit; click it to fold or open it, and it stays the way you left it. Folded, it still shows your name, the turn order and the default model.
 
 | Setting | What it does |
 | --- | --- |

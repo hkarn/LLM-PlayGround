@@ -43,7 +43,7 @@ These are cheap tests, one or two runs per model with plain pictures (November 2
 | Grok Imagine | Like 1.5 lite, about twice the price |
 | Gemini Omni 1.2 Flash | Text, first frame, or first and last. 360p is the cheap tier. Always has audio |
 | Kling 3.0 Standard | First and last frame, 3–15 s, 720p. Audio can be turned on or off (off is cheaper). Kept realistic characters with mildly alien faces |
-| HappyHorse 1.1 | First frame, 3–15 s, from 720p. Kept an AI-made alien face. Real sound with audio on (audio off not tested yet); billed about 1.6× its listed price with audio |
+| HappyHorse 1.1 | First frame, 3–15 s, from 720p. Kept an AI-made alien face. Always has audio. Billed about 1.6× its listed price, which its price scale includes |
 | Hailuo 3 Max | 5–15 s. Its clips had an audio track |
 | Wan 3.0 | First and last frame. Billed about twice its listed price in a test, which its price scale includes |
 

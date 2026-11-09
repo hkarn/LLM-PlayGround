@@ -193,20 +193,19 @@
       "frames": [
         "first_frame"
       ],
-      "audio": "optional",
+      "audio": "always",
       "faces": "kept an AI-made alien face",
       "default": {
         "duration": 3,
         "resolution": "720p",
-        "aspect_ratio": "16:9",
-        "generate_audio": true
+        "aspect_ratio": "16:9"
       },
-      "note": "First frame, 3–15 s, from 720p, many aspect ratios. Kept an AI-made, non-human face. With audio on it gave real sound. Audio off is not tested yet.",
+      "note": "First frame, 3–15 s, from 720p, many aspect ratios. Kept an AI-made, non-human face. Always has audio (real sound; it can't be turned off).",
       "priceFactor": 1.6,
-      "priceSeen": "A test with audio on was billed about 1.6 times the listed price, which this scale includes.",
+      "priceSeen": "Tests were billed about 1.6 times the listed price, which this scale includes.",
       "tested": [
-        "2026-11-09: AI alien face (grey-blue skin, bony head ridges) as first frame, 3 s 720p, audio on: 1282x720, 3.16 s, real audio (124 kbps), face kept through the clip, $0.494 (listed $0.0988/s), 79 s",
-        "2026-11-09: the same with audio off: not run (the account's credit check refused it)"
+        "2026-11-09: AI alien face (grey-blue skin, bony head ridges) as first frame, 3 s 720p: 1282x720, 3.16 s, real audio (124 kbps), face kept through the clip, $0.494 (listed $0.0988/s), 79 s",
+        "2026-11-09 (owner): always has audio, and it can't be turned off; a run was billed $0.49 (the page estimated $0.30 without the price factor)"
       ]
     },
     "minimax/hailuo-3-max": {

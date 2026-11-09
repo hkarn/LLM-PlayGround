@@ -1,6 +1,6 @@
 # Providers
 
-The playground sends your requests to one provider (or router) at a time. Pick it in the connection panel at the top of the page (click the chip), or with **Use this one** on the Providers tab.
+The playground sends your requests to one provider (or router) at a time. Pick it in the connection panel at the top of the page (click the chip), or with **Use this one** in its box on the Welcome tab. For now only OpenRouter has video models, so the video tools need it.
 
 ## The providers
 

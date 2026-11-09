@@ -2,6 +2,8 @@
 
 The **API tester** tabs send one raw request each, so you can see exactly what a provider takes and gives back. Click **API tester ▸** in the top bar: it opens the tab you used last, and the tabs appear as a row under the bar.
 
+On a narrow screen, where the top bar folds its tabs into one drop-down button (☰), open that button and click **API tester**: the endpoint tabs fold out beside it (or under it on a phone). Pick one to open it.
+
 Tabs the chosen provider can't serve are greyed out.
 
 ## The tabs

@@ -14,8 +14,10 @@
   --link: #3f3fc4;
   --link-visited: #6b3fb8;
 }
+/* Dark colours: from the system setting while the theme is Auto, or chosen with the theme toggle
+   (data-theme on <html>, set by the script in index.html and ui/theme.js). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme=light]) {
     --bg: #131417;
     --surface: #1c1d21;
     --text: #e8e9ec;
@@ -32,11 +34,29 @@
     --link-visited: #d0b0ff;
   }
 }
+:root[data-theme=dark] {
+  --bg: #131417;
+  --surface: #1c1d21;
+  --text: #e8e9ec;
+  --muted: #9a9ea8;
+  --border: #33353b;
+  --accent: #8b8bf0;
+  --accent-text: #111;
+  --ok: #4fc283;
+  --err: #ff7a70;
+  --warn: #ff9a3c;
+  --code-bg: #24262b;
+  --highlight: #2c2c4a;
+  --link: #a8b0ff;
+  --link-visited: #d0b0ff;
+}
 
 * { box-sizing: border-box; }
 /* Thin scrollbars in the theme's own colours (page, settings panel, text boxes), instead of the
    browser's light grey ones; color-scheme lets the browser draw the rest of its controls dark too. */
 :root { color-scheme: light dark; }
+:root[data-theme=light] { color-scheme: light; }
+:root[data-theme=dark] { color-scheme: dark; }
 * { scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
 body {
   margin: 0;
@@ -53,12 +73,19 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .small { font-size: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel. */
+/* Masthead: the top bar and the API tester tabs, kept at the top while the page scrolls.
+   ui/top-bar.js writes its height into --masthead-h, so jumps and sticky panels stop below it.
+   When even the shortest bar wraps (.wrapped), it scrolls away with the page instead. */
+.masthead { position: sticky; top: 0; z-index: 30; }
+.masthead.wrapped { position: static; }
+html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
+/* Top bar: title, section tabs, the API tester toggle, and the connection chip with its panel.
+   It stays on one line as long as it can; ui/top-bar.js adds .short, .menu and .tight in turn. */
 .topbar {
-  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px;
-  padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 clamp(2px, .6vw, 8px);
+  padding: 0 clamp(10px, 1.6vw, 20px); background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.topbar h1 { font-size: 17px; margin: 0 12px 0 0; padding: 12px 0; white-space: nowrap; }
+.topbar h1 { font-size: 17px; margin: 0 clamp(4px, 1vw, 12px) 0 0; padding: 12px 0; white-space: nowrap; }
 .topbar .tabs { padding: 0; border: none; background: none; }
 .tabs button.unsupported { opacity: .45; }
 
@@ -69,7 +96,7 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .tabs[hidden] { display: none; }
 .tabs button, .tester-toggle {
   background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0;
-  padding: 14px 14px 12px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  padding: 14px clamp(7px, 1vw, 14px) 12px; color: var(--muted); cursor: pointer; white-space: nowrap;
 }
 .tabs button.active, .tester-toggle.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 .tester-toggle .caret { color: var(--muted); font-weight: 400; margin-left: 2px; }
@@ -79,7 +106,7 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .tester-tabs button.active { border-color: var(--accent); font-weight: 500; }
 .tester-tabs .tab-sep { align-self: stretch; margin: 4px 6px; }
 
-.conn { position: relative; margin-left: auto; padding: 8px 0; min-width: 0; }
+.conn { position: relative; margin-left: auto; padding: 8px 0; min-width: 0; flex: 0 1 auto; }
 .conn-chip {
   display: flex; align-items: center; gap: 8px; max-width: 100%;
   border-radius: 999px; padding: 6px 14px; background: var(--bg); white-space: nowrap;
@@ -110,15 +137,73 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, SFMono-Regular, Men
 .models-status { color: var(--muted); overflow-wrap: anywhere; }
 .models-status.err { color: var(--err); }
 .conn-signup { padding-top: 10px; border-top: 1px solid var(--border); }
-.gh-link { padding: 8px 0 8px 8px; white-space: nowrap; }
-/* Narrow screens: the chip and the GitHub link share their own line (the chip's label shortens
-   to fit), and the panel spans the width. */
-@media (max-width: 700px) {
-  .conn { position: static; margin-left: 0; flex: 1 1 180px; min-width: 0; display: flex; }
-  .conn-chip { min-width: 0; }
-  .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
-  .gh-link { flex: none; }
+/* Icon buttons at the end of the bar: the theme toggle and the GitHub link (one SVG in the text
+   colour, so it suits both themes). */
+.icon-link {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; padding: 0; border: none; border-radius: 8px; background: none;
+  color: var(--muted); cursor: pointer;
 }
+.icon-link:hover, .icon-link:visited:hover { color: var(--text); background: var(--bg); }
+.icon-link:visited { color: var(--muted); }
+.icon-link svg { width: 20px; height: 20px; }
+/* The fitting steps. The tabs sit in .nav-wrap, which lays out as if it weren't there until .menu
+   folds it into a drop-down under #nav-menu. */
+.nav-wrap { display: contents; }
+.nav-menu { display: none; }
+.topbar.short .opt { display: none; }
+.topbar.menu .nav-menu {
+  display: flex; align-items: center; gap: 6px; white-space: nowrap; margin: 8px 0;
+  padding: 6px 12px; border-radius: 8px; background: var(--bg); font-weight: 600;
+}
+.nav-menu .burger, .nav-menu .caret { color: var(--muted); font-weight: 400; }
+/* All tab names stacked in one cell, only the open one visible: the button keeps one width. */
+.nav-current { display: inline-grid; text-align: left; }
+.nav-current > span { grid-area: 1 / 1; visibility: hidden; }
+.nav-current > span.on { visibility: visible; }
+.nav-menu[aria-expanded=true] { border-color: var(--accent); }
+.topbar.menu .nav-wrap { display: none; }
+.topbar.menu .nav-wrap.open {
+  display: flex; flex-direction: column; position: absolute; top: calc(100% - 4px); z-index: 25;
+  min-width: 200px; padding: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.topbar.menu .nav-wrap .tabs { flex-direction: column; gap: 0; overflow: visible; }
+.topbar.menu .nav-wrap .tabs button, .topbar.menu .nav-wrap .tester-toggle {
+  text-align: left; padding: 9px 12px; border-bottom: none; border-left: 3px solid transparent; border-radius: 6px;
+}
+.topbar.menu .nav-wrap .tabs button.active, .topbar.menu .nav-wrap .tester-toggle.active { border-left-color: var(--accent); background: var(--highlight); }
+/* The endpoint tabs inside the drop-down: folded away until "API tester" is clicked, then a list
+   to its right (or indented under it when there is no room to the right). */
+.topbar.menu .nav-wrap #tester-tabs { display: none; }
+.topbar.menu .nav-wrap.sub-open #tester-tabs {
+  display: flex; flex-direction: column; align-items: stretch; gap: 0; position: absolute; left: calc(100% + 4px);
+  min-width: 170px; padding: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.topbar.menu .nav-wrap.sub-open.sub-below #tester-tabs { position: static; min-width: 0; padding: 0 0 4px 14px; border: none; box-shadow: none; background: none; }
+.topbar.menu .nav-wrap #tester-tabs button { border: none; border-left: 3px solid transparent; border-radius: 6px; padding: 7px 12px; text-align: left; font-size: 14px; }
+.topbar.menu .nav-wrap #tester-tabs button.active { border-left-color: var(--accent); background: var(--highlight); }
+.topbar.menu .nav-wrap #tester-tabs .tab-sep { display: none; }
+.topbar.menu h1 { font-size: 15px; }
+.topbar.tight .conn-state, .topbar.tight .gh-link, .topbar.tight #theme-toggle { display: none; }
+/* The theme entry in the drop-down: only there once the icon has left the bar. */
+.theme-item { display: none; }
+.topbar.tight .nav-wrap.open .theme-item {
+  display: block; text-align: left; padding: 9px 12px; margin-top: 4px; border: none;
+  border-top: 1px solid var(--border); border-radius: 0 0 6px 6px; background: none; color: var(--muted); cursor: pointer;
+}
+.topbar.tight .nav-wrap.open .theme-item:hover { color: var(--text); }
+.topbar.tight .conn-chip { padding: 6px 10px; gap: 6px; }
+.topbar.tiny h1 { font-size: 13.5px; margin-right: 2px; }
+.topbar.tiny .nav-menu { padding: 6px 8px; }
+.topbar.tiny .nav-menu .burger { display: none; }
+/* When even that wraps: the chip gets its own line, its label shortens, and the panel spans the width. */
+.topbar.wrapped h1 { flex-basis: 100%; padding-bottom: 0; }
+.topbar.wrapped .conn { position: static; margin-left: auto; min-width: 0; display: flex; }
+.topbar.wrapped .conn-chip { min-width: 0; }
+.topbar.wrapped .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
+@media (max-width: 700px) { .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); } .conn { position: static; } }
 
 main { max-width: 1400px; margin: 0 auto; padding: 20px; }
 .panel { display: none; }
@@ -336,7 +421,7 @@ button.danger { color: var(--err); }
 .tool-layout > .tool-main { grid-column: 1; grid-row: 1; }
 .tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tool-panel {
-  position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+  position: sticky; top: calc(var(--masthead-h, 0px) + 12px); max-height: calc(100vh - var(--masthead-h, 0px) - 24px); overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
 }
 .tool-panel-head { display: none; }
@@ -399,16 +484,39 @@ button.danger { color: var(--err); }
 
 /* Providers tab */
 .panel[data-panel=providers].active { display: block; }
-.providers-intro { max-width: 760px; margin-bottom: 16px; }
-.providers-intro h2 { margin: 0 0 6px; font-size: 18px; }
-.provider-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
-.provider-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.topbar h1 a { color: inherit; text-decoration: none; }
+.topbar h1 { padding: 6px 0; line-height: 0; }
+.logo { display: inline-flex; align-items: center; gap: 5px; }
+.logo svg { display: block; width: auto; }
+.logo .logo-icon { height: 38px; }
+.logo .logo-word { height: 32px; }
+.lg-paper { fill: var(--surface); }
+.topbar.tiny .logo .logo-word { display: none; }
+.topbar h1 a:hover { opacity: .8; }
+/* The welcome page (Providers tab): intro, tool cards, then one wide box per provider. */
+.welcome { max-width: 1100px; margin-inline: auto; display: flex; flex-direction: column; gap: 26px; font-size: 15px; line-height: 1.5; }
+.welcome section > h3 { margin: 0 0 10px; font-size: 17px; }
+.welcome p { margin: 0 0 6px; }
+.welcome-hero h2 { margin: 0 0 8px; font-size: 24px; }
+.welcome-hero p { font-size: 17px; max-width: 760px; }
+.welcome-start ol { margin: 0 0 8px; padding-left: 22px; }
+.welcome-start li { margin: 3px 0; }
+.welcome a.app-card { text-decoration: none; color: inherit; }
+.welcome-privacy p { max-width: 760px; }
+.providers-intro { max-width: 760px; margin-bottom: 14px; }
+.providers-intro h2 { margin: 0 0 6px; font-size: 22px; }
+.provider-cards { display: flex; flex-direction: column; gap: 16px; }
+.provider-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+  display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 1.3fr) minmax(0, 1.2fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .provider-card { grid-template-columns: 1fr; gap: 12px; } }
 .provider-card.off { opacity: .75; }
+.provider-main, .provider-notes { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.provider-steps { min-width: 0; }
 .provider-card p, .provider-card ol, .provider-card ul { margin: 0; }
 .provider-card ol, .provider-card ul { padding-left: 20px; }
-.provider-card li { margin: 2px 0; }
+.provider-card li { margin: 3px 0; }
 .provider-head { display: flex; flex-direction: column; gap: 4px; }
-.provider-head h3 { margin: 0; font-size: 16px; }
+.provider-head h3 { margin: 0; font-size: 19px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .provider-head .ease { font-size: 13px; color: var(--muted); }
 .provider-head .dots { color: var(--accent); letter-spacing: 1px; }
 .provider-card .row { margin-top: 4px; flex-wrap: wrap; }

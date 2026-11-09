@@ -2,12 +2,14 @@
 import { read } from './adapter.js';
 import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { renderProviderGuide } from './providers-guide.js';
-import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
+import { APPS, hubPanel, route, setHash, setupHubs, showTab, svgIcon } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
 import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
+import { setupTheme } from './ui/theme.js';
+import { setupTopBar } from './ui/top-bar.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
 import { renderException } from './ui/result.js';
@@ -17,6 +19,10 @@ import { runStep } from './ui/run-step.js';
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
 export async function init() {
+  // First, so the bar is fitted and the toggle works before (or without) the provider list.
+  setupTheme();
+  setupTopBar();
+
   // Tabs
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
@@ -67,8 +73,33 @@ export async function init() {
     store.set('provider', state.provider);
     applyProvider();
   });
+  // The welcome page's cards: every tool and game, then the API tester and the model filter.
+  const TESTER_ICON = '<path d="M8 6l-6 6 6 6"/><path d="M16 6l6 6-6 6"/>';
+  const FILTER_ICON = '<path d="M3 5h18l-7 8v6l-4-2v-4z"/>';
+  const welcomeApps = [
+    ...['tools', 'games'].flatMap((hub) => APPS[hub].map((a) => ({ ...a, href: `#${hub}/${a.id}` }))),
+    { href: '#chat', title: 'API tester', icon: TESTER_ICON, blurb: 'Send a raw request to any endpoint (chat, images, video, speech, embeddings …) and see the full answer.' },
+    { href: '#models', title: 'Filter models', icon: FILTER_ICON, blurb: 'Narrow every model list on the page to the makers and models you care about.' },
+  ];
+  // The title opens the welcome page, at the top, even when its hash is already #providers.
+  $('.topbar h1 a').addEventListener('click', (e) => {
+    e.preventDefault();
+    showTab('providers');
+    setHash('providers');
+    window.scrollTo({ top: 0 });
+  });
+  // "Which provider?" in the connection panel jumps to the provider boxes further down.
+  $('.conn-signup a[href="#providers"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    showTab('providers');
+    setHash('providers');
+    openConnection(false);
+    $('#provider-list')?.scrollIntoView({ block: 'start' });
+  });
   renderProviderGuide($('[data-panel=providers]'), {
     unavailable,
+    apps: welcomeApps,
+    icon: svgIcon,
     choose: (id) => {
       providerSelect.value = id;
       providerSelect.dispatchEvent(new Event('change'));
@@ -207,7 +238,7 @@ function updateChip() {
   const text = status.textContent;
   let host = '';
   try { host = new URL(baseUrl()).host; } catch { /* no URL yet, or not a full URL */ }
-  $('#conn-label').textContent = host ? `${p.label} · ${host}` : p.label;
+  $('#conn-label').replaceChildren(p.label, ...(host ? [el('span', { class: 'opt', text: ` · ${host}` })] : []));
   // Green needs a key as well as a model list: lists are often public, requests never are.
   const ready = keyReady();
   // Once a key is typed, the "add a key" message has done its job.

@@ -9,11 +9,11 @@ Plain JavaScript modules with no build step and no dependencies. `public/index.h
 | `public/js/ui/dom.js` | `el()`, `$()`, `$$()`: building and finding page elements. Everything uses these |
 | `public/js/core.js` | Shared by everything, with no screens of its own: the providers, sending requests (`callApi`) and cURL, the key rule (`keyReady`), loading the model list, the model filter (`visibleModels`, `modelsIn`), storage and small text helpers |
 | `public/js/adapter.js` | Turns what a tab or tool wants (a chat, an image, a video job, …) into the provider's request using the templates in the provider files (`send`), and reads the answer back into plain values: text, images, usage (`read`). Async jobs use `follow` for polling and downloads |
-| `public/js/ui/*.js` | Reusable pieces that tools are built from. The general ones: result panel, model picker, option dropdowns that follow the model, Send/Cancel (`run-step.js`), drafts kept across reloads, remembered choices (one chat, image and video model shared by every tool), the tool layout (`tool-layout.js`: settings panel and steps), copy button, named reference portraits, model filter. The video ones: `video-job.js` (run a job, price estimate), `video-settings.js` (model cards and options) and `frame-image.js` (frames as PNG/JPEG). The DreamGen ones: `dreamgen-export.js`, `scene-handoff.js` and `scene-styles.js` |
+| `public/js/ui/*.js` | Reusable pieces that tools are built from. The general ones: result panel, model picker, option dropdowns that follow the model, Send/Cancel (`run-step.js`), drafts kept across reloads, remembered choices (one chat, image and video model shared by every tool), the tool layout (`tool-layout.js`: settings panel and steps), copy button, named reference portraits, model filter, the top bar (`top-bar.js`: pinned, and kept to one line by dropping optional words, then folding the tabs into a drop-down), the logo (inline SVG in `index.html`'s `<h1>`, made from `docs/logo.svg`: the icon and the wordmark as two SVGs, black outside the orange discs as `currentColor`, white letter holes as `.lg-paper` in the bar's colour, so it follows the theme; the GAME/TESTER/TOOLS labels are left out), the theme toggle (`theme.js`: Auto, Light or Dark; a new colour needs its dark value in both dark blocks of `style.css`). The video ones: `video-job.js` (run a job, price estimate), `video-settings.js` (model cards and options) and `frame-image.js` (frames as PNG/JPEG). The DreamGen ones: `dreamgen-export.js`, `scene-handoff.js` and `scene-styles.js` |
 | `public/js/testers.js` | The API tester tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `video-generator.js`, `group-chat.js` |
 | `public/js/hubs.js` | The Games and Tools launchers, the list of apps (`APPS`), tab switching and direct links (`#tools/…`) |
-| `public/js/providers-guide.js` | The Providers tab: one card per provider, from the `guide` in its settings file |
+| `public/js/providers-guide.js` | The Welcome tab: what the site is, cards for the tools and games (passed in by `main.js`), and one wide box per provider, from the `guide` in its settings file |
 | `public/js/main.js` | Start-up: the tabs, the connection chip and panel, and the forms |
 | `public/providers/*.json` | One settings file per provider (below) |
 | `public/style.css` | All styles, with the light and dark colours as variables at the top |
@@ -37,7 +37,7 @@ Each provider is `public/providers/<id>.json`, and `index.json` lists them in or
 | `suggest`, `speechVoices` | Option and voice lists where no model list gives them |
 | `categorize` | Which field decides a model's tab, when the list has no endpoints or `api` field |
 | `videoModels` | The tested video models, with their notes, defaults, audio and face behaviour, and every test run |
-| `guide` | The Providers tab text: setup level 1–4, summary, steps, what's good and what to watch |
+| `guide` | The provider's box on the Welcome tab: setup level 1–4, summary, steps, what's good and what to watch |
 | `needsServer`, `extends`, `attributionHeaders` | Works only through the server; starts from another file; whether direct calls send `HTTP-Referer`/`X-Title` |
 
 `openai-standard.json` holds the standard OpenAI-style request and response templates every provider starts from. A provider's `endpoints.<kind>` replaces keys of them. The template rules are in that file's `_notes`.

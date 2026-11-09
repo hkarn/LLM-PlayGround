@@ -280,8 +280,10 @@ button.danger { color: var(--err); }
 .vidgen > div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 /* Model cards wrap and stretch, so each row is filled at any width (no lone card on a half-empty row). */
 .vg-models { display: flex; flex-wrap: wrap; gap: 8px; }
-.vg-models > .vg-model { flex: 1 1 140px; min-width: 0; }
+.vg-models > .vg-model { flex: 1 1 170px; min-width: 0; }
 .vg-models > .vg-other { flex-basis: 220px; }
+/* On a phone, two cards per row. */
+@media (max-width: 520px) { .vg-models > .vg-model { flex-basis: 140px; } .vg-models > .vg-other { flex-basis: 100%; } }
 .vg-model { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
 .vg-stage { aspect-ratio: 16 / 9; border-radius: 8px; background: var(--code-bg); display: grid; place-items: center; color: var(--muted); }
 
@@ -370,13 +372,13 @@ a.button-link:hover { filter: brightness(1.08); }
 .vg-clip > .icon-btn { position: absolute; top: 4px; right: 4px; }
 .vg-clip-prompt { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 .output video, .vg-clip video { max-width: 100%; border-radius: 6px; display: block; }
-/* A finished clip plays centred in its result box, at most most of the screen tall. */
+/* A finished clip plays centred in its result box, at most 70% of the screen height. */
 .output video { margin-inline: auto; max-height: 70vh; }
 .output > video + div { text-align: center; margin-top: 6px; }
 .tool-form { display: flex; flex-direction: column; gap: 12px; }
 /* With a picture in it, the box takes the picture's own shape (portrait, square, wide), up to 480 px
    tall, instead of the empty 16:9 placeholder, so a tall picture can't spill over the buttons. */
-.vg-stage:has(img) { aspect-ratio: auto; background: none; width: auto; max-width: 100%; }
+.tool-step .vg-stage:has(img) { aspect-ratio: auto; background: none; width: auto; max-width: 100%; align-self: center; }
 .vg-stage img { display: block; max-width: 100%; max-height: 480px; width: auto; height: auto; object-fit: contain; border-radius: 8px; }
 /* Relative price: $$$$$ with the first n lit (1-5), never an amount. */
 .price-tag { font-weight: 700; letter-spacing: 1px; white-space: nowrap; }

@@ -466,7 +466,14 @@ button.danger { color: var(--err); }
 /* Providers tab */
 .panel[data-panel=providers].active { display: block; }
 .topbar h1 a { color: inherit; text-decoration: none; }
-.topbar h1 a:hover { color: var(--accent); }
+.topbar h1 { padding: 6px 0; line-height: 0; }
+.logo { display: inline-flex; align-items: center; gap: 5px; }
+.logo svg { display: block; width: auto; }
+.logo .logo-icon { height: 38px; }
+.logo .logo-word { height: 32px; }
+.lg-paper { fill: var(--surface); }
+.topbar.tiny .logo .logo-word { display: none; }
+.topbar h1 a:hover { opacity: .8; }
 /* The welcome page (Providers tab): intro, tool cards, then one wide box per provider. */
 .welcome { max-width: 1100px; margin-inline: auto; display: flex; flex-direction: column; gap: 26px; font-size: 15px; line-height: 1.5; }
 .welcome section > h3 { margin: 0 0 10px; font-size: 17px; }

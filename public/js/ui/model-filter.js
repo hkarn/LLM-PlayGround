@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: the model filter (issue #33). Two lists, providers and models, that
-   narrow every model dropdown and the All models table. Kept per endpoint in localStorage, since
+   narrow every model dropdown and the Filter models table. Kept per endpoint in localStorage, since
    routers name makers differently (z-ai on OpenRouter, zai elsewhere). The matching is in core.js. */
 import { renderModelsTable, splitModelId, state, store, visibleModels } from '../core.js';
 import { $, el } from './dom.js';

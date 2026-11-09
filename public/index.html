@@ -24,6 +24,10 @@
   </nav>
   <!-- Opens the endpoint tabs below (the raw API tester); they show while one of them is open. -->
   <button type="button" id="tester-toggle" class="tester-toggle" aria-controls="tester-tabs" aria-expanded="false">API tester <span class="caret" aria-hidden="true">▸</span></button>
+  <!-- The model filter and model list: it narrows every model list on the page, tools and games too. -->
+  <nav class="tabs main-tabs" role="tablist" aria-label="Models">
+    <button role="tab" data-tab="models">Filter models</button>
+  </nav>
   <!-- Connection: a chip that shows the provider, URL and model status, and opens the settings. -->
   <div class="conn">
     <button type="button" id="conn-chip" class="conn-chip" aria-controls="conn-panel" aria-expanded="false" title="Provider, URL and API key">
@@ -69,8 +73,6 @@
   <button role="tab" data-tab="video">Video</button>
   <button role="tab" data-tab="speech">Speech</button>
   <button role="tab" data-tab="transcription">Transcriptions</button>
-  <span class="tab-sep" aria-hidden="true"></span>
-  <button role="tab" data-tab="models">All models</button>
 </nav>
 
 <main>

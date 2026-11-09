@@ -1,6 +1,6 @@
 {
   "_notes": [
-    "Curated models: one list for every router, matched by the model's own name. The picker's \"curated\" checkbox shows the entries found on the current key, in this order (cheapest first), each under its label. It is on by default in the DreamGen tools, which these were tested for on 2026-11-09 (on OpenRouter and Requesty).",
+    "Curated models: one list for every router, matched by the model's own name. The picker's \"curated\" checkbox shows the entries found on the current key, in this order (cheapest first), each under its label. It is on by default in the DreamGen tools, which these were tested for on 2026-11-09 (on OpenRouter and Requesty). The models added later that day from the drafts (GPT-5 mini and Mistral Medium 3.1 for chat, and the image models named in the image note below) were run on OpenRouter only, not checked on Requesty.",
     "name: the model's name without its maker or router prefix. It matches any id whose last part is that name, ignoring case, . versus - (claude-haiku-5.5 = claude-haiku-5-5), a date tag (-0731), a region (@eu) and a variant (:flex). When a key lists several, the first plain one is shown.",
     "draft: true marks a real candidate we are not sure of yet: tested but slow or odd, or not run yet (no price until it is). Drafts show after the confirmed models, marked \"draft\". Move one up (drop draft) after a good run, or take it out.",
     "price: relative, $ (cheapest) to $$$$, never an amount from our tests. note: what the tests found, shown under the picker.",

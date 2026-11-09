@@ -10,6 +10,7 @@ import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
 import { renderImages, renderResult } from '../ui/result.js';
+import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { runStep } from '../ui/run-step.js';
 import { settingsToggle } from '../ui/settings-toggle.js';
 
@@ -194,7 +195,7 @@ export function renderDreamGenScene(root) {
       portraits.node),
     el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut),
     el('p', { class: 'muted small' }, 'Next: ', el('a', { href: '#tools/dreamgen-video', text: 'Animate the DreamGen Scene' }),
-      ' will turn the picture into a short clip (coming soon; it will take this picture straight from here).'));
+      ' turns the picture into a short clip. It takes the picture and this session straight from here.'));
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   setupModelOptions(imageForm);
@@ -316,6 +317,17 @@ export function renderDreamGenScene(root) {
       const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
       const { rendered, shown } = renderImages(resp, 'png', kind);
       renderResult(imageOut, { resp: shown, request, curl, rendered });
+      // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
+      const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
+      const file = img && await imageToFile(img, 'scene');
+      if (file) {
+        setScenePicture({ file, prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title });
+        rendered?.append(el('div', { class: 'row' },
+          el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
+          el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })));
+      } else if (img) {
+        rendered?.append(el('div', { class: 'muted small', text: 'This picture can\'t be passed on directly (the provider\'s image link can\'t be read from the page). Save it and upload it in Animate the DreamGen Scene.' }));
+      }
     });
   });
 }

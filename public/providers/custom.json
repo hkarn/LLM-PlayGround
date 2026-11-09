@@ -1,13 +1,15 @@
 {
   "_notes": [
     "Only OpenAI standard endpoints; decisions, rerank and video have no common format.",
-    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
+    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link.",
+    "keyOptional: the model list can load and requests can go without a key (local servers such as Ollama take none). Other providers need a key, typed or on the server, before the page loads models."
   ],
   "label": "Custom (OpenAI-compatible)",
   "baseUrl": "",
   "modelsPaths": ["/models"],
   "keyEnv": "API_KEY",
   "keyHint": "if needed",
+  "keyOptional": true,
   "unsupported": [
     "decision",
     "rerank",

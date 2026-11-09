@@ -37,17 +37,21 @@ export function setupModelOptions(form) {
     const m = state.models.find((x) => x.id === chosenModel(form));
     // With per-model metadata, start from "default" rather than the page's preset (e.g. size 1024x1024).
     const hasMeta = Boolean(m && ((m.supported_parameters && !Array.isArray(m.supported_parameters)) || m.supported_durations));
+    // A field the provider's API requires (its file's required.<kind>, e.g. LLM Gateway's video
+    // seconds) gets no "default" choice, so a value is always sent.
+    const required = provider().required?.[kind] || [];
     for (const s of selects) {
+      const hasDefault = s._hasDefault && !required.includes(s.name);
       let values = optionsFromModel(kind, s.name, m);
       if (values === undefined) values = provider().suggest?.[kind]?.[s.name];
       if (values === undefined) values = s._orig;
       const prev = s.value;
       s.disabled = values === false;
       const list = values || [];
-      s.replaceChildren(...(s._hasDefault ? [el('option', { value: '', text: s.disabled ? 'not supported' : 'default' })] : []),
+      s.replaceChildren(...(hasDefault || (s._hasDefault && s.disabled) ? [el('option', { value: '', text: s.disabled ? 'not supported' : 'default' })] : []),
         ...list.map((v) => el('option', { value: v, text: v })));
-      const preset = !hasMeta && list.includes(s._origSelected) ? s._origSelected : (s._hasDefault ? '' : list[0] ?? '');
-      s.value = list.includes(prev) && !(hasMeta && prev === s._origSelected && s._hasDefault) ? prev : preset;
+      const preset = !hasMeta && list.includes(s._origSelected) ? s._origSelected : (hasDefault ? '' : list[0] ?? '');
+      s.value = list.includes(prev) && !(hasMeta && prev === s._origSelected && hasDefault) ? prev : preset;
     }
     if (kind === 'video') {
       // Some video models list which frame images and whether audio they take.

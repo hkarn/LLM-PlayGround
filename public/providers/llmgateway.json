@@ -4,7 +4,8 @@
     "needsServer: the hosted API sends no Access-Control-Allow-Origin header (checked 2026-11-09 from https://hkarn.github.io and other origins), so browsers cannot call it from a static page such as GitHub Pages. It works through server.js (Docker or node server.js), which calls it server to server. On a static page it is greyed out in the picker and only its sign-up link is shown.",
     "/v1/models needs no key. A model's tab comes from architecture.output_modalities (categorize); image+text models go to Image, text and audio+text to Chat, audio alone to Speech. The search and ocr models (3 on 2026-11-09: perplexity-search, perplexity-search-fast, mistral-ocr-latest) have no tab here, so they are only in the Filter models table.",
     "Model ids are bare (gpt-4o: the gateway picks the provider and can fall back) or provider/model (pinned, no fallback).",
-    "Image edits are JSON to /images/edits with the pictures as data URLs in images[].image_url (1-16), and no mask (endpoints.imageEdit). Image options have size, aspect_ratio and quality but no resolution.",
+    "Image edits are JSON to /images/edits with the pictures as data URLs in images[].image_url (1-16), and no mask (endpoints.imageEdit). Image options have size, aspect_ratio and quality but no resolution.",    "Video (POST /v1/videos, spec in docs/llmgateway-openapi.json) takes seconds (required), size as widthxheight, audio, and the pictures as image and last_frame (one data URL each), not OpenRouter's duration/resolution/aspect_ratio/frame_images: endpoints.video maps the page's fields onto those, and required.video makes the duration always sent. Polling and the video are /v1/videos/{id} and /content as with OpenAI. modelFields reads each video model's facts from its first providers[] entry (sizes, durations, audio); a model takes a starting picture when input_modalities has image or it lists image-to-video durations (Seedance lists text only, so the tools treat it as text-to-video). Its image-to-video durations, per-second prices and last-frame support are not read. Checked against the spec and the public model list (20 video models on 2026-11-09).",
+
     "Checked 2026-11-09 through server.js with a key: the model list (291 models) and one chat call; the image edit format against the spec only.",
     "attributionHeaders is false: its CORS allows only its own request headers (Content-Type, Authorization, x-api-key, x-session-id, …), so direct browser calls must not add HTTP-Referer and X-Title. llmgateway-self.json extends this file.",
     "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
@@ -57,6 +58,28 @@
       },
       "files": [],
       "drops": ["mask"]
+    },
+    "video": {
+      "request": {
+        "model": "{{model}}",
+        "prompt": "{{prompt}}",
+        "seconds": "{{duration}}",
+        "size": "{{resolution}}",
+        "audio": "{{generate_audio}}",
+        "image": "{{first_frame.0.dataUrl}}",
+        "last_frame": "{{last_frame.0.dataUrl}}"
+      }
+    }
+  },
+  "required": {
+    "video": ["duration"]
+  },
+  "modelFields": {
+    "video": {
+      "supported_durations": "providers.0.supported_video_durations_seconds",
+      "supported_resolutions": "providers.0.supportedVideoSizes",
+      "supported_frame_images": { "if": ["architecture.input_modalities:image", "providers.0.supported_video_durations_seconds_image_to_video"], "value": ["first_frame"], "else": [] },
+      "generate_audio": { "if": ["providers.0.supportsVideoWithoutAudio"], "value": true, "else": false }
     }
   },
   "suggest": {
@@ -65,6 +88,9 @@
     },
     "imageEdit": {
       "resolution": false
+    },
+    "video": {
+      "aspect_ratio": false
     }
   },
   "guide": {

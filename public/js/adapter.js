@@ -134,7 +134,9 @@ export async function send(kind, input, { signal } = {}) {
   const shown = { ...input };
   for (const [k, v] of Object.entries(input)) {
     if (Array.isArray(v) && v.length && v[0] instanceof Blob) {
-      const needsData = tplText.includes('item.dataUrl');
+      // A data URL is made only when the template reads one: {{item.dataUrl}} in a list, or one file
+      // of the list such as {{first_frame.0.dataUrl}} (a provider that takes a single picture).
+      const needsData = tplText.includes('dataUrl');
       real[k] = await Promise.all(v.map(async (file) => ({ name: file.name, dataUrl: needsData ? await fileToDataUrl(file) : undefined })));
       shown[k] = v.map((file) => ({ name: file.name, dataUrl: placeholder(file) }));
     } else if (hasBlob(v) && (tplText.includes(`{{${k}}}`) || tplText.includes(`{{${k}.`))) {

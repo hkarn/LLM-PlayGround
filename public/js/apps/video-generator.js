@@ -26,7 +26,7 @@ export function renderVideoGenerator(root) {
     el('div', { class: 'placeholder-note' },
       el('p', { class: 'small', style: 'margin: 0' },
         'Video models we have run for real come first, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). Any other video model your key has is under Other video model, untested. ',
-        'Prices show as $ (cheapest) to $$$$$, with the provider\'s own figures beside them: estimated from its listed prices before you send, and what it billed after. ',
+        'Prices are the provider\'s listed price before you send and what it billed after; where only an estimate is possible, they show as $ (cheapest) to $$$$$. ',
         'For any other video model, and the raw request and response, use the ', el('a', { href: '#video', text: 'Video tab' }), '.')),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Make a clip' }), form, out),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Your clips' }),

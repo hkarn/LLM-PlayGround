@@ -93,7 +93,7 @@
       "Durations, resolutions and aspect ratios come from /videos/models; a list here narrows them to what was tested or works. default is what the tools start with: the cheapest tested settings.",
       "frames: the frame images the model takes. needsFirstFrame: refuses text-only jobs. audio: \"off\" (none), \"optional\" (generate_audio false works), \"always\" (an audio track every time). faces: what happened with a photoreal face as the first frame (2026-11-08 research, #26).",
       "tested: what was run, with the price billed. Test frames were plain gradients, 1024x576 PNG.",
-      "priceSeen: shown next to the price when a test was billed differently from the listed price. priceFactor: the estimate is multiplied by it, so the price scale follows what was really billed. The tools show prices only as a 1-5 scale ($$$$$), never as an amount."
+      "priceSeen: shown next to the price when a test was billed differently from the listed price. priceFactor: the estimate is multiplied by it, so the price scale follows what was really billed. The tools show the provider's listed price, or a 1-5 scale ($$$$$) where only an estimate is possible (token prices, or a priceFactor); amounts from our tests are never shown."
     ],
     "tbc/mischief-1": {
       "label": "Mischief 1",

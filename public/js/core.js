@@ -173,11 +173,17 @@ export function apiKey() { return $('#api-key').value.trim(); }
 // (Custom: local servers such as Ollama take no key).
 export const hasKey = () => Boolean(apiKey() || state.config?.providers?.[state.provider]?.hasEnvKey);
 export const keyReady = () => hasKey() || Boolean(provider()?.keyOptional);
+// A 401/403 that came from the provider itself: a direct call, or one server.js forwarded (it marks
+// those with x-tester-upstream-url). server.js's own 403, e.g. for a URL it may not proxy, is not
+// about the key.
+const refusedKey = (resp) => [401, 403].includes(resp.status) && (!state.viaServer || Boolean(resp.headers?.['x-tester-upstream-url']));
 
 // `signal` lets the page stop waiting (the Cancel button). There is no timeout: slow or silent
 // providers are part of what this page tests.
 export async function callApi(path, { method = 'POST', json, formData, base = baseUrl(), signal } = {}) {
   await serverConfig;
+  // Every request needs a key (typed or on the server), unless the provider takes none (Custom).
+  if (!keyReady()) throw new Error(`Add an API key first (the connection chip at the top). ${provider().label} refuses requests without one.`);
   if (!/^https?:\/\/./.test(base)) throw new Error('Enter a base URL that starts with http:// or https://.');
   const headers = {};
   const key = apiKey();
@@ -268,7 +274,7 @@ export async function loadModels() {
       }
       raw[path] = resp.data;
       if (!resp.ok) {
-        if (i === 0) { $('#models-raw').textContent = JSON.stringify(resp.data, null, 2); throw new Error(`${errorMessage(resp)}${[401, 403].includes(resp.status) ? '. The provider refused the key: check that it is copied whole and still active in its dashboard.' : ''}`); }
+        if (i === 0) { $('#models-raw').textContent = JSON.stringify(resp.data, null, 2); throw new Error(`${errorMessage(resp)}${refusedKey(resp) ? '. The provider refused the key: check that it is copied whole and still active in its dashboard.' : ''}`); }
         skipped.push(`${path} (${errorMessage(resp)})`);
         continue;
       }

@@ -6,6 +6,8 @@ On a narrow screen, where the top bar folds its tabs into one drop-down button (
 
 Tabs the chosen provider can't serve are greyed out.
 
+Pictures and clips have a **download** icon under them, with a file name from the tab and the time. Click a picture to see it larger: Esc or a click outside closes it, and the arrow keys move between pictures. Right-click works as usual.
+
 ## The tabs
 
 | Tab | Request | What you get |

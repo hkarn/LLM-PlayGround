@@ -4,6 +4,7 @@ import { errorMessage, lines, MAX_EDIT_IMAGES, num, provider, state, str, trunca
 import { $, $$, el } from './ui/dom.js';
 import { framePngOrJpeg } from './ui/frame-image.js';
 import { chosenModel } from './ui/model-picker.js';
+import { clip, fileName } from './ui/media.js';
 import { pre, renderImages, renderResult } from './ui/result.js';
 import { wait } from './ui/run-step.js';
 
@@ -283,9 +284,8 @@ export const handlers = {
       if (video.ok && video.blob) {
         const url = URL.createObjectURL(video.blob);
         rendered = el('div', { class: 'output' },
-          el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '' }),
-          el('div', {}, el('a', { href: url, download: `video-${id}.mp4`, text: `Download (${(video.blob.size / 1024 / 1024).toFixed(1)} MB)` })),
-          el('div', { class: 'muted small', text: `Took ${Math.round((Date.now() - t0) / 1000)} s.${job.cost != null ? ` Cost $${job.cost}.` : ''}` }));
+          clip({ src: url, name: fileName('video', 'mp4') }),
+          el('div', { class: 'muted small', text: `${(video.blob.size / 1024 / 1024).toFixed(1)} MB. Took ${Math.round((Date.now() - t0) / 1000)} s.${job.cost != null ? ` Cost $${job.cost}.` : ''}` }));
       } else {
         rendered = el('div', { class: 'output error', text: `The job finished but the video download failed: ${errorMessage(video)}` });
       }

@@ -2,6 +2,7 @@
 import { read } from '../adapter.js';
 import { errorMessage } from '../core.js';
 import { el } from './dom.js';
+import { dockDetails, fileName, pictures } from './media.js';
 
 /* ------------------------------------------------------------------ */
 /* Result panel                                                        */
@@ -18,8 +19,10 @@ export function renderResult(container, { resp, request, curl, rendered, quiet =
     const raw = el('div', {});
     renderResult(raw, { resp, request, curl });
     raw.querySelector('.output.error')?.remove();
-    container.append(...(resp.ok ? (rendered ? [rendered] : []) : [el('div', { class: 'output error', text: errorMessage(resp) })]),
-      el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes));
+    const details = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes);
+    container.append(...(resp.ok ? (rendered ? [rendered] : []) : [el('div', { class: 'output error', text: errorMessage(resp) })]));
+    // Under a picture or clip the fold sits on the left of its bar (ui/media.js); otherwise below.
+    if (!(resp.ok && rendered && dockDetails(rendered, details))) container.append(details);
     return;
   }
   container.append(el('div', { class: 'status-line' },
@@ -50,16 +53,20 @@ export function renderException(container, err) {
 
 // Shared by image generation and edits. `shown` shortens b64_json for the raw view.
 // `kind` names the endpoint whose response map says where the images are (image or imageEdit).
-export function renderImages(resp, format = 'png', kind = 'image') {
+// opts: name (the start of the file name, e.g. "draw-scene"), retry (the tools: send again).
+// Each picture opens larger when clicked and has a bar with a download icon (ui/media.js).
+export function renderImages(resp, format = 'png', kind = 'image', { name = kind === 'imageEdit' ? 'image-edit' : 'image', retry } = {}) {
   const images = resp.ok ? read(kind, resp).images : undefined;
   if (!images?.length) return { rendered: undefined, shown: resp };
-  const rendered = el('div', { class: 'output' }, ...images.map((img, i) => {
+  const list = images.map((img, i) => {
     const src = img.b64 ? `data:${img.mime || `image/${format}`};base64,${img.b64}` : img.url;
-    return el('div', {},
-      src ? el('img', { src, alt: `Generated image ${i + 1}` }) : el('div', { text: '(no image data)' }),
-      img.revised ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised}` }) : null,
-      src ? el('a', { href: src, download: `image-${i + 1}.${format}`, target: '_blank', text: 'Download / open' }) : null);
-  }), resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
+    const ext = (img.mime || `image/${format}`).split('/')[1]?.replace('jpeg', 'jpg') || format;
+    return src && { src, alt: `Generated image ${i + 1}`, caption: img.revised ? `Revised prompt: ${img.revised}` : '', name: fileName(name, ext, images.length > 1 ? i + 1 : 0) };
+  });
+  const rendered = el('div', { class: 'output' },
+    ...pictures(list.filter(Boolean), { retry }),
+    ...(list.some((x) => !x) ? [el('div', { text: '(an image came back without data)' })] : []),
+    resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
   const shown = { ...resp, data: shortenBase64(resp.data) };
   return { rendered, shown };
 }

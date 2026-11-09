@@ -305,20 +305,27 @@ export function renderDreamGenScene(root) {
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(portraits.refs.map((r) => asJpeg(r.file))) } : fields;
-      const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
-      const { rendered, shown } = renderImages(resp, 'png', kind);
-      renderResult(imageOut, { resp: shown, request, curl, rendered, quiet: true });
-      // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
-      const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
-      const file = img && await imageToFile(img, 'scene');
-      if (file) {
-        setScenePicture({ file, prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title });
-        rendered?.append(el('div', { class: 'row' },
-          el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
-          el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })));
-      } else if (img) {
-        rendered?.append(el('div', { class: 'muted small', text: 'This picture can\'t be passed on directly (the provider\'s image link can\'t be read from the page). Save it and upload it in Animate the DreamGen Scene.' }));
-      }
+      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title });
     });
   });
+
+  // Sends one picture request and shows it. Retry (in the picture's bar) sends this same request
+  // again, as it was, whatever has been edited in the form since.
+  async function draw(kind, input, handoff) {
+    const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
+    const retry = () => runStep(imageForm, imageOut, () => draw(kind, input, handoff));
+    const { rendered, shown } = renderImages(resp, 'png', kind, { name: 'scene', retry });
+    renderResult(imageOut, { resp: shown, request, curl, rendered, quiet: true });
+    // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
+    const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
+    const file = img && await imageToFile(img, 'scene');
+    if (file) {
+      setScenePicture({ file, ...handoff });
+      rendered?.append(el('div', { class: 'row' },
+        el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
+        el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })));
+    } else if (img) {
+      rendered?.append(el('div', { class: 'muted small', text: 'This picture can\'t be passed on directly (the provider\'s image link can\'t be read from the page). Save it and upload it in Animate the DreamGen Scene.' }));
+    }
+  }
 }

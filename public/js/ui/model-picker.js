@@ -26,6 +26,8 @@ export function setupPicker(picker) {
   // entry shows once.
   const norm = (x) => String(x).toLowerCase().replace(/\./g, '-');
   const nameOf = (id) => norm(String(id).replace(/^~/, '').split('/').pop().replace(/[@:].*$/, ''));
+  // "FLUX.2 klein 4B · $", "Qwen Image 3 · $$ · draft", "MAI Image 2.6 · draft" (no price before a test).
+  const curatedText = (e) => [e.label, e.price, e.draft ? 'draft' : ''].filter(Boolean).join(' · ');
   const curatedList = () => {
     const entries = CURATED[category];
     if (!Array.isArray(entries)) return null;
@@ -67,7 +69,7 @@ export function setupPicker(picker) {
         : `No ${category} models ${modelFilterOn() ? 'match the model filter' : 'detected'} – tick "show all"`;
     select.replaceChildren(
       ...(list.length ? [] : [el('option', { value: '', text: empty })]),
-      ...list.map((m) => el('option', { value: m.id, text: onlyTested && tested[m.id] ? `${tested[m.id].label} · ${tested[m.id].price}` : showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
+      ...list.map((m) => el('option', { value: m.id, text: onlyTested && tested[m.id] ? curatedText(tested[m.id]) : showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
     );
     // Keep the current choice; otherwise the first model in the list stays selected.
     if (list.some((m) => m.id === prev)) select.value = prev;
@@ -98,8 +100,9 @@ export function setupPicker(picker) {
     if (m.owned_by) bits.push(`by ${m.owned_by}`);
     if (m.description) bits.push(String(m.description).slice(0, 140));
     // What our tests found, for a curated model.
-    const note = curatedList()?.[m.id]?.note;
-    if (note) bits.unshift(`Tested: ${note}`);
+    // What our tests found, for a curated model (a draft's note says itself that it is a draft).
+    const entry = curatedList()?.[m.id];
+    if (entry?.note) bits.unshift(entry.draft ? entry.note : `Tested: ${entry.note}`);
     info.append(bits.join(' · '), ' ', el('details', {}, el('summary', { class: 'small', text: 'model metadata' }), pre(stripPrivate(m))));
   };
   select.addEventListener('change', showInfo);

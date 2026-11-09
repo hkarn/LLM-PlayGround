@@ -1,4 +1,4 @@
-/* LLM PlayGround: Shared core: providers, requests (callApi, cURL), the models list (loading, status line, All models table), storage and small helpers. Imports only ui/dom.js. */
+/* LLM PlayGround: Shared core: providers, requests (callApi, cURL), the models list (loading, status line, the Filter models table), storage and small helpers. Imports only ui/dom.js. */
 import { $, el } from './ui/dom.js';
 
 // Category keys match the `api` field Requesty returns from GET /v1/models/all.

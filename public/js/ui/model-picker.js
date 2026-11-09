@@ -43,7 +43,7 @@ export function setupPicker(picker) {
     return found;
   };
   const info = el('div', { class: 'model-info' });
-  // Shown while the model filter (All models tab) hides some of the list.
+  // Shown while the model filter (Filter models tab) hides some of the list.
   const filterNote = el('p', { class: 'muted small filter-note', hidden: true }, 'Model filter on. ', el('a', { href: '#models', text: 'Edit it' }));
 
   picker.replaceChildren(

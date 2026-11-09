@@ -56,7 +56,12 @@ export function renderImages(resp, format = 'png', kind = 'image') {
 
 // A copy of a response with long base64 strings shortened, for the raw view.
 function shortenBase64(v) {
-  if (typeof v === 'string') return v.length > 2000 && /^[A-Za-z0-9+/=\s]+$/.test(v.slice(0, 200)) ? `<${v.length.toLocaleString()} base64 chars>` : v;
+  // Only unbroken base64 (or a base64 data URL): long text with spaces is shown as it is.
+  if (typeof v === 'string') {
+    const data = v.match(/^data:[\w/+.-]+;base64,/);
+    const body = data ? v.slice(data[0].length) : v;
+    return body.length > 2000 && /^[A-Za-z0-9+/=]+$/.test(body) ? `<${data ? data[0] : ''}${body.length.toLocaleString()} base64 chars>` : v;
+  }
   if (Array.isArray(v)) return v.map(shortenBase64);
   if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shortenBase64(x)]));
   return v;

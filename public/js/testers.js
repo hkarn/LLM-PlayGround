@@ -1,6 +1,6 @@
 /* LLM PlayGround: The endpoint testers: one handler per API tab, and the helpers only those tabs use. */
-import { send } from './adapter.js';
-import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, provider, state, str, truncate, usageLine } from './core.js';
+import { follow, read, send } from './adapter.js';
+import { errorMessage, lines, MAX_EDIT_IMAGES, num, provider, state, str, truncate, usageLine } from './core.js';
 import { $, $$, el } from './ui/dom.js';
 import { chosenModel } from './ui/model-picker.js';
 import { pre, renderImages, renderResult } from './ui/result.js';
@@ -65,15 +65,15 @@ export const handlers = {
     }, { signal: form._abort?.signal });
     let rendered;
     if (resp.ok && resp.data?.choices) {
-      const choice = resp.data.choices[0] || {};
-      const msg = choice.message || {};
+      const answer = read('chat', resp);
+      const text = typeof answer.text === 'string' ? answer.text : '';
       rendered = el('div', {},
-        el('div', { class: 'output', text: messageText(msg) || '(empty content)' }),
-        msg.tool_calls ? el('details', { open: true }, el('summary', { text: 'Tool calls' }), pre(msg.tool_calls)) : null,
-        el('div', { class: 'muted small', text: usageLine(resp.data, choice) }),
+        el('div', { class: 'output', text: text || '(empty content)' }),
+        answer.toolCalls ? el('details', { open: true }, el('summary', { text: 'Tool calls' }), pre(answer.toolCalls)) : null,
+        el('div', { class: 'muted small', text: usageLine(resp.data, resp.data.choices[0] || {}) }),
         el('div', { class: 'row' }, el('button', {
           type: 'button', class: 'secondary', text: 'Append reply & continue',
-          onclick: () => { addMessage(form, 'assistant', messageText(msg)); addMessage(form, 'user', ''); },
+          onclick: () => { addMessage(form, 'assistant', text); addMessage(form, 'user', ''); },
         })),
       );
     }
@@ -84,8 +84,9 @@ export const handlers = {
     const raw = form.elements.state.value.trim();
     let stateValue = raw;
     if (/^[[{]/.test(raw)) { try { stateValue = JSON.parse(raw); } catch { /* send as text */ } }
+    // An image goes with the state as an image part; the adapter sends the File as a data URL.
     const image = form.elements.image.files[0];
-    if (image) stateValue = [stateValue, { type: 'image_url', image_url: { url: await fileToDataUrl(image) } }];
+    if (image) stateValue = [stateValue, { type: 'image_url', image_url: { url: image } }];
 
     const questions = {};
     for (const row of $$('.question', form)) {
@@ -106,31 +107,30 @@ export const handlers = {
     }
     if (!Object.keys(questions).length) throw new Error('Add at least one question with an id.');
 
-    const body = { model: chosenModel(form), state: stateValue, questions };
-    const resp = await callApi(ep('decision').path, { signal: form._abort?.signal, base: ep('decision').base, json: body });
+    const { resp, request, curl } = await send('decision', { model: chosenModel(form), state: stateValue, questions }, { signal: form._abort?.signal });
+    const { answers } = read('decision', resp);
     let rendered;
-    if (resp.ok && resp.data?.answers) {
+    if (resp.ok && answers) {
       rendered = el('div', {},
-        ...Object.entries(resp.data.answers).map(([id, a]) => renderAnswer(id, a, questions[id])),
+        ...Object.entries(answers).map(([id, a]) => renderAnswer(id, a, questions[id])),
         el('div', { class: 'muted small', text: usageLine(resp.data) }));
     }
-    const shownReq = image ? { ...body, state: [body.state[0], { type: 'image_url', image_url: { url: `<${image.name} as base64 data URL>` } }] } : body;
-    renderResult(out, { resp, request: shownReq, curl: curlFor(ep('decision').path, { base: ep('decision').base, json: shownReq }), rendered });
+    renderResult(out, { resp, request, curl, rendered });
   },
 
   async embeddings(form, out) {
     const inputs = lines(form.elements.input.value);
     if (!inputs.length) throw new Error('Enter at least one input line.');
-    const body = compact({
+    const { resp, request, curl } = await send('embeddings', {
       model: chosenModel(form),
       input: inputs.length === 1 ? inputs[0] : inputs,
       dimensions: num(form, 'dimensions'),
       encoding_format: str(form, 'encoding_format'),
-    });
-    const resp = await callApi(ep('embeddings').path, { signal: form._abort?.signal, base: ep('embeddings').base, json: body });
+    }, { signal: form._abort?.signal });
     let rendered;
     if (resp.ok && Array.isArray(resp.data?.data)) {
-      const vectors = resp.data.data.map((d) => (Array.isArray(d.embedding) ? d.embedding : decodeB64Floats(d.embedding)));
+      // base64 vectors (encoding_format "base64") are packed float32s.
+      const vectors = read('embeddings', resp).vectors.map((v) => (Array.isArray(v) ? v : decodeB64Floats(v)));
       const dims = vectors[0]?.length ?? 0;
       rendered = el('div', {},
         el('div', { class: 'output' },
@@ -144,7 +144,7 @@ export const handlers = {
     const shown = resp.ok && Array.isArray(resp.data?.data)
       ? { ...resp, data: { ...resp.data, data: resp.data.data.map((d) => ({ ...d, embedding: Array.isArray(d.embedding) ? [...d.embedding.slice(0, 16), `… ${d.embedding.length - 16} more`] : d.embedding })) } }
       : resp;
-    renderResult(out, { resp: shown, request: body, curl: curlFor(ep('embeddings').path, { base: ep('embeddings').base, json: body }), rendered });
+    renderResult(out, { resp: shown, request, curl, rendered });
   },
 
   async image(form, out) {
@@ -176,107 +176,99 @@ export const handlers = {
   },
 
   async speech(form, out) {
-    const body = compact({
+    const { resp, request, curl } = await send('speech', {
       // A typed voice overrides the dropdown.
       model: chosenModel(form), input: form.elements.input.value.trim(), voice: str(form, 'voice') || str(form, 'voice_preset'),
       response_format: str(form, 'response_format'), speed: num(form, 'speed'), instructions: str(form, 'instructions'),
-    });
-    const resp = await callApi(ep('speech').path, { signal: form._abort?.signal, base: ep('speech').base, json: body });
+    }, { signal: form._abort?.signal });
+    const ext = request.response_format || 'mp3';
     let rendered;
     if (resp.ok && resp.blob) {
       const url = URL.createObjectURL(resp.blob);
       rendered = el('div', { class: 'output' },
         el('audio', { controls: '', src: url, autoplay: '' }),
-        el('div', {}, el('a', { href: url, download: `speech.${body.response_format || 'mp3'}`, text: `Download (${(resp.blob.size / 1024).toFixed(1)} KB)` })));
+        el('div', {}, el('a', { href: url, download: `speech.${ext}`, text: `Download (${(resp.blob.size / 1024).toFixed(1)} KB)` })));
     } else if (resp.ok) {
       rendered = el('div', { class: 'output error', text: 'Expected audio but got a non-binary response – see raw response.' });
     }
-    renderResult(out, { resp, request: body, curl: curlFor(ep('speech').path, { base: ep('speech').base, json: body }) + ' \\\n  --output speech.' + (body.response_format || 'mp3'), rendered });
+    renderResult(out, { resp, request, curl: `${curl} \\\n  --output speech.${ext}`, rendered });
   },
 
   async transcription(form, out) {
-    const file = form.elements.file.files[0] || form._recording;
+    let file = form.elements.file.files[0] || form._recording;
     if (!file) throw new Error('Choose an audio file or record one.');
-    const fields = compact({ model: chosenModel(form), language: str(form, 'language') });
-    const fd = new FormData();
-    fd.append('file', file, file.name || 'recording.webm');
-    for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-    const resp = await callApi(ep('transcription').path, { signal: form._abort?.signal, base: ep('transcription').base, formData: fd });
+    if (!file.name) file = new File([file], 'recording.webm', { type: file.type });
+    const { resp, request, curl } = await send('transcription', { model: chosenModel(form), language: str(form, 'language'), file }, { signal: form._abort?.signal });
     let rendered;
     if (resp.ok) {
-      const text = typeof resp.data === 'string' ? resp.data : resp.data?.text;
+      // A text or srt response_format comes back as plain text, not JSON.
+      const answer = typeof resp.data === 'string' ? { text: resp.data } : read('transcription', resp);
       rendered = el('div', {},
-        el('div', { class: 'output', text: text ?? '(no text field – see raw response)' }),
-        resp.data?.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null,
+        el('div', { class: 'output', text: answer.text ?? '(no text field – see raw response)' }),
+        answer.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(answer.usage)}` }) : null,
       );
     }
-    const request = { file: `${file.name || 'recording.webm'} (${file.type || 'unknown type'}, ${(file.size / 1024).toFixed(1)} KB)`, ...fields };
-    const curl = curlFor(ep('transcription').path, { base: ep('transcription').base, formFields: [['file', `@${file.name || 'recording.webm'}`], ...Object.entries(fields)] });
     renderResult(out, { resp, request, curl, rendered });
   },
 
   async rerank(form, out) {
     const documents = lines(form.elements.documents.value);
     if (!documents.length) throw new Error('Enter at least one document line.');
-    const body = compact({ model: chosenModel(form), query: form.elements.query.value.trim(), documents, top_n: num(form, 'top_n') });
-    const { path, base } = ep('rerank');
-    const resp = await callApi(path, { signal: form._abort?.signal, base, json: body });
+    const { resp, request, curl } = await send('rerank', { model: chosenModel(form), query: form.elements.query.value.trim(), documents, top_n: num(form, 'top_n') }, { signal: form._abort?.signal });
     let rendered;
     if (resp.ok && Array.isArray(resp.data?.results)) {
-      const results = [...resp.data.results].sort((a, b) => b.relevance_score - a.relevance_score);
+      const results = read('rerank', resp).results.sort((a, b) => b.score - a.score);
       rendered = el('div', {},
         el('div', { class: 'output rerank' }, ...results.map((r, rank) => el('div', {},
-          el('span', { class: 'small muted', text: `${rank + 1}. #${r.index} ` }), meter(r.relevance_score),
-          el('span', { class: 'small', text: ` ${Number(r.relevance_score).toFixed(3)}  ` }),
-          el('span', { text: r.document?.text ?? documents[r.index] ?? '' })))),
+          el('span', { class: 'small muted', text: `${rank + 1}. #${r.index} ` }), meter(r.score),
+          el('span', { class: 'small', text: ` ${Number(r.score).toFixed(3)}  ` }),
+          el('span', { text: r.text ?? documents[r.index] ?? '' })))),
         el('div', { class: 'muted small', text: usageLine(resp.data) }));
     }
-    renderResult(out, { resp, request: body, curl: curlFor(path, { base, json: body }), rendered });
+    renderResult(out, { resp, request, curl, rendered });
   },
 
   // Async: submit a job, poll its status, then download the video from /videos/{id}/content.
   async video(form, out) {
     const frame = form.elements.first_frame.files[0];
-    const body = compact({
+    if (frame && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
+    const signal = form._abort?.signal;
+    const t0 = Date.now();
+    let { resp, request: shownReq, curl } = await send('video', {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(), duration: num(form, 'duration'),
       resolution: str(form, 'resolution'), aspect_ratio: str(form, 'aspect_ratio'),
       generate_audio: (!form.elements.generate_audio.disabled && form.elements.generate_audio.checked) || undefined,
-    });
-    if (frame && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
-    if (frame) body.frame_images = [{ type: 'image_url', image_url: { url: await fileToDataUrl(frame) }, frame_type: 'first_frame' }];
-    const shownReq = frame ? { ...body, frame_images: [{ ...body.frame_images[0], image_url: { url: `<${frame.name} as base64 data URL>` } }] } : body;
-    const { path, base } = ep('video');
-    const curl = curlFor(path, { base, json: shownReq });
-    const t0 = Date.now();
-    let resp = await callApi(path, { signal: form._abort?.signal, base, json: body });
-    const id = resp.data?.id;
+      first_frame: frame ? [frame] : undefined,
+    }, { signal });
+    let job = read('video', resp);
+    const { id } = job;
     if (!resp.ok || !id) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
 
     const progress = el('div', { class: 'muted' });
     out.replaceChildren(progress);
     const done = ['completed', 'failed', 'cancelled', 'expired'];
-    let status = resp.data.status;
-    while (!done.includes(status)) {
-      progress.textContent = `Job ${id}: ${status || 'submitted'} · ${Math.round((Date.now() - t0) / 1000)} s. Checking every 5 s…`;
-      await wait(5000, form._abort?.signal);
-      resp = await callApi(`${path}/${encodeURIComponent(id)}`, { signal: form._abort?.signal, base, method: 'GET' });
+    while (!done.includes(job.status)) {
+      progress.textContent = `Job ${id}: ${job.status || 'submitted'} · ${Math.round((Date.now() - t0) / 1000)} s. Checking every 5 s…`;
+      await wait(5000, signal);
+      resp = await follow('video', 'poll', { id }, { signal });
       if (!resp.ok) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
-      status = resp.data?.status;
+      job = read('video', resp);
     }
+    const { status } = job;
     let rendered;
     if (status === 'completed') {
-      const video = await callApi(`${path}/${encodeURIComponent(id)}/content?index=0`, { signal: form._abort?.signal, base, method: 'GET' });
+      const video = await follow('video', 'content', { id }, { signal });
       if (video.ok && video.blob) {
         const url = URL.createObjectURL(video.blob);
         rendered = el('div', { class: 'output' },
           el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '' }),
           el('div', {}, el('a', { href: url, download: `video-${id}.mp4`, text: `Download (${(video.blob.size / 1024 / 1024).toFixed(1)} MB)` })),
-          el('div', { class: 'muted small', text: `Took ${Math.round((Date.now() - t0) / 1000)} s.${resp.data.usage?.cost != null ? ` Cost $${resp.data.usage.cost}.` : ''}` }));
+          el('div', { class: 'muted small', text: `Took ${Math.round((Date.now() - t0) / 1000)} s.${job.cost != null ? ` Cost $${job.cost}.` : ''}` }));
       } else {
         rendered = el('div', { class: 'output error', text: `The job finished but the video download failed: ${errorMessage(video)}` });
       }
     } else {
-      rendered = el('div', { class: 'output error', text: `Job ${status}${resp.data?.error ? `: ${resp.data.error}` : ''}` });
+      rendered = el('div', { class: 'output error', text: `Job ${status}${job.error ? `: ${typeof job.error === 'string' ? job.error : JSON.stringify(job.error)}` : ''}` });
     }
     renderResult(out, { resp, request: shownReq, curl, rendered });
   },

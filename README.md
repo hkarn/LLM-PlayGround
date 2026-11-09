@@ -30,7 +30,7 @@ Plain JavaScript modules, no build step. `public/index.html` loads `public/js/ma
 | --- | --- |
 | `public/js/ui/dom.js` | `el()`, `$()`, `$$()`: building and finding page elements. Everything uses these |
 | `public/js/core.js` | Shared by everything, no screens of its own: the providers list, sending requests (`callApi`) and cURL, loading the models list, storage and small text helpers |
-| `public/js/adapter.js` | Turns what an app wants (a chat, an image, an image edit) into the provider's request using the templates in the provider files, and reads the answer back into plain values (text, images, usage) |
+| `public/js/adapter.js` | Turns what an app or tab wants (a chat, a decision, embeddings, an image, a video job, speech, …) into the provider's request using the templates in the provider files, and reads the answer back into plain values (text, images, usage) |
 | `public/js/ui/*.js` | Reusable pieces that apps put together: result panel, model picker, option dropdowns that follow the model, Send/Cancel, drafts kept across reloads, remembered choices, hide-settings toggle, copy button, named reference portraits |
 | `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `group-chat.js`, `video-generator.js` |

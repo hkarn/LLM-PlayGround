@@ -16,7 +16,7 @@ Tabs the chosen provider can't serve are greyed out.
 | **Rerank** | `POST /v1/rerank` | A query and one document per line, ranked by relevance |
 | **Image** | `POST /v1/images/generations` | Size, number, quality, background and format; the pictures are shown |
 | **Image edit** | `POST /v1/images/edits` (OpenRouter: `POST /v1/images`) | Up to 16 reference pictures, an optional mask (Requesty only), size and quality |
-| **Video** | `POST /v1/videos` | Prompt, duration, resolution, aspect ratio, audio, and an optional first and last frame (other formats go as PNG). The job is checked every 5 s and the video plays when it's done |
+| **Video** | `POST /v1/videos` | Prompt, duration, resolution, aspect ratio, audio (**default** sends nothing so the provider decides, **on** or **off**; "always on" or "not supported" where the model's list says so), and an optional first and last frame (other formats go as PNG; a frame the model can't take is greyed out and not sent). The job is checked every 5 s and the video plays when it's done |
 | **Speech** | `POST /v1/audio/speech` | Plays the audio and lets you download it |
 | **Transcriptions** | `POST /v1/audio/transcriptions` | Upload a file (up to 32 MB) or record from your microphone, with an optional language |
 

@@ -25,6 +25,7 @@ A web playground for LLM providers and routers, plus a place for small LLM-based
 
 ## How changes land (pull requests)
 - `main` is protected: no direct pushes and no force pushes. Every change is a pull request from a branch made from the latest `main`; CI (`build` in `docker.yml`) must pass.
+- Sync first, every time: nothing fetches by itself, and a local `main` can be many merges behind GitHub. Before reading code for a task or making a branch, run `git fetch origin` and `git switch main && git pull --ff-only`, then branch. Before pushing more work to an existing branch, `git fetch origin` and merge `origin/main` into it if it is behind (a merge, never a rebase of pushed commits). If `git pull --ff-only` fails because local `main` has its own commits, stop and ask the owner.
 - One topic per PR, linked to its issue (see above). Split large refactors into steps that each leave the app working and can be read on their own (for example: move code unchanged first, change behaviour after).
 - Open PRs as drafts. The owner marks a PR ready for review, which starts the Copilot review, and the owner merges (squash). Merge for them only when they ask.
 - Review comments, from Copilot or a person: check each claim against the code first. Fix what is real in a new commit, and reply on the thread with what you found and what changed (or why nothing did). Leave resolving threads to the owner. Points a review summary mentions without a thread get the same check, reported to the owner.

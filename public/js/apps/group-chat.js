@@ -90,6 +90,7 @@ async function decideOrder({ characters, log, settings, signal }) {
 const GC_COLORS = ['#7c5cd6', '#d6705c', '#3f9e7a', '#c79a1e', '#3a86c8', '#c2477f', '#6b8e23', '#8a5a44'];
 const GC_DEFAULT = () => ({
   userName: 'You',
+  userBio: '', // what the characters know about the player; empty = "a human"
   scenario: 'A relaxed group chat between friends. Keep messages short, like real chat messages.',
   defaultModel: '',
   order: 'random',
@@ -164,7 +165,7 @@ export function renderGroupChat(root) {
     const others = s.characters.filter((o) => o.active && o.id !== c.id);
     const system = [
       `You are ${c.name}. ${c.persona}`.trim(),
-      `You are in a group chat with ${[`${s.userName} (a human)`, ...others.map((o) => `${o.name} (${o.persona})`)].join(', ')}.`,
+      `You are in a group chat with ${[`${s.userName} (${s.userBio?.trim() || 'a human'})`, ...others.map((o) => `${o.name} (${o.persona})`)].join(', ')}.`,
       s.scenario.trim() ? `Setting: ${s.scenario.trim()}` : '',
       `Write exactly one chat message as ${c.name}. Stay in character. Do not start with your name, and do not write messages for anyone else.`,
     ].filter(Boolean).join('\n\n');
@@ -446,6 +447,7 @@ export function renderGroupChat(root) {
       decisionField,
       field('Max tokens per answer', bind(el('input', { type: 'number', min: 1, value: s.maxTokens }), 'maxTokens', (v) => Number(v) || null)),
       field('Temperature', bind(el('input', { type: 'number', min: 0, max: 2, step: 0.1, value: s.temperature }), 'temperature', (v) => (v === '' ? null : Number(v))))),
+    field('About you (what the characters know about you)', bind(el('textarea', { rows: 2, placeholder: 'a human' }, s.userBio || ''), 'userBio')),
     field('Setting (shared by everyone)', bind(el('textarea', { rows: 2 }, s.scenario), 'scenario')),
     el('div', { class: 'row' },
       el('button', {

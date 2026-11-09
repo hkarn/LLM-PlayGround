@@ -42,6 +42,7 @@ Open **Chat settings** above the chat:
 | Decision model | Only with the Decision model turn order: the model that picks who talks next. Click it to see your provider's decision models. Kept per provider |
 | Max tokens per answer | Keeps answers short (300 by default) |
 | Temperature | Higher is more playful and surprising (0.9 by default) |
+| About you | What the characters know about you, such as "a sailor who just came home"; they see it after your name. Empty means they only know you as "a human" |
 | Setting (shared by everyone) | The situation every character knows, such as "A relaxed group chat between friends" |
 | Clear chat | Deletes all messages |
 | Reset characters | Puts the three example characters back |

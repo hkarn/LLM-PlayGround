@@ -15,6 +15,15 @@ A web playground for LLM providers and routers, plus a place for small LLM-based
 - OpenRouter paths: decisions at `/api/alpha/decisions` (same format as Requesty, alpha); images and image edits both `POST /api/v1/images` (JSON, edits as `input_references` data URLs, no mask, response `b64_json` + `media_type`; the edit template is in `openrouter.json`); video is async: `POST /videos` → poll `GET /videos/{id}` → `GET /videos/{id}/content?index=0`; rerank `{model, query, documents, top_n}` → `results[{index, relevance_score, document}]`. `/embeddings/models` has no CORS.
 - Keep it dependency-free: no build step and no npm packages.
 
+## How changes land (pull requests)
+- `main` is protected: no direct pushes and no force pushes. Every change is a pull request from a branch made from the latest `main`; CI (`build` in `docker.yml`) must pass.
+- One topic per PR. Split large refactors into steps that each leave the app working and can be read on their own (for example: move code unchanged first, change behaviour after).
+- Open PRs as drafts. The owner marks a PR ready for review, which starts the Copilot review, and the owner merges (squash). Merge for them only when they ask.
+- Review comments, from Copilot or a person: check each claim against the code first. Fix what is real in a new commit, and reply on the thread with what you found and what changed (or why nothing did). Leave resolving threads to the owner. Points a review summary mentions without a thread get the same check, reported to the owner.
+- Before pushing: `node --check` every changed `.js` file and parse every changed `.json` file; open the page and use what changed (tabs, tools, a reload, a provider switch) with the provider mocked; for refactors, send the same scenarios from the old and the new page and compare the requests. Say in the PR what was tested and what was not (for example: no real provider call).
+- After a squash merge, start the next branch from the new `main`. Never rewrite pushed history; if a branch name is reused, merge its old remote history in with a merge commit that changes no files.
+- Commit messages and PR descriptions say what changed and why, and what it means for someone using the page.
+
 ## Where the live Requesty API differs from the spec
 Found by testing with a real key; keep handling both shapes.
 - Decision `score` answers: `probabilities` is an object keyed by index (`"0"`…), with a `legend` mapping index → label. `score` is the expected index.

@@ -1,13 +1,12 @@
 {
   "_notes": [
     "OpenAI-style image API: size, not aspect_ratio or resolution.",
-    "Speech voices: /models/all has no voice names, so they come from speech-voices.json."
+    "Speech voices: /models/all has no voice names, so they come from speech-voices.json.",
+    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
   ],
   "label": "Requesty",
   "baseUrl": "https://router.requesty.ai/v1",
-  "modelsPaths": [
-    "/models/all"
-  ],
+  "modelsPaths": ["/models/all"],
   "keyEnv": "REQUESTY_API_KEY",
   "keyHint": "sk-…",
   "signup": {
@@ -17,10 +16,7 @@
   "server": {
     "domain": "requesty.ai"
   },
-  "unsupported": [
-    "rerank",
-    "video"
-  ],
+  "unsupported": ["rerank", "video"],
   "speechVoices": "speech-voices.json",
   "suggest": {
     "image": {
@@ -31,5 +27,24 @@
       "aspect_ratio": false,
       "resolution": false
     }
+  },
+  "guide": {
+    "level": 2,
+    "ease": "Easy, some setup",
+    "summary": "Sign up, add credit, make a key, then check which models your key may use.",
+    "steps": [
+      "Sign up at Requesty with the link below.",
+      "Add credit in the dashboard.",
+      "Create an API key and paste it at the top of this page.",
+      "If a model answers that it is not allowed, check the dashboard: the organization's approved models, and any access list on your key or its group."
+    ],
+    "good": [
+      "Works straight from this page (GitHub Pages), no server needed.",
+      "Decisions (pick among answers with probabilities) are tested best here."
+    ],
+    "watch": [
+      "Models are managed in lists in the dashboard, so a new model may need adding before it answers.",
+      "No rerank or video endpoint."
+    ]
   }
 }

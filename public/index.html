@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LLM PlayGround</title>
-  <meta name="description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM experiments. Starts with Requesty: chat, decisions, embeddings, images, speech and transcriptions. Bring your own API key.">
+  <meta name="description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM tools and games. Works with OpenRouter, Requesty, LLM Gateway or any OpenAI-compatible endpoint. Bring your own API key.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LLM PlayGround">
   <meta property="og:title" content="LLM PlayGround">
-  <meta property="og:description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM experiments. Starts with Requesty: chat, decisions, embeddings, images, speech and transcriptions. Bring your own API key.">
+  <meta property="og:description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM tools and games. Works with OpenRouter, Requesty, LLM Gateway or any OpenAI-compatible endpoint. Bring your own API key.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="LLM PlayGround">
-  <meta name="twitter:description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM experiments. Starts with Requesty: chat, decisions, embeddings, images, speech and transcriptions. Bring your own API key.">
+  <meta name="twitter:description" content="A playground for LLM providers and routers. Send requests, inspect the full response, and try small LLM tools and games. Works with OpenRouter, Requesty, LLM Gateway or any OpenAI-compatible endpoint. Bring your own API key.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,16 +32,18 @@
   </form>
   <div id="models-status" class="muted small">No models loaded.</div>
   <div class="topbar-links small">
-    <a id="signup-link" href="https://app.requesty.ai/join?ref=b1f2b1e1" target="_blank" rel="noopener">No key? Sign up for Requesty</a>
+    <a id="signup-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">No key? Get one at OpenRouter</a>
+    <a href="#providers">Which provider?</a>
     <a href="https://github.com/hkarn/LLM-PlayGround" target="_blank" rel="noopener">Source on GitHub</a>
   </div>
 </header>
 
 <nav class="tabs" role="tablist">
+  <button role="tab" data-tab="providers" class="active">Providers</button>
   <button role="tab" data-tab="games" class="hub-tab">Games</button>
   <button role="tab" data-tab="tools" class="hub-tab">Tools</button>
   <span class="tab-sep" aria-hidden="true"></span>
-  <button role="tab" data-tab="chat" class="active">Chat</button>
+  <button role="tab" data-tab="chat">Chat</button>
   <button role="tab" data-tab="decision">Decision</button>
   <button role="tab" data-tab="embeddings">Embeddings</button>
   <button role="tab" data-tab="rerank">Rerank</button>
@@ -54,12 +56,15 @@
 </nav>
 
 <main>
-  <!-- GAMES and TOOLS: an icon launcher; the chosen app fills the page. Apps are in APPS in app.js. -->
+  <!-- PROVIDERS: how to get a key from each provider; drawn from the guide in providers/<id>.json by js/providers-guide.js. -->
+  <section class="panel active" data-panel="providers"></section>
+
+  <!-- GAMES and TOOLS: an icon launcher; the chosen app fills the page. Apps are in APPS in js/hubs.js. -->
   <section class="panel hub" data-panel="games" data-hub="games"></section>
   <section class="panel hub" data-panel="tools" data-hub="tools"></section>
 
   <!-- CHAT -->
-  <section class="panel active" data-panel="chat">
+  <section class="panel" data-panel="chat">
     <form class="request-form" data-kind="chat">
       <div class="model-picker" data-category="chat"></div>
       <label>System prompt

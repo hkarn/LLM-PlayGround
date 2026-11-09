@@ -270,3 +270,22 @@ button.danger { color: var(--err); }
 
 /* Animate the DreamGen Scene mock: keep the picture and clip boxes a sensible size */
 .tool-step .vg-stage { width: 100%; max-width: 560px; }
+
+/* Providers tab */
+.panel[data-panel=providers].active { display: block; }
+.providers-intro { max-width: 760px; margin-bottom: 16px; }
+.providers-intro h2 { margin: 0 0 6px; font-size: 18px; }
+.provider-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.provider-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.provider-card.off { opacity: .75; }
+.provider-card p, .provider-card ol, .provider-card ul { margin: 0; }
+.provider-card ol, .provider-card ul { padding-left: 20px; }
+.provider-card li { margin: 2px 0; }
+.provider-head { display: flex; flex-direction: column; gap: 4px; }
+.provider-head h3 { margin: 0; font-size: 16px; }
+.provider-head .ease { font-size: 13px; color: var(--muted); }
+.provider-head .dots { color: var(--accent); letter-spacing: 1px; }
+.provider-card .row { margin-top: 4px; flex-wrap: wrap; }
+a.button-link { display: inline-block; padding: 6px 12px; border-radius: 8px; background: var(--accent); color: var(--accent-text); text-decoration: none; font-weight: 600; }
+a.button-link:visited { color: var(--accent-text); }
+a.button-link:hover { filter: brightness(1.08); }

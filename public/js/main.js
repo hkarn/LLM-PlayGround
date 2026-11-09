@@ -1,6 +1,7 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
 import { read } from './adapter.js';
 import { apiKey, baseUrl, defaultBaseUrl, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
+import { renderProviderGuide } from './providers-guide.js';
 import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
@@ -48,6 +49,7 @@ export async function init() {
   for (const p of Object.values(PROVIDERS).filter((x) => unavailable(x) && x.signup)) {
     $('#signup-link').after(el('a', { href: p.signup.href, target: '_blank', rel: 'noopener', title: p.needsServerReason, text: `${p.label}: get a key (needs your own server)` }));
   }
+  state.provider = Object.keys(PROVIDERS).find((id) => !unavailable(PROVIDERS[id]));
   const savedProvider = store.get('provider');
   if (PROVIDERS[savedProvider] && !unavailable(PROVIDERS[savedProvider])) state.provider = savedProvider;
   providerSelect.value = state.provider;
@@ -65,6 +67,14 @@ export async function init() {
     state.provider = providerSelect.value;
     store.set('provider', state.provider);
     applyProvider();
+  });
+  renderProviderGuide($('[data-panel=providers]'), {
+    unavailable,
+    choose: (id) => {
+      providerSelect.value = id;
+      providerSelect.dispatchEvent(new Event('change'));
+      $('#api-key').focus();
+    },
   });
   $('#key-form').addEventListener('submit', (e) => {
     e.preventDefault();

@@ -4,16 +4,16 @@ A web playground for LLM providers and routers. Pick a model, fill in a short fo
 
 It grew out of [requesty-tester](https://github.com/hkarn/requesty-tester). It covers chat, decisions, embeddings, rerank, image generation and editing, video, text-to-speech and speech-to-text.
 
-**Try it at <https://hkarn.github.io/LLM-PlayGround/>.** You need an API key for the endpoint you pick.
+**Try it at <https://hkarn.github.io/LLM-PlayGround/>.** You need an API key for the endpoint you pick. The page opens on the **Providers** tab, which compares how easy each one is to set up and links to its sign-up page. OpenRouter is the easiest and the default: sign in (Google works), add credit, create a key, and every model is available.
 
 ## Endpoints
 
-Pick an endpoint at the top of the page. Its base URL is filled in for you, and you can edit it, for example for a regional endpoint. **↺** puts the default back. An edited URL is remembered per endpoint in the browser.
+Pick an endpoint at the top of the page, or with **Use this one** on the Providers tab. Its base URL is filled in for you, and you can edit it, for example for a regional endpoint. **↺** puts the default back. An edited URL is remembered per endpoint in the browser.
 
 | Endpoint | Default base URL | Key | Notes |
 | --- | --- | --- | --- |
+| **OpenRouter** (default) | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | Every tab. Decisions go to `/api/alpha/decisions`, images and image edits to `/v1/images` (reference images as `input_references`) |
 | **Requesty** | `https://router.requesty.ai/v1` | [Sign up through my referral link](https://app.requesty.ai/join?ref=b1f2b1e1) or at [requesty.ai](https://requesty.ai) | Every tab except Rerank and Video, which are greyed out |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | Every tab. Decisions go to `/api/alpha/decisions`, images and image edits to `/v1/images` (reference images as `input_references`) |
 | **LLM Gateway** | `https://api.llmgateway.io/v1` | [Sign up through my referral link](https://llmgateway.io/?ref=LucsNqyxkxzf3rsY9aaN) | **Only with your own server** (Docker or `node server.js`): its API does not allow calls from a browser page, so on GitHub Pages it is greyed out and only the sign-up link is shown. A model's tab comes from what it outputs; image edits go as JSON `images[]`, no mask. Server key: `LLMGATEWAY_API_KEY` |
 | **LLM Gateway (self-hosted)** | `http://localhost:4001/v1` through your own server; empty on GitHub Pages (your gateway's URL) | Your own gateway's key | [LLM Gateway](https://github.com/theopenco/llmgateway) that you run yourself with your own provider keys. Works from GitHub Pages too, once your gateway allows the page's origin in its CORS settings (`GATEWAY_CORS_ORIGINS`, e.g. `https://hkarn.github.io`). llmgateway.io runs the same open-source gateway, so both use the same templates, model tabs and image edit format. A gateway on another machine needs https when the page is https |
 | **Custom** | (empty) | If the endpoint needs one | Any OpenAI-compatible API, e.g. a local Ollama at `http://localhost:11434/v1`. Decision, Rerank and Video are greyed out, since OpenAI has no standard format for them |
@@ -35,18 +35,19 @@ Plain JavaScript modules, no build step. `public/index.html` loads `public/js/ma
 | `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `group-chat.js`, `video-generator.js` |
 | `public/js/hubs.js` | The Games and Tools launchers, the list of apps, and direct links (`#tools/…`) |
+| `public/js/providers-guide.js` | The Providers tab: one card per provider from the `guide` in its settings file (setup level, steps, sign-up link) |
 | `public/js/main.js` | Start-up: wires the tabs, the endpoint picker and the forms |
-| `public/providers/*.json` | One settings file per provider (base URL, model lists, paths that differ, key and sign-up link, hardcoded option and voice lists, and request/response templates where it differs from the standard). `openai-standard.json` holds the standard OpenAI-style templates every provider starts from. `index.json` sets the order; `server.js` reads the same files |
+| `public/providers/*.json` | One settings file per provider (base URL, model lists, paths that differ, key and sign-up link, the Providers tab text in `guide`, hardcoded option and voice lists, and request/response templates where it differs from the standard). `openai-standard.json` holds the standard OpenAI-style templates every provider starts from. `index.json` sets the order (the first one that works on the page is the default); `server.js` reads the same files |
 | `public/style.css` | All styles, with light and dark colours as variables at the top |
 | `server.js` | Optional local server: serves `public/` and forwards `/api/*` to the chosen endpoint |
 
 ## Privacy
 
-Run at https://hkarn.github.io/LLM-PlayGround/ or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser. GitHub Pages only serves the page files; with your own server, `server.js` forwards your requests to the endpoint you chose and logs only the method, path and status. What reaches a third party is what you send, with your own key, to the provider you picked (Requesty, OpenRouter or a custom endpoint), and what that provider and its models do with it is between you and them. The browser keeps your settings, chosen models and, if you tick Remember, your key in its own local storage, and the text you type in the forms in session storage (this tab only, gone when it closes) so a reload does not clear it.
+Run at https://hkarn.github.io/LLM-PlayGround/ or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser. GitHub Pages only serves the page files; with your own server, `server.js` forwards your requests to the endpoint you chose and logs only the method, path and status. What reaches a third party is what you send, with your own key, to the provider you picked (OpenRouter, Requesty, LLM Gateway or a custom endpoint), and what that provider and its models do with it is between you and them. The browser keeps your settings, chosen models and, if you tick Remember, your key in its own local storage, and the text you type in the forms in session storage (this tab only, gone when it closes) so a reload does not clear it.
 
 ## Games and Tools
 
-The first two tabs open a launcher of icon cards. Picking one fills the page under the tab bar, and **← All games** / **← All tools** goes back. The page remembers which one was open.
+The Games and Tools tabs open a launcher of icon cards. Picking one fills the page under the tab bar, and **← All games** / **← All tools** goes back. The page remembers which one was open.
 
 | Tab | App | Status |
 | --- | --- | --- |

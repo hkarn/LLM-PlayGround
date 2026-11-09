@@ -213,10 +213,23 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
 
   root.addEventListener('change', (e) => { if (e.target.type !== 'radio' && !e.target.closest('.vg-other')) { touched = true; update(); } });
   frames?.addEventListener('change', () => update());
-  document.addEventListener('models-changed', refresh);
+  // A tool is drawn again each time it is opened, so an earlier copy of these settings can be left
+  // behind. Once it has been on the page and is gone, it stops listening: otherwise a model reload
+  // or provider switch would make it save its old choice over the shared one.
+  let shown = false;
+  const onOuterChange = () => {
+    if (root.isConnected) { shown = true; refresh(); return; }
+    if (!shown) return; // not on the page yet
+    document.removeEventListener('models-changed', onOuterChange);
+    $('#provider')?.removeEventListener('change', onProvider);
+  };
+  const onProvider = () => setTimeout(onOuterChange);
+  document.addEventListener('models-changed', onOuterChange);
   // A provider switch clears the list without that event when there is no key to load with.
-  $('#provider')?.addEventListener('change', () => setTimeout(refresh));
+  $('#provider')?.addEventListener('change', onProvider);
   refresh();
+  // The tool appends the settings after this returns: from then on they count as shown.
+  setTimeout(() => { if (root.isConnected) shown = true; });
   return {
     root, frames, price, refresh, read, model, priceNow,
     // Frames the tool supplies itself (Animate the DreamGen Scene's scene picture) count in the price.

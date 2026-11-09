@@ -26,15 +26,18 @@ The **settings panel** on the right holds the video model and its options. On a 
 2. **First frame / Last frame** (optional): the clip starts from your picture, and ends on the other where the model supports it. Some models need a first frame (the card says "(needed)"). WebP, GIF and other formats are converted to PNG automatically.
 3. Check the **Price** line and press **Generate video**.
 
-The job runs at the provider; the page checks every 5 seconds. A clip usually takes 15 seconds to a couple of minutes. **Cancel** stops waiting, but the provider may still finish and charge for it.
+The job is sent to the provider, and the button is free again straight away: start the next clip while this one runs. A clip usually takes 15 seconds to a couple of minutes; the page checks every 5 seconds and shows it here when it's done.
 
-## Your clips
+## Video jobs
 
-Finished clips play right away and can be downloaded. They are listed under **Your clips**, with the model, settings, price and time.
+Every clip from the Video Generator and from [Animate the DreamGen Scene](animate-dreamgen-scene.md) is listed under **Video jobs** in the settings panel, newest first. One list serves both tools.
 
-- The list survives a reload, but the videos themselves aren't stored in your browser.
-- **Fetch the video again** downloads an older clip from the provider without paying again, while the provider still keeps it. It works only with the provider that made the clip; elsewhere the clip says which provider that was.
-- **×** removes a clip from the list.
+- **While a job runs** it shows its status (waiting in line, running) and how long it has taken. You can start the next clip at once; jobs run side by side.
+- **Jobs keep going** when you open another tool or page of the site, and **after a reload** the page picks up every unfinished job again, from the provider that made it.
+- **When it's done** the clip plays in the list, with the price billed and **Download**. It also shows in the step you started it from, if that was your latest clip. On a phone, where the settings fold away, the line beside the **Settings** button says how many videos are running or ready.
+- **Stop watching** stops checking a job here. The provider may still finish it and charge for it; **Check again** picks it up later.
+- **Fetch the video again** downloads a finished clip after a reload, without paying again, while the provider still keeps it. The videos themselves aren't stored in your browser, only the list. A job works only with the provider that made it; elsewhere it says which provider that was.
+- **×** removes a job from the list (it doesn't stop it at the provider).
 
 ## What we found when testing
 

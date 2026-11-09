@@ -13,7 +13,8 @@ import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
-import { priceTag, runVideoJob } from '../ui/video-job.js';
+import { priceTag } from '../ui/video-job.js';
+import { startVideoJob, videoJobsLine, videoJobsList } from '../ui/video-jobs.js';
 import { videoSettings } from '../ui/video-settings.js';
 
 export const MOTION_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write a motion prompt for an image-to-video model. The clip starts from a still picture of the final moment of the last scene (the image prompt it was drawn from may follow the export) and lasts only a few seconds.
@@ -26,7 +27,7 @@ Write what moves in the next few seconds of that moment, in one or two sentences
 Keep it to what can happen in three to five seconds and stays in the frame. No new characters, no cuts or scene changes, no dialogue, sounds or thoughts. Do not describe the picture again. Reply with the motion prompt only.`;
 
 export function renderDreamGenVideo(root) {
-  const st = { frame: null, frameUrl: null, clipUrl: null }; // object URLs are freed when replaced
+  const st = { frame: null, frameUrl: null }; // the frame's object URL is freed when replaced
 
   // 1. Scene picture
   const preview = el('div', { class: 'vg-stage', text: 'No picture yet.' });
@@ -90,7 +91,7 @@ export function renderDreamGenVideo(root) {
         el('li', {}, 'Start from a scene picture: the last one drawn in ', el('a', { href: '#tools/dreamgen-scene', text: 'Draw the DreamGen Scene' }), ', or one you upload. It is the clip\'s first frame.'),
         el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene.' }),
         el('li', { text: 'Pick a video model that takes a first frame: one we have tested (some keep a face, some refuse realistic faces; each card says which), or any other your key has, untested. The cheapest settings are chosen first, and the price is shown before you start: the provider\'s listed price, or $ to $$$$$ where only an estimate is possible.' }),
-        el('li', { text: 'The clip plays here when it is done, which can take a minute or two, and can be downloaded.' })),
+        el('li', { text: 'The job runs in the background, so you can make the next clip meanwhile. Each clip plays here when it is done (a minute or two), and every job is listed under Video jobs in the settings panel, even after a reload.' })),
       el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
@@ -106,6 +107,7 @@ export function renderDreamGenVideo(root) {
     panel: [
       panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
       panelSection('Video model', settings.root),
+      panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),
       panelSection('Picture style',
         el('label', {}, 'Style', style.select),
         el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom),
@@ -113,13 +115,14 @@ export function renderDreamGenVideo(root) {
     ],
     main,
     // While folded, say so when the shared video model doesn't work here and a new pick is needed.
-    summary: () => [chosenModel(chatForm), settings.blocked() ? 'Video model: pick one that starts from a picture' : settings.model()?.label].filter(Boolean).join(' · '),
+    summary: () => [chosenModel(chatForm), settings.blocked() ? 'Video model: pick one that starts from a picture' : settings.model()?.label, videoJobsLine()].filter(Boolean).join(' · '),
   });
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
   // Shared with the other tools: the same chat model as Draw the DreamGen Scene.
   rememberModel(chatForm, 'chat', ['max_tokens']);
   layout.refresh();
+  document.addEventListener('video-jobs', () => { if (root.isConnected) layout.refresh(); });
   style.sync();
   keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'video-model', 'style_custom', 'max_tokens'] });
   countExport();
@@ -208,34 +211,41 @@ export function renderDreamGenVideo(root) {
       const m = settings.model();
       if (!m) throw new Error(settings.blocked() || 'Pick a video model first (Settings).');
       const est = settings.priceNow();
-      const status = el('div', { class: 'muted' });
-      clipOut.replaceChildren(status);
-      const job = await runVideoJob({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined }, {
-        signal: clipForm._abort?.signal,
-        onStatus: (j, s) => { status.textContent = `Job ${j.id}: ${j.status || 'submitted'} · ${s} s. Checking every 5 s…`; },
-      });
-      // Prices only as the 1-5 scale ($$$$$): billed, and what was estimated before sending.
-      const facts = () => el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
-        job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost), { amount: Number(job.cost) }) : null,
-        est ? ' · estimated ' : '', est ? priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }) : null);
-      const raw = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-        el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
+      clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
+      const job = await startVideoJob({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined },
+        { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
+      const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+        el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
+      const raw = rawFor(job.resp);
       const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
-      if (!job.ok || !job.blob) {
-        const refused = /guideline|policy|safety|sensitive|face|person/i.test(job.error || '');
-        clipOut.replaceChildren(...[el('div', { class: 'output error', text: job.error || 'The job failed.' }),
-          refused ? el('div', { class: 'small', text: 'A refusal like this usually means the model won\'t take this picture (for example a realistic face). Try a model whose card says it kept the face, rather than rewording the prompt.' }) : null,
-          ...notes, facts(), raw].filter(Boolean));
+      // A refusal usually means the model won't take this picture, not the wording.
+      const refusalHint = (error) => (/guideline|policy|safety|sensitive|face|person/i.test(error || '')
+        ? el('div', { class: 'small', text: 'A refusal like this usually means the model won\'t take this picture (for example a realistic face). Try a model whose card says it kept the face, rather than rewording the prompt.' }) : null);
+      if (!job.ok) {
+        clipOut.replaceChildren(...[el('div', { class: 'output error', text: job.error || 'The job could not be sent.' }), refusalHint(job.error), ...notes, raw].filter(Boolean));
         return;
       }
-      // Only the newest clip is shown, so the one before it can be freed.
-      if (st.clipUrl) URL.revokeObjectURL(st.clipUrl);
-      const url = URL.createObjectURL(job.blob);
-      st.clipUrl = url;
-      clipOut.replaceChildren(el('div', { class: 'output' },
-        el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),
-        el('div', {}, el('a', { href: url, download: `scene-${job.id}.mp4`, text: 'Download' }))),
-      ...notes, facts(), raw);
+      // Sent: the button is free again. The clip shows here when it is done, if it is still the
+      // latest one, and always under Video jobs.
+      clipOut.dataset.job = job.id;
+      const estTag = est ? [' Estimated ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), '.'] : [];
+      clipOut.replaceChildren(el('div', { class: 'output' }, 'Job sent. It runs in the background, so you can make another clip; it shows here when it is done, and under Video jobs in the settings panel.', ...estTag), ...notes, raw);
+      job.done.then((r) => {
+        if (clipOut.dataset.job !== job.id) return;
+        // Request details as sent, with the job's last answer (its end status and cost).
+        const raw = rawFor(r.resp || job.resp);
+        // Prices only as the 1-5 scale ($$$$$), or the provider's billed amount.
+        const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
+          r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
+        if (!r.ok || !r.url) {
+          clipOut.replaceChildren(...[el('div', { class: 'output error', text: r.error || 'The job failed.' }), refusalHint(r.error), ...notes, facts, raw].filter(Boolean));
+          return;
+        }
+        clipOut.replaceChildren(el('div', { class: 'output' },
+          el('video', { controls: '', src: r.url, autoplay: '', muted: '', loop: '', playsinline: '' }),
+          el('div', {}, el('a', { href: r.url, download: `scene-${job.id}.mp4`, text: 'Download' }))),
+        ...notes, facts, raw);
+      });
     });
   });
 

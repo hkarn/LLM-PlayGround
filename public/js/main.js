@@ -10,6 +10,7 @@ import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
 import { setupTheme } from './ui/theme.js';
 import { setupTopBar } from './ui/top-bar.js';
+import { startWatchingVideoJobs } from './ui/video-jobs.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
 import { renderException } from './ui/result.js';
@@ -167,6 +168,9 @@ export async function init() {
   setupModelFilter($('#model-filter-editor'));
 
   applyProvider();
+  // Video jobs from the video tools are watched wherever you are, and picked up after a reload. Only
+  // now, with the provider's address and key in place, so the first check goes to the right place.
+  startWatchingVideoJobs();
 }
 
 // Fills the URL, key and links for the chosen provider, clears the old model list and

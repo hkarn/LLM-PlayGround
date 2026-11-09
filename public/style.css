@@ -170,6 +170,18 @@ html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
   text-align: left; padding: 9px 12px; border-bottom: none; border-left: 3px solid transparent; border-radius: 6px;
 }
 .topbar.menu .nav-wrap .tabs button.active, .topbar.menu .nav-wrap .tester-toggle.active { border-left-color: var(--accent); background: var(--highlight); }
+/* The endpoint tabs inside the drop-down: folded away until "API tester" is clicked, then a list
+   to its right (or indented under it when there is no room to the right). */
+.topbar.menu .nav-wrap #tester-tabs { display: none; }
+.topbar.menu .nav-wrap.sub-open #tester-tabs {
+  display: flex; flex-direction: column; align-items: stretch; gap: 0; position: absolute; left: calc(100% + 4px);
+  min-width: 170px; padding: 6px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.topbar.menu .nav-wrap.sub-open.sub-below #tester-tabs { position: static; min-width: 0; padding: 0 0 4px 14px; border: none; box-shadow: none; background: none; }
+.topbar.menu .nav-wrap #tester-tabs button { border: none; border-left: 3px solid transparent; border-radius: 6px; padding: 7px 12px; text-align: left; font-size: 14px; }
+.topbar.menu .nav-wrap #tester-tabs button.active { border-left-color: var(--accent); background: var(--highlight); }
+.topbar.menu .nav-wrap #tester-tabs .tab-sep { display: none; }
 .topbar.menu h1 { font-size: 15px; }
 .topbar.tight .conn-state, .topbar.tight .gh-link, .topbar.tight #theme-toggle { display: none; }
 /* The theme entry in the drop-down: only there once the icon has left the bar. */
@@ -184,7 +196,8 @@ html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
 .topbar.tiny .nav-menu { padding: 6px 8px; }
 .topbar.tiny .nav-menu .burger { display: none; }
 /* When even that wraps: the chip gets its own line, its label shortens, and the panel spans the width. */
-.topbar.wrapped .conn { position: static; margin-left: 0; flex: 1 1 180px; min-width: 0; display: flex; }
+.topbar.wrapped h1 { flex-basis: 100%; padding-bottom: 0; }
+.topbar.wrapped .conn { position: static; margin-left: auto; min-width: 0; display: flex; }
 .topbar.wrapped .conn-chip { min-width: 0; }
 .topbar.wrapped .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); }
 @media (max-width: 700px) { .conn-panel { left: 16px; right: 16px; width: auto; top: calc(100% + 4px); } .conn { position: static; } }

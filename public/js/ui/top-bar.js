@@ -5,7 +5,8 @@
      2. menu: folds the tabs (Welcome … Filter) into one drop-down button named after the open tab;
      3. tight: also drops the model count from the chip and the GitHub link;
      4. tiny: a smaller title and no ☰ on the menu button.
-   If even that wraps (a very narrow phone), the bar wraps and is no longer pinned (.wrapped).
+   If even that wraps (a very narrow phone), the bar wraps after the title, with the menu on the left
+   and the chip on the right below it, and is no longer pinned (.wrapped).
    The chip always shows the provider. It also keeps --masthead-h, the pinned bar's height, for
    scroll-padding and the tools' sticky settings panel. */
 import { $, $$, el } from './dom.js';
@@ -47,15 +48,48 @@ export function setupTopBar() {
       }
       if (!ok) { bar.classList.add('wrapped'); masthead.classList.add('wrapped'); }
       if (!bar.classList.contains('menu')) openMenu(false);
+      placeTesterRow();
       setHeight();
     });
   };
 
-  // The drop-down: the same tab buttons, shown as a list under the menu button.
+  // The API tester's endpoint tabs: a second row under the bar, or, once the tabs are folded into
+  // the drop-down, a list that folds out from its "API tester" entry (to the right where there is
+  // room, otherwise indented under it). The same buttons move; their click handlers come along.
+  const testerRow = $('#tester-tabs');
+  const testerToggle = $('#tester-toggle');
+  const home = { parent: testerRow.parentNode, next: testerRow.nextSibling };
+  const caret = () => { $('.caret', testerToggle).textContent = testerToggle.classList.contains('active') ? '▾' : '▸'; };
+  function placeTesterRow() {
+    if (bar.classList.contains('menu')) {
+      if (testerRow.parentNode !== nav) testerToggle.after(testerRow);
+    } else if (testerRow.parentNode !== home.parent) {
+      home.parent.insertBefore(testerRow, home.next);
+      nav.classList.remove('sub-open');
+      caret();
+    }
+  }
+  const openSub = (open) => {
+    nav.classList.toggle('sub-open', open);
+    $('.caret', testerToggle).textContent = open ? '▾' : '▸';
+    if (!open) return;
+    nav.classList.toggle('sub-below', window.innerWidth - nav.getBoundingClientRect().right < 180);
+    testerRow.style.top = nav.classList.contains('sub-below') ? '' : `${testerToggle.offsetTop - 6}px`;
+  };
+  // In the drop-down, "API tester" opens its list instead of jumping to the last endpoint. Capture
+  // at the button runs before main.js's handler, and stopping it also keeps the drop-down open.
+  testerToggle.addEventListener('click', (e) => {
+    if (!bar.classList.contains('menu')) return;
+    e.stopImmediatePropagation();
+    openSub(!nav.classList.contains('sub-open'));
+  }, true);
+
+  // The drop-down: the same tab buttons, shown as a list under the menu button. It opens with the
+  // endpoint list folded out when an endpoint tab is open.
   const openMenu = (open) => {
     nav.classList.toggle('open', open);
     menuBtn.setAttribute('aria-expanded', String(open));
-    if (open) nav.style.left = `${menuBtn.offsetLeft}px`;
+    if (open) { nav.style.left = `${menuBtn.offsetLeft}px`; openSub(testerToggle.classList.contains('active')); } else if (bar.classList.contains('menu')) openSub(false);
   };
   menuBtn.addEventListener('click', () => openMenu(!nav.classList.contains('open')));
   nav.addEventListener('click', (e) => { if (e.target.closest('button')) openMenu(false); });

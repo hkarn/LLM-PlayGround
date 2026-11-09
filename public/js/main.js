@@ -19,7 +19,9 @@ import { runStep } from './ui/run-step.js';
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
 export async function init() {
-  setupTheme(); // first, so the toggle works even if the provider list fails to load
+  // First, so the bar is fitted and the toggle works before (or without) the provider list.
+  setupTheme();
+  setupTopBar();
 
   // Tabs
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
@@ -79,7 +81,6 @@ export async function init() {
     { href: '#chat', title: 'API tester', icon: TESTER_ICON, blurb: 'Send a raw request to any endpoint (chat, images, video, speech, embeddings …) and see the full answer.' },
     { href: '#models', title: 'Filter models', icon: FILTER_ICON, blurb: 'Narrow every model list on the page to the makers and models you care about.' },
   ];
-  setupTopBar();
   // The title opens the welcome page, at the top, even when its hash is already #providers.
   $('.topbar h1 a').addEventListener('click', (e) => {
     e.preventDefault();

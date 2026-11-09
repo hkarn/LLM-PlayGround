@@ -1,0 +1,61 @@
+name: Claude
+# Mention @claude in an issue and Claude Code reviews it against the code and answers in a
+# comment: whether it's already done, or a plan. It reads CLAUDE.md, so the project rules
+# apply. It can't change anything: no shell, no file writes, no branches or pull requests.
+on:
+  issue_comment:
+    types: [created]
+  # Only `opened`: on later issue events (assigned, edited) the actor is whoever acted, not the
+  # author, so an outsider's issue text would pass the write-access check.
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+concurrency:
+  # One run per issue at a time; `queue: max` keeps further mentions pending instead of
+  # replacing the earlier pending one, which is the default.
+  group: claude-${{ github.event.issue.number }}
+  cancel-in-progress: false
+  queue: max
+jobs:
+  claude:
+    # Issues only: `issue_comment` fires for PR conversation comments too, and those carry
+    # `issue.pull_request`. The repo is public: the action refuses anyone whose event it is
+    # without write access before calling Claude. Bots are skipped here as well: the action's
+    # human-actor check would refuse them too (`allowed_bots` is empty), but Copilot's reviews
+    # quote "@claude" and would start a doomed run each time.
+    if: |
+      !github.event.issue.pull_request &&
+      !endsWith(github.actor, '[bot]') && github.actor != 'Copilot' &&
+      ((github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'issues' &&
+          (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+      # The action exchanges the workflow's OIDC token for a Claude GitHub App token.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: anthropics/claude-code-action@v1.0.266
+        with:
+          # Set one of the two secrets: a subscription token from `claude setup-token`,
+          # or an API key.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Read-only. The action's mention mode allows file edits (acceptEdits: Edit, MultiEdit,
+          # Write) and `git add/commit/push`;
+          # deny rules win over its allow list, so Claude keeps Read, Glob, Grep and its reply
+          # comment. The reply is public, so the places a secret can be read are denied too:
+          # `.git` (the action puts its App token in the remote URL there) and `/proc` (the
+          # process environment holds the Claude credential). The Read tool refuses `/proc`
+          # files on its own, but Grep doesn't, and the action's redaction of token patterns
+          # from the reply can be dodged by encoding; Read rules cover Grep and Glob as well.
+          # The action revokes the App token when the job ends.
+          claude_args: >-
+            --disallowedTools "Bash,Edit,MultiEdit,Write,NotebookEdit,Read(./.git/**),Read(//proc/**)"

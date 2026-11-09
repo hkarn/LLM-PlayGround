@@ -4,6 +4,9 @@ import { $ } from './dom.js';
 
 // Remembers the model chosen in a tool form, and the step's other `fields`, per provider, and
 // picks them again whenever the model list is refilled (page load, model reload, provider switch).
+// `key` is the model kind ("chat", "image"): every tool with one model of a kind uses the same key,
+// so a model chosen in one tool is the one the next tool opens with. (The dgscene_ prefix is kept
+// so earlier choices stay.)
 export function rememberModel(form, key, fields = []) {
   const k = () => `dgscene_model_${key}_${state.provider}`;
   const picker = $('.model-picker', form);

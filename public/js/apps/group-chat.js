@@ -1,7 +1,8 @@
 /* LLM PlayGround: Game: AI Group Chat. */
 import { read, send } from '../adapter.js';
 import { errorMessage, modelsIn, store } from '../core.js';
-import { $, el } from '../ui/dom.js';
+import { comboBox } from '../ui/combo.js';
+import { el } from '../ui/dom.js';
 
 // Each character is a persona on its own chat model. A round works like this: the active
 // characters are put in a queue by the chosen turn-order strategy, then each one in the queue
@@ -57,11 +58,30 @@ const gcStore = {
   save(s) { store.set('groupchat', JSON.stringify(s)); },
 };
 
-// Fills the model suggestions with the loaded chat models. Called on render and whenever a
-// model field gets focus, since models may load (or the provider change) after the app opens.
-function fillGroupChatModels(root) {
-  const list = $('#gc-models', root);
-  if (list) list.replaceChildren(...modelsIn('chat').map((m) => el('option', { value: m.id })));
+// A model field with the loaded chat models as suggestions (ui/combo.js): every model when the
+// field gets focus, even with a model already in it, narrowed once the user types. The list is read
+// each time it opens, since models may load (or the provider change) after the app opens. A pick
+// fires "change", as typing does when the field is left.
+function modelField(attrs) {
+  const input = el('input', { name: 'model', ...attrs });
+  const combo = comboBox(input, {
+    label: 'Chat models',
+    // The model's name first, the provider after it, sorted by name, so "haiku" or "qwen" finds a
+    // model whatever its provider.
+    items: () => modelsIn('chat').map((m) => {
+      const id = m.id.replace(/^~/, '');
+      const cut = id.lastIndexOf('/');
+      return { value: m.id, label: cut < 0 ? id : id.slice(cut + 1), note: cut < 0 ? '' : id.slice(0, cut) };
+    }).sort((a, b) => a.label.localeCompare(b.label)),
+    pick: (value) => {
+      combo.hide();
+      if (value === undefined) return; // Enter with nothing highlighted: keep what is typed
+      input.value = value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    empty: () => (modelsIn('chat').length ? 'No match in the loaded models. You can still type any model id.' : 'Load models to see suggestions, or type a model id.'),
+  });
+  return { input, wrap: combo.wrap };
 }
 
 export function renderGroupChat(root) {
@@ -222,7 +242,7 @@ export function renderGroupChat(root) {
     const f = el('form', { class: 'gc-edit' },
       el('label', {}, 'Name', el('input', { name: 'name', value: c.name, required: '' })),
       el('label', {}, 'Personality', el('textarea', { name: 'persona', rows: 3, placeholder: 'Who they are and how they talk' }, c.persona)),
-      el('label', {}, 'Model', el('input', { name: 'model', value: c.model, list: 'gc-models', placeholder: s.defaultModel ? `default: ${s.defaultModel}` : 'model id', spellcheck: 'false' })),
+      el('label', {}, 'Model', modelField({ value: c.model, placeholder: s.defaultModel ? `default: ${s.defaultModel}` : 'model id' }).wrap),
       el('label', { class: 'inline' }, 'Colour ', el('input', { type: 'color', name: 'color', value: c.color })),
       el('div', { class: 'row' },
         el('button', { type: 'submit', class: 'primary', text: 'Done' }),
@@ -301,7 +321,7 @@ export function renderGroupChat(root) {
     el('summary', { text: 'Chat settings' }),
     el('div', { class: 'grid3' },
       field('Your name', bind(el('input', { value: s.userName }), 'userName', (v) => v.trim() || 'You')),
-      field('Default model', bind(el('input', { value: s.defaultModel, list: 'gc-models', placeholder: 'used when a character has none', spellcheck: 'false' }), 'defaultModel', (v) => v.trim())),
+      field('Default model', (() => { const f = modelField({ name: 'default_model', value: s.defaultModel, placeholder: 'used when a character has none' }); bind(f.input, 'defaultModel', (v) => v.trim()); return f.wrap; })()),
       field('Turn order', bind(el('select', {}, ...Object.entries(GC_ORDER).map(([id, o]) => el('option', { value: id, text: o.label, selected: id === s.order || undefined }))), 'order')),
       field('Max tokens per answer', bind(el('input', { type: 'number', min: 1, value: s.maxTokens }), 'maxTokens', (v) => Number(v) || null)),
       field('Temperature', bind(el('input', { type: 'number', min: 0, max: 2, step: 0.1, value: s.temperature }), 'temperature', (v) => (v === '' ? null : Number(v))))),
@@ -317,7 +337,6 @@ export function renderGroupChat(root) {
       })));
 
   root.append(
-    el('datalist', { id: 'gc-models' }),
     el('div', { class: 'groupchat' },
       side,
       el('div', { class: 'gc-main' },
@@ -325,7 +344,5 @@ export function renderGroupChat(root) {
         log,
         queueBar,
         el('div', { class: 'gc-compose' }, input, el('div', { class: 'gc-buttons' }, sendBtn, roundBtn, stopBtn)))));
-  root.addEventListener('focusin', (e) => { if (e.target.getAttribute?.('list') === 'gc-models') fillGroupChatModels(root); });
-  fillGroupChatModels(root);
   renderCharacters(); renderLog(); renderQueue(); renderControls();
 }

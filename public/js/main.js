@@ -6,6 +6,7 @@ import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
+import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
@@ -132,6 +133,7 @@ export async function init() {
   });
 
   $('#model-filter').addEventListener('input', renderModelsTable);
+  setupModelFilter($('#model-filter-editor'));
 
   applyProvider();
 }
@@ -153,6 +155,7 @@ export function applyProvider() {
   });
 
   state.models = [];
+  loadModelFilter(); // each provider keeps its own model filter
   $('#models-raw').textContent = '';
   refreshPickers();
   renderModelsTable();

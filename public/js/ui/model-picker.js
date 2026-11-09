@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: the model picker (dropdown of the provider's models, typed id, metadata). */
-import { CATEGORY_LABEL, modelsIn, state } from '../core.js';
+import { CATEGORY_LABEL, modelFilterOn, modelsIn, state, visibleModels } from '../core.js';
 import { $, $$, el } from './dom.js';
 import { pre } from './result.js';
 
@@ -12,19 +12,26 @@ export function setupPicker(picker) {
   const custom = el('input', { name: 'model_custom', placeholder: 'or type a model id, e.g. openai/gpt-4o-mini', spellcheck: 'false' });
   const showAll = el('input', { type: 'checkbox' });
   const info = el('div', { class: 'model-info' });
+  // Shown while the model filter (All models tab) hides some of the list.
+  const filterNote = el('p', { class: 'muted small filter-note', hidden: true }, 'Model filter on. ', el('a', { href: '#models', text: 'Edit it' }));
 
   picker.replaceChildren(
     el('label', { text: `Model (${CATEGORY_LABEL[category]})` }),
     el('div', { class: 'row' }, select, el('label', { class: 'inline small' }, showAll, 'show all')),
+    filterNote,
     custom,
     info,
   );
 
   const fill = () => {
     const prev = select.value;
-    const list = showAll.checked ? state.models : modelsIn(category);
+    const list = showAll.checked ? visibleModels() : modelsIn(category);
+    filterNote.hidden = !modelFilterOn() || !state.models.length;
+    const empty = !state.models.length ? 'Load models first'
+      : modelFilterOn() && !visibleModels().length ? 'No models match the model filter'
+        : `No ${category} models ${modelFilterOn() ? 'match the model filter' : 'detected'} – tick "show all"`;
     select.replaceChildren(
-      ...(list.length ? [] : [el('option', { value: '', text: state.models.length ? `No ${category} models detected – tick "show all"` : 'Load models first' })]),
+      ...(list.length ? [] : [el('option', { value: '', text: empty })]),
       ...list.map((m) => el('option', { value: m.id, text: showAll.checked ? `${m.id}  [${m._category}]` : m.id })),
     );
     // Keep the current choice; otherwise the first model in the list stays selected.

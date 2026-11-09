@@ -494,6 +494,8 @@ a.button-link:hover { filter: brightness(1.08); }
 .vg-model-head input { margin: 0; }
 .vs-price { font-size: 13px; }
 .vs-notice:empty { display: none; }
+/* The shared video choice doesn't suit this tool: a pick is needed before the tool can run. */
+.vs-notice.vs-blocked { color: var(--text); background: var(--highlight); border-left: 3px solid var(--err); border-radius: 6px; padding: 8px 12px; }
 .vg-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .vg-clip { position: relative; border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .vg-clip > .icon-btn { position: absolute; top: 4px; right: 4px; }

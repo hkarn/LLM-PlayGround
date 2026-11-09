@@ -508,6 +508,16 @@ button.danger { color: var(--err); }
 .welcome-hero p { font-size: 17px; max-width: 760px; }
 .welcome-start ol { margin: 0 0 8px; padding-left: 22px; }
 .welcome-start li { margin: 3px 0; }
+/* Getting started follows the connection (providers-guide.js): done steps ticked and dimmed, the
+   next one marked, and "You're set" once a key and the model list are in. */
+.welcome-start li.done { color: var(--muted); }
+.welcome-start li.done .tick { color: var(--ok); font-weight: 700; }
+.welcome-start li.current { font-weight: 600; }
+.welcome-start li.current::marker { color: var(--accent); }
+.welcome-start.ready { border-left: 3px solid var(--ok); padding-left: 14px; }
+.welcome-start details { margin-top: 6px; }
+.welcome-start summary { cursor: pointer; color: var(--muted); }
+.link-btn { background: none; border: none; padding: 0; font: inherit; color: var(--link); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .welcome a.app-card { text-decoration: none; color: inherit; }
 .welcome-privacy p { max-width: 760px; }
 .providers-intro { max-width: 760px; margin-bottom: 14px; }

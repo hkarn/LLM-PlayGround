@@ -1,7 +1,7 @@
 /* LLM PlayGround: the welcome page (the Providers tab, the first tab). Says what the site is, links
    the tools and games, and explains each provider's setup from the `guide` in its
    providers/<id>.json file, with its sign-up link and a button that picks it in the top bar. */
-import { PROVIDERS, state } from './core.js';
+import { keyReady, PROVIDERS, state } from './core.js';
 import { el } from './ui/dom.js';
 
 const REPO = 'https://github.com/hkarn/LLM-PlayGround';
@@ -61,21 +61,49 @@ export function renderProviderGuide(container, { unavailable, choose, apps = [],
     container.querySelector('#provider-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
+  // Getting started follows the connection: the steps with the ones done ticked and the next one
+  // marked while there is no key or model list, and "You're set" (steps folded) once both are in.
+  const start = el('section', { class: 'welcome-start' });
+  const openChip = el('button', { type: 'button', class: 'link-btn', text: 'Open the connection chip',
+    onclick: () => { const chip = document.getElementById('conn-chip'); if (chip?.getAttribute('aria-expanded') !== 'true') chip?.click(); document.getElementById('api-key')?.focus(); } });
+  const drawStart = () => {
+    const p = PROVIDERS[state.provider];
+    const hasKey = keyReady();
+    const loaded = hasKey && state.models.length > 0;
+    const step = (done, current, ...children) => el('li', { class: done ? 'done' : current ? 'current' : '' },
+      done ? el('span', { class: 'tick', 'aria-label': 'done', text: '✓ ' }) : null, ...children);
+    const steps = el('ol', {}, [
+      // A provider that needs no key (keyOptional, e.g. Custom) has nothing to get: its step says so.
+      p?.keyOptional
+        ? step(true, false, toProviders, `; ${p.label} needs no API key, only its address (base URL) in the connection chip.`)
+        : step(hasKey, !hasKey, toProviders, ' and get an API key from it', easiest ? `; ${easiest.label} is the easiest start.` : '.'),
+      step(loaded, hasKey && !loaded, openChip, hasKey ? ' and press Load models.' : ' at the top right, paste the key and press Load models.'),
+      step(false, loaded, 'Pick a tool or game below, or try any model in the API tester.'),
+    ]);
+    const note = videoNote ? el('p', { class: 'muted', text: videoNote }) : null;
+    start.classList.toggle('ready', loaded);
+    start.replaceChildren(...(loaded
+      ? [el('h3', { text: 'You\'re set' }),
+        el('p', {}, `Connected to ${p?.label || state.provider} with ${state.models.length.toLocaleString()} models. Pick a tool or game below, or try any model in the `, el('a', { href: '#chat', text: 'API tester' }), '.'),
+        el('details', {}, el('summary', { text: 'Getting started' }), steps), note]
+      : [el('h3', { text: 'Getting started' }), steps, note]).filter(Boolean));
+  };
+  drawStart();
+  document.addEventListener('models-changed', drawStart);
+  document.getElementById('provider')?.addEventListener('change', () => setTimeout(drawStart));
+  document.getElementById('api-key')?.addEventListener('input', drawStart);
+  // The connection status line changes on every load (started, failed, done), also when a saved key
+  // is put back at start-up without an input event, so the steps follow that too.
+  const status = document.getElementById('models-status');
+  if (status) new MutationObserver(drawStart).observe(status, { childList: true, characterData: true, subtree: true });
+
   container.replaceChildren(
     el('div', { class: 'welcome' }, [
       el('section', { class: 'welcome-hero' }, [
         el('h2', { text: 'Welcome to LLM PlayGround' }),
         el('p', { text: 'A playground for AI models reached through routers such as OpenRouter and Requesty: try any model on the raw API endpoints, and use a few tools and games built on them. It runs in your browser on your own API key.' }),
       ]),
-      el('section', { class: 'welcome-start' }, [
-        el('h3', { text: 'Getting started' }),
-        el('ol', {}, [
-          el('li', {}, [toProviders, ' and get an API key from it', easiest ? `; ${easiest.label} is the easiest start.` : '.']),
-          el('li', { text: 'Open the connection chip at the top right, paste the key and press Load models.' }),
-          el('li', { text: 'Pick a tool or game below, or try any model in the API tester.' }),
-        ]),
-        videoNote ? el('p', { class: 'muted', text: videoNote }) : null,
-      ].filter(Boolean)),
+      start,
       el('section', {}, [
         el('h3', { text: 'What you can do' }),
         el('div', { class: 'launcher' }, apps.map(card)),

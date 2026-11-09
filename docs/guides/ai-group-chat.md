@@ -46,6 +46,9 @@ The **⚙ Chat settings** bar sits above the chat. It's open on your first visit
 | Setting (shared by everyone) | The situation every character knows, such as "A relaxed group chat between friends" |
 | Clear chat | Deletes all messages |
 | Reset characters | Puts the three example characters back |
+| Export | Saves the characters, settings and chat as a JSON file (`group-chat-<date>-<time>.json`). There is never a key in it |
+| Import chat… | Loads a whole chat from an export: characters, settings and messages, after asking first |
+| Import characters… | Loads only the characters from an export, so you can reuse a cast; the chat and settings stay |
 
 ## Decision model turn order
 
@@ -60,5 +63,6 @@ Decision models are on OpenRouter and Requesty. On OpenRouter, in one test where
 
 ## Good to know
 
-- The characters, settings and chat are saved in your browser, so they're still there next time.
+- The characters, settings and chat are saved in your browser, so they're still there next time. To keep several chats, move one to another browser, or share a cast, use **Export** and **Import** in Chat settings.
+- Model names differ between providers. When you import a chat made on another provider, a System message says so: check each character's model (and the default and decision models) before the next round.
 - Every answer is a separate request with the whole chat so far, so long chats cost more tokens per answer.

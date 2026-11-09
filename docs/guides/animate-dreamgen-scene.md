@@ -6,7 +6,7 @@ Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/L
 
 ## Before you start
 
-- An API key for a provider with video models. OpenRouter is the one we have tested; Requesty has no video.
+- An API key for a provider with video models. OpenRouter is the one we have tested. **LLM Gateway** works too, through your own server (Docker or `node server.js`): its video models are listed as untested, with their own durations and sizes but no price. Requesty has no video. Only models that say they take a starting picture are offered (on LLM Gateway: Veo, Grok Imagine, Kling, MiniMax, FLUX 3 Max and VEED Fabric, not Seedance).
 - A scene picture. The easiest is to draw one first in [Draw the DreamGen Scene](draw-dreamgen-scene.md) and press **Animate this picture →**, which brings the picture, its prompt and the session along. You can also upload any picture.
 
 ## Settings

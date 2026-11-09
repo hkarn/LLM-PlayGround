@@ -280,7 +280,10 @@
         <label>Aspect ratio
           <select name="aspect_ratio"><option value="">default</option><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>3:4</option><option>21:9</option></select>
         </label>
-        <label class="inline"><input name="generate_audio" type="checkbox"> Audio</label>
+        <!-- default sends nothing (the provider decides); on and off send true and false. Set per model by ui/model-options.js. -->
+        <label>Audio
+          <select name="generate_audio"><option value="">default</option><option value="true">on</option><option value="false">off</option></select>
+        </label>
       </div>
       <label>First frame (optional, image-to-video)
         <input name="first_frame" type="file" accept="image/*">

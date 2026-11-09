@@ -10,7 +10,7 @@ A playground for AI models from providers and routers such as OpenRouter and Req
 
 ## 1. Get an API key
 
-The page sends your requests to an AI provider with your own key, so you need one. The **Welcome** page, where the page opens (click the logo at the top left to get back to it), says how to start and, further down, compares the providers and links to each sign-up page. For now only OpenRouter has video models.
+The page sends your requests to an AI provider with your own key, so you need one. The **Welcome** page, where the page opens (click the logo at the top left to get back to it), says how to start and, further down, compares the providers and links to each sign-up page. Video works with OpenRouter, and with LLM Gateway when you run the page on your own server.
 
 The easiest is **OpenRouter**: sign in (Google works), add a little credit, create a key at [openrouter.ai/keys](https://openrouter.ai/keys), and every model is available, including some free ones.
 

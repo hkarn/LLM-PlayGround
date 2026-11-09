@@ -6,7 +6,7 @@ Open it: **Tools → Video Generator**, or <https://hkarn.github.io/LLM-PlayGrou
 
 ## Before you start
 
-You need an API key for a provider with video models, loaded in the connection panel at the top. OpenRouter is the one we have tested; Requesty has no video. Video costs real money per clip, so start with the cheapest settings.
+You need an API key for a provider with video models, loaded in the connection panel at the top. OpenRouter is the one we have tested, with its tested models first. **LLM Gateway** works too, through your own server (Docker or `node server.js`): its video models are listed as untested, with their own durations and sizes but no price. Requesty has no video. Video costs real money per clip, so start with the cheapest settings.
 
 ## Settings
 

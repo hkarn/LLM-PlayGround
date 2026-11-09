@@ -231,14 +231,21 @@ export const handlers = {
 
   // Async: submit a job, poll its status, then download the video from /videos/{id}/content.
   async video(form, out) {
-    const picked = form.elements.first_frame.files[0];
-    if (picked && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
-    const pickedLast = form.elements.last_frame.files[0];
-    if (pickedLast && form.elements.last_frame.disabled) throw new Error('This model takes no last frame image. Clear the file or pick another model.');
+    // A frame field the chosen model can't take is greyed out, and like any disabled field it is not
+    // sent, even with a picture still in it from another model (a greyed-out field can't be cleared).
+    const skipped = [];
+    const frameOf = (name, label) => {
+      const file = form.elements[name].files[0];
+      if (file && form.elements[name].disabled) { skipped.push(label); return undefined; }
+      return file;
+    };
+    const picked = frameOf('first_frame', 'first');
+    const pickedLast = frameOf('last_frame', 'last');
     // JPEG and PNG go as they are; other formats (e.g. WebP) would fail the job after submit, so they go as PNG.
     const { file: frame, note: firstNote } = await framePngOrJpeg(picked);
     const { file: lastFrame, note: lastNote } = await framePngOrJpeg(pickedLast);
-    const frameNote = [firstNote, lastNote].filter(Boolean).join(' ');
+    const skipNote = skipped.length ? `The ${skipped.join(' and ')} frame picture was not sent: this model's list says it takes none.` : '';
+    const frameNote = [skipNote, firstNote, lastNote].filter(Boolean).join(' ');
     const showResult = (args) => {
       renderResult(out, args);
       if (frameNote) $('.status-line', out)?.after(el('div', { class: 'muted small', text: frameNote }));

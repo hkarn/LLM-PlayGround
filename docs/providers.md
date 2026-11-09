@@ -41,7 +41,7 @@ Option dropdowns follow the chosen model:
 
 ## Video models
 
-The Video Generator and Animate the DreamGen Scene list the video models we have run for real first, from `videoModels` in the provider's settings file (OpenRouter has twelve). Each card shows the model's name and price; its tooltip, and the box under the cards for the chosen model, say which frames it takes, its audio, and whether it kept a face in our tests. Any other video model your key can use is under **Other video model**, marked untested; on LLM Gateway, which has no tested models yet, that is all of them. See the [Video Generator guide](guides/video-generator.md).
+The Video Generator and Animate the DreamGen Scene list the video models we have run for real first, from `videoModels` in the provider's settings file (OpenRouter has twelve). Each is one row: its name, small marks for which pictures it takes, its sound and whether it kept a face in our tests (a legend explains them), and its price; its tooltip, and the box under the list for the chosen model, say the same in words. Any other video model your key can use is under **Other video model**, marked untested; on LLM Gateway, which has no tested models yet, that is all of them. See the [Video Generator guide](guides/video-generator.md).
 
 ## Adding a provider
 

@@ -12,7 +12,7 @@ You need an API key for a provider with video models, loaded in the connection p
 
 The **settings panel** on the right holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
 
-- **Video model:** pick a card. Each card shows the model's name and its **price** for the cheapest clip: the provider's listed price, or **$** (cheapest) to **$$$$$** where only an estimate is possible. Hover a card, or pick it, to see the rest; the chosen model's details show under the cards:
+- **Video model:** pick a row. Each row shows the model's name, small marks for what matters when choosing (a picture icon: it can start from a picture, in the accent colour when it needs one; an end-picture icon; a speaker: always sound, sound you can turn on or off, or none; a face: it kept a face in our tests, filled when it was a realistic one), explained in a legend under the list, and its **price** for the cheapest clip: the provider's listed price, or **$** (cheapest) to **$$$$$** where only an estimate is possible. Hover a row, or pick it, for the words; the chosen model's details show under the list:
    - which pictures it takes (one to start from, or one to start and one to end on);
    - its **sound**: always on, can be turned on or off, or none;
    - what happened with a **face** in our tests.
@@ -23,7 +23,7 @@ The **settings panel** on the right holds the video model and its options. On a 
 ## Make a clip
 
 1. **Prompt:** describe the clip: what moves, how the camera moves, the light.
-2. **First frame / Last frame** (optional): the clip starts from your picture, and ends on the other where the model supports it. Some models need a first frame (the card says "(needed)"). WebP, GIF and other formats are converted to PNG automatically.
+2. **First frame / Last frame** (optional): the clip starts from your picture, and ends on the other where the model supports it. Some models need a first frame (their picture mark is in the accent colour, and the tooltip says "Needs a start picture"). WebP, GIF and other formats are converted to PNG automatically.
 3. Check the **Price** line and press **Generate video**.
 
 The job is sent to the provider, and the button is free again straight away: start the next clip while this one runs. A clip usually takes 15 seconds to a couple of minutes; the page checks every 5 seconds and shows it here when it's done.

@@ -460,12 +460,36 @@ button.danger { color: var(--err); }
 @media (max-width: 900px) { .vidgen { grid-template-columns: 1fr; } }
 .vidgen > div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 /* Model cards wrap and stretch, so each row is filled at any width (no lone card on a half-empty row). */
-.vg-models { display: flex; flex-wrap: wrap; gap: 8px; }
-.vg-models > .vg-model { flex: 1 1 170px; min-width: 0; }
-.vg-models > .vg-other { flex-basis: 220px; }
-/* On a phone, two cards per row. */
-@media (max-width: 520px) { .vg-models > .vg-model { flex-basis: 140px; } .vg-models > .vg-other { flex-basis: 100%; } }
-.vg-model { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+/* The video model list (ui/video-settings.js): one compact row per model, its name, marks for start
+   and end picture, sound and a face kept in our tests, and the price; "Other video model" last. */
+.vg-models { display: flex; flex-direction: column; gap: 2px; }
+.vg-model { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 4px 8px;
+  padding: 5px 8px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-weight: 400; }
+.vg-model:hover { background: var(--highlight); }
+.vg-model.chosen { border-color: var(--accent); background: var(--highlight); }
+.vg-model input[type=radio] { margin: 0; }
+.vg-model-name { font-size: 14px; line-height: 1.25; }
+/* On a phone the marks go under the name, so names don't have to be cut or broken. */
+@media (max-width: 520px) {
+  .vg-model:not(.vg-other) { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "radio name price" "radio marks price"; row-gap: 2px; }
+  .vg-model:not(.vg-other) > input { grid-area: radio; }
+  .vg-model:not(.vg-other) > .vg-model-name { grid-area: name; }
+  .vg-model:not(.vg-other) > .vg-marks { grid-area: marks; }
+  .vg-model:not(.vg-other) > .vg-model-price { grid-area: price; }
+}
+.tool-layout .vg-model-name { font-size: 15px; }
+.vg-model-price { justify-self: end; font-size: 14px; white-space: nowrap; }
+.vg-marks { display: inline-flex; gap: 3px; color: var(--muted); }
+.vg-mark { display: inline-grid; place-items: center; width: 17px; height: 17px; }
+.vg-mark svg { width: 15px; height: 15px; }
+.vg-mark.need { color: var(--accent); }
+.vg-mark.dim { opacity: .55; }
+.vg-mark.full svg circle:first-child { fill: currentColor; fill-opacity: .35; }
+.vg-other { grid-template-columns: auto minmax(0, 1fr); margin-top: 4px; border-color: var(--border); }
+.vg-other select { grid-column: 1 / -1; }
+.vg-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 4px 2px 0; }
+.vg-legend[hidden] { display: none; }
+.vg-legend-item { display: inline-flex; align-items: center; gap: 3px; }
 .vg-stage { aspect-ratio: 16 / 9; border-radius: 8px; background: var(--code-bg); display: grid; place-items: center; color: var(--muted); }
 
 /* Draw the DreamGen Scene */
@@ -504,8 +528,6 @@ button.danger { color: var(--err); }
 .panel-section + .panel-section { border-top: 1px solid var(--border); padding-top: 14px; }
 .panel-section h3 { margin: 0; font-size: 15px; }
 .panel-section p { margin: 0; }
-.tool-panel .vg-models > .vg-model { flex-basis: 130px; }
-.tool-panel .vg-models > .vg-other { flex-basis: 100%; }
 .tool-panel .model-picker .row { flex-wrap: wrap; }
 .tool-panel .model-picker select { min-width: 0; flex: 1 1 100%; }
 @media (max-width: 900px) {
@@ -523,15 +545,12 @@ button.danger { color: var(--err); }
 .tool-layout label, .tool-layout details summary, .tool-layout .status-line { font-size: 14.5px; }
 .tool-layout .tool-step h3, .tool-layout .panel-section h3 { font-size: 17px; }
 .tool-layout .scene-export, .tool-layout pre, .tool-layout .mono { font-size: 13.5px; }
-.tool-layout .vg-model strong { font-size: 15px; }
 .tool-layout input, .tool-layout select, .tool-layout textarea, .tool-layout button { font-size: 15px; }
 .tool-layout .tool-about > summary { font-size: 15.5px; }
 /* A text box in a folded section (System prompt) fills the width, with its Reset button below it. */
 .tool-layout details > textarea { display: block; width: 100%; box-sizing: border-box; margin: 8px 0 6px; resize: vertical; }
 /* Video model cards: the name and the price only; the details are in the tooltip and, for the
    chosen model, in the note under the cards. */
-.vg-model { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
-.vg-model-price { font-size: 15px; }
 .vg-model-note { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
 .vg-model-note:empty { display: none; }
 .vg-model-note ul { margin: 4px 0; padding-left: 18px; }
@@ -650,10 +669,6 @@ a.button-link:hover { filter: brightness(1.08); }
 
 /* Video tools: model cards, settings and clips */
 .video-settings { display: flex; flex-direction: column; gap: 10px; }
-.vg-model { display: flex; flex-direction: column; gap: 2px; cursor: pointer; font-weight: 400; }
-.vg-model.chosen { border-color: var(--accent); background: var(--highlight); }
-.vg-model-head { display: flex; align-items: center; gap: 6px; }
-.vg-model-head input { margin: 0; }
 .vs-price { font-size: 13px; }
 .vs-notice:empty { display: none; }
 /* The shared video choice doesn't suit this tool: a pick is needed before the tool can run. */

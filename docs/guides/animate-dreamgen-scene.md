@@ -47,7 +47,7 @@ The **picture style** from the settings panel is added to the end of the motion 
 
 Check the **Price** line, then press **Make video**. It uses the video model and options from the settings panel.
 
-The clip takes about 15 seconds to a couple of minutes. **Cancel** stops waiting, but the provider may still finish the job and charge for it. When it's done, the clip plays and can be downloaded, with the time taken and the price billed.
+The job is sent to the provider and runs in the background, so you can make the next clip while it runs. It takes about 15 seconds to a couple of minutes. When it's done, the clip plays here and can be downloaded, with the time taken and the price billed. Every job, from this tool and the Video Generator, is also listed under **Video jobs** in the settings panel, where it carries on after a reload; see [Video jobs](video-generator.md#video-jobs) in the Video Generator guide.
 
 ## If a model refuses
 

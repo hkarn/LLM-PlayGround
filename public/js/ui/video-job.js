@@ -1,5 +1,5 @@
-/* LLM PlayGround: UI component: video jobs. Runs one job through the adapter's `video` kind (submit,
-   poll, download), and estimates its price from the model's pricing_skus (OpenRouter /videos/models).
+/* LLM PlayGround: UI component: video jobs. Sends a job through the adapter's `video` kind, then
+   watches it (poll, download) from its id (ui/video-jobs.js keeps the list), and estimates its price from the model's pricing_skus (OpenRouter /videos/models).
    Used by the Video Generator and Animate the DreamGen Scene; the Video tab keeps its own raw handler. */
 import { follow, read, send } from '../adapter.js';
 import { errorMessage } from '../core.js';
@@ -10,11 +10,11 @@ import { wait } from './run-step.js';
 export const JOB_DONE = ['completed', 'failed', 'cancelled', 'expired'];
 
 // input: { model, prompt, duration, resolution, aspect_ratio, generate_audio, first_frame, last_frame }
-// with the frames as Files (or Blobs). onStatus(job, seconds) is called after the submit and each poll.
-// Returns { ok, id, status, blob, cost, seconds, error, notes, resp, request, curl }.
-export async function runVideoJob(input, { signal, onStatus } = {}) {
-  const t0 = Date.now();
-  const seconds = () => Math.round((Date.now() - t0) / 1000);
+// with the frames as Files (or Blobs).
+// Sends a job and returns as soon as the provider has taken it: { ok, id, job, notes, resp, request,
+// curl, error }. The video tools then watch it in the background (ui/video-jobs.js), so the form is
+// free for the next clip.
+export async function submitVideoJob(input, { signal } = {}) {
   const notes = [];
   const frames = {};
   for (const key of ['first_frame', 'last_frame']) {
@@ -23,25 +23,32 @@ export async function runVideoJob(input, { signal, onStatus } = {}) {
     frames[key] = [file];
     if (note) notes.push(note);
   }
-  let { resp, request, curl } = await send('video', { ...input, ...frames }, { signal });
-  const base = { notes, request, curl };
-  let job = read('video', resp);
-  if (!resp.ok || !job.id) return { ...base, ok: false, resp, seconds: seconds(), error: errorMessage(resp) };
-  const { id } = job;
-  onStatus?.(job, seconds());
+  const { resp, request, curl } = await send('video', { ...input, ...frames }, { signal });
+  const job = read('video', resp);
+  if (!resp.ok || !job.id) return { ok: false, notes, request, curl, resp, error: errorMessage(resp) };
+  return { ok: true, id: job.id, job, notes, request, curl, resp };
+}
+
+// Checks a job every 5 s until it ends, then downloads the video. Works from the id alone, so it can
+// pick a job up again after a reload (on the provider that made it). since: when the job started (ms).
+// Returns { ok, id, status, blob, cost, seconds, error, resp }.
+export async function watchVideoJob(id, { signal, since = Date.now(), onStatus } = {}) {
+  const seconds = () => Math.round((Date.now() - since) / 1000);
+  let job = { id, status: '' };
+  let resp;
   while (!JOB_DONE.includes(job.status)) {
-    await wait(5000, signal);
+    if (resp) await wait(5000, signal); // the first check goes at once (a job picked up after a reload)
     resp = await follow('video', 'poll', { id }, { signal });
-    if (!resp.ok) return { ...base, ok: false, id, resp, seconds: seconds(), error: errorMessage(resp) };
+    if (!resp.ok) return { ok: false, id, resp, seconds: seconds(), error: errorMessage(resp) };
     job = read('video', resp);
     onStatus?.(job, seconds());
   }
   if (job.status !== 'completed') {
     const why = job.error ? (typeof job.error === 'string' ? job.error : job.error.message || JSON.stringify(job.error)) : '';
-    return { ...base, ok: false, id, status: job.status, cost: job.cost, resp, seconds: seconds(), error: `Job ${job.status}${why ? `: ${why}` : ''}` };
+    return { ok: false, id, status: job.status, cost: job.cost, resp, seconds: seconds(), error: `Job ${job.status}${why ? `: ${why}` : ''}` };
   }
   const video = await downloadVideo(id, { signal });
-  return { ...base, ...video, id, status: job.status, cost: job.cost, resp, seconds: seconds() };
+  return { ...video, id, status: job.status, cost: job.cost, resp, seconds: seconds() };
 }
 
 // The finished video of a job. A provider keeps it for a while after the job, so a download can be

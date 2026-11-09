@@ -10,6 +10,7 @@ import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
 import { setupTheme } from './ui/theme.js';
 import { setupTopBar } from './ui/top-bar.js';
+import { startWatchingVideoJobs } from './ui/video-jobs.js';
 import { chosenModel, refreshPickers, setupPicker } from './ui/model-picker.js';
 import { rememberModel } from './ui/remember.js';
 import { renderException } from './ui/result.js';
@@ -137,6 +138,8 @@ export async function init() {
   $('.add-question', decisionForm).addEventListener('click', () => addQuestion(decisionForm));
   // After the tab pickers: an open app sets up its own pickers.
   setupHubs();
+  // Video jobs sent from the video tools are watched wherever you are, and picked up after a reload.
+  startWatchingVideoJobs();
   // A link with a hash wins over the remembered tab and app.
   route();
   window.addEventListener('hashchange', route);

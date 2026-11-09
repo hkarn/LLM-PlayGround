@@ -54,7 +54,7 @@ With **Turn order: Decision model**, each round starts with a quick question to 
 - **You are never one of the options.** You decide yourself whether to talk (**Send**) or pass (**Another round**).
 - **When you pass,** whoever spoke last is left out of the question, shown at 0 %, and answers last, so nobody answers themselves.
 - **The cost** is tiny: about $0.000002–0.000006 a round with the models below. It's added to the total under the characters, as "turn order".
-- **If it fails** (no decision model chosen, a provider without decisions such as Custom, or an error), the round runs in random order and says why in the chat.
+- **If it fails** (no decision model chosen, a provider without decisions such as Custom, or an error), the round runs in random order, and a message from **System** in the chat says why. The characters never see System messages; delete them with **×** like any other.
 
 Decision models are on OpenRouter and Requesty. On OpenRouter, in one test where you had just asked Bram something, `~perplexity/pplx-decider-flash-latest` gave Bram 92 % and `liquid/d1-ultra` 71 %, while `liquid/d1` leaned the wrong way (Bram 48 %). Start with one of the first two.
 

@@ -365,22 +365,25 @@ export function renderGroupChat(root) {
   function renderLog() {
     const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     const items = s.log.map((m) => {
-      if (m.from === 'note') return el('div', { class: 'gc-note', text: m.text });
-      const c = m.from === 'user' ? null : charById(m.from);
-      const color = m.from === 'user' ? 'var(--accent)' : c?.color || '#888';
-      return el('div', { class: `gc-msg${m.from === 'user' ? ' me' : ''}${m.error ? ' failed' : ''}` },
-        avatar(m.name, color),
+      // Notes (a failed turn order, no active characters …) are messages from "System": deletable
+      // like any other, and never sent to the characters or the decision model.
+      const system = m.from === 'note';
+      const name = system ? 'System' : m.name;
+      const c = m.from === 'user' || system ? null : charById(m.from);
+      const color = m.from === 'user' ? 'var(--accent)' : system ? 'var(--muted)' : c?.color || '#888';
+      return el('div', { class: `gc-msg${m.from === 'user' ? ' me' : ''}${system ? ' system' : m.error ? ' failed' : ''}` },
+        avatar(name, color),
         el('div', { class: 'bubble' },
           el('div', { class: 'small muted gc-meta' },
-            el('span', { text: m.name }),
+            el('span', { text: name }),
             m.model ? el('span', { text: ` · ${m.model}` }) : null,
-            m.error ? el('span', { text: ' · failed' }) : null,
+            m.error && !system ? el('span', { text: ' · failed' }) : null,
             m.error && c ? el('button', {
               type: 'button', class: 'icon-btn', title: `Ask ${c.name} again`, 'aria-label': `Retry ${c.name}'s message`, text: '↻', disabled: run.busy || undefined,
               onclick: () => retryMessage(m),
             }) : null,
             el('button', {
-              type: 'button', class: 'icon-btn', title: 'Delete message', 'aria-label': `Delete message from ${m.name}`, text: '×', disabled: run.busy || undefined,
+              type: 'button', class: 'icon-btn', title: 'Delete message', 'aria-label': `Delete message from ${name}`, text: '×', disabled: run.busy || undefined,
               onclick: () => { s.log = s.log.filter((x) => x !== m); save(); renderLog(); renderCharacters(); },
             })),
           el('div', { class: 'gc-text', text: m.text })));

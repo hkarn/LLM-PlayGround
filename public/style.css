@@ -255,7 +255,8 @@ button.danger { color: var(--err); }
 @media (hover: none) { .gc-msg .icon-btn { opacity: .7; } }
 .gc-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .gc-note { align-self: center; font-size: 12px; color: var(--err); }
-.dots { letter-spacing: 2px; animation: gc-blink 1.2s infinite; }
+/* Group Chat's "typing…" indicator. Its own class, so other .dots (the Providers tab's setup level) stay still. */
+.gc-dots { letter-spacing: 2px; animation: gc-blink 1.2s infinite; }
 @keyframes gc-blink { 50% { opacity: .3; } }
 .gc-queue { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 24px; }
 .gc-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); }

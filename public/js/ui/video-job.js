@@ -61,7 +61,11 @@ export async function downloadVideo(id, { signal } = {}) {
 // video token (video_tokens, video_tokens_without_audio), and extras (cents_per_image_input,
 // minimum_cents_per_generation). A key ending in a resolution wins over the plain one.
 // Returns { usd, approx, basis } or null when the model's prices don't fit these shapes.
-export function estimateVideoCost(model, { duration, resolution, aspect_ratio: aspect, generate_audio: audio, frames = 0 } = {}) {
+// Whether a model can continue one of its own earlier jobs (previous_job_id): OpenRouter lists a
+// continuation price for those (cents_per_second_video_continuation_<res>, e.g. FLUX 3 Video).
+export const canContinue = (model) => Object.keys(model?.pricing_skus || {}).some((k) => /continuation/i.test(k));
+
+export function estimateVideoCost(model, { duration, resolution, aspect_ratio: aspect, generate_audio: audio, frames = 0, continuation = false } = {}) {
   const skus = {};
   for (const [k, v] of Object.entries(model?.pricing_skus || {})) if (Number.isFinite(Number(v))) skus[k.toLowerCase()] = Number(v);
   if (!Object.keys(skus).length || !duration) return null;
@@ -73,6 +77,11 @@ export function estimateVideoCost(model, { duration, resolution, aspect_ratio: a
   const mode = frames ? 'image_to_video' : 'text_to_video';
   for (const key of [`${mode}_duration_seconds`, `duration_seconds_${audio ? 'with' : 'without'}_audio`, 'duration_seconds', 'duration_seconds_with_audio']) {
     if (at(key) !== undefined) { perSecond = at(key); basis = `$${perSecond}/s${resText}`; break; }
+  }
+  // Continuing a clip has its own per-second price where the model lists one.
+  if (continuation && at('cents_per_second_video_continuation') !== undefined) {
+    perSecond = at('cents_per_second_video_continuation') / 100;
+    basis = `${at('cents_per_second_video_continuation')}¢/s to continue${resText}`;
   }
   if (perSecond === undefined) {
     for (const key of ['cents_per_video_output_second', 'cents_per_second_output']) {

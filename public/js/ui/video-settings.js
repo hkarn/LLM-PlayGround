@@ -45,6 +45,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
   };
   loadSaved();
   let externalFrames = 0;
+  let continuing = false;
   const notice = el('div', { class: 'muted small vs-notice' });
   const cards = el('div', { class: 'vg-models', role: 'radiogroup', 'aria-label': 'Video model' });
   const select = (name, label) => el('label', {}, label, el('select', { name }));
@@ -135,8 +136,9 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     audio.disabled = !m || !['optional', 'unknown'].includes(m.audio);
     audio.checked = m?.audio === 'always' || (['optional', 'unknown'].includes(m?.audio) && Boolean(keep('generate_audio') ?? m?.default?.generate_audio));
     $('span', audioLabel).textContent = m?.audio === 'always' ? 'Audio (always on)' : m?.audio === 'off' ? 'Audio (none)' : m?.audio === 'unknown' ? 'Audio (if the model has it)' : 'Audio';
-    first.disabled = !m?.frames?.includes('first_frame');
-    last.disabled = !m?.frames?.includes('last_frame');
+    // While continuing a clip, the new job starts from that clip, so no frame images are sent.
+    first.disabled = continuing || !m?.frames?.includes('first_frame');
+    last.disabled = continuing || !m?.frames?.includes('last_frame');
     firstLabel.firstChild.textContent = m?.needsFirstFrame ? 'First frame (needed)' : 'First frame (optional)';
     if (last.disabled) last.value = '';
     if (first.disabled) first.value = '';
@@ -167,7 +169,7 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     if (!m?.meta) return null;
     const v = read();
     const frameCount = externalFrames + (v.first_frame ? 1 : 0) + (v.last_frame ? 1 : 0);
-    const est = estimateVideoCost(m.meta, { ...v, generate_audio: m.audio === 'always' ? true : v.generate_audio, frames: frameCount });
+    const est = estimateVideoCost(m.meta, { ...v, generate_audio: m.audio === 'always' ? true : v.generate_audio, frames: continuing ? 0 : frameCount, continuation: continuing });
     // usd: for the scale (with priceFactor); listedUsd: the provider's own figure. A priceFactor
     // makes the listed figure wrong, so the price is then only an estimate (shown as the scale).
     return est && { ...est, approx: est.approx || Boolean(m.priceFactor), listedUsd: est.usd, usd: est.usd * (m.priceFactor || 1) };
@@ -197,5 +199,9 @@ export function videoSettings({ key, firstFrameOnly = false, frames = true } = {
     root, refresh, read, model, price: priceNow,
     // Frames the tool supplies itself (Animate the DreamGen Scene's scene picture) count in the price.
     setFrameCount(n) { externalFrames = n; update(); },
+    // Picks a model by id, as if its card had been chosen (tested or other).
+    selectModel(id) { chosen = id; refresh(); applyModel(true); },
+    // Continuation mode (Video Generator): no frame images, and the continuation price.
+    setContinuing(on) { continuing = Boolean(on); applyModel(false); },
   };
 }

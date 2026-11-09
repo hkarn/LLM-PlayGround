@@ -371,3 +371,5 @@ a.button-link:hover { filter: brightness(1.08); }
 .price-tag .on { color: var(--text); }
 .price-tag .off { color: var(--muted); opacity: .45; }
 .price-tag .price-amount { font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.vg-continue[hidden] { display: none; }
+.vg-continue .small-btn { margin-left: 4px; }

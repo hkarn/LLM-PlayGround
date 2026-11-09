@@ -5,7 +5,7 @@ import { PROVIDERS, state, store } from '../core.js';
 import { $, el } from '../ui/dom.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
-import { downloadVideo, priceTag, runVideoJob } from '../ui/video-job.js';
+import { canContinue, downloadVideo, priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
 const LOG_KEY = 'videogen:jobs'; // finished jobs (no video data): model, prompt, cost, job id
@@ -15,7 +15,11 @@ const clips = new Map(); // job id → object URL of a video fetched this page s
 export function renderVideoGenerator(root) {
   const settings = videoSettings({ key: 'videogen:settings' });
   const prompt = el('textarea', { name: 'prompt', rows: 3, required: '', placeholder: 'Describe the clip: what moves, how the camera moves, the light.' });
+  // Continuing one of your clips: shown above the prompt while it is on.
+  let continuing = null; // the log entry of the clip being continued
+  const continueBar = el('div', { class: 'notice small vg-continue', hidden: '' });
   const form = el('form', { class: 'tool-form' },
+    continueBar,
     el('label', {}, 'Prompt', prompt),
     settings.root,
     el('button', { type: 'submit', class: 'primary', text: 'Generate video' }));
@@ -68,6 +72,8 @@ export function renderVideoGenerator(root) {
           el('div', { class: 'small' }, el('strong', { text: e.label || e.model }), ` · ${[e.duration && `${e.duration} s`, e.resolution, e.aspect_ratio].filter(Boolean).join(' · ')}`,
             e.cost != null ? ' · ' : '', e.cost != null ? priceTag(Number(e.cost), { amount: Number(e.cost) }) : null, ` · ${new Date(e.at).toLocaleString()}`),
           el('div', { class: 'muted small vg-clip-prompt', text: e.prompt }),
+          e.continues ? el('div', { class: 'muted small', text: `Continues: ${log().find((x) => x.id === e.continues)?.prompt || 'an earlier clip'}` }) : null,
+          continuable(e) ? el('button', { type: 'button', class: 'secondary', text: 'Continue this clip', onclick: () => startContinuing(e) }) : null,
           !url && e.provider === state.provider ? fetchAgain : null,
           !url && e.provider !== state.provider ? el('div', { class: 'muted small', text: `Made on ${PROVIDERS[e.provider]?.label || e.provider}: switch to it to fetch the video again.` }) : null,
           el('button', { type: 'button', class: 'icon-btn', title: 'Remove from the list', 'aria-label': 'Remove from the list', text: '×',
@@ -82,7 +88,13 @@ export function renderVideoGenerator(root) {
       if (!m) throw new Error('Pick a video model first.');
       const input = { ...settings.read(), prompt: prompt.value.trim() };
       if (!input.prompt) throw new Error('Write a prompt first.');
-      if (m.needsFirstFrame && !input.first_frame) throw new Error(`${m.label || m.id} needs a first frame image.`);
+      if (continuing) {
+        // The provider runs a continuation on the model that made the clip.
+        if (m.id !== continuing.model) throw new Error(`To continue that clip, keep its model (${continuing.label || continuing.model}), or press Stop continuing.`);
+        Object.assign(input, { previous_job_id: continuing.id, first_frame: undefined, last_frame: undefined });
+      } else if (m.needsFirstFrame && !input.first_frame) {
+        throw new Error(`${m.label || m.id} needs a first frame image.`);
+      }
       const est = settings.price();
       const status = el('div', { class: 'muted' });
       out.replaceChildren(status);
@@ -107,13 +119,46 @@ export function renderVideoGenerator(root) {
       out.replaceChildren(player(url, job.id), ...job.notes.map((n) => el('div', { class: 'muted small', text: n })),
         facts, raw);
       saveLog([{ id: job.id, provider: state.provider, model: m.id, label: m.label, prompt: input.prompt, duration: input.duration,
-        resolution: input.resolution, aspect_ratio: input.aspect_ratio, cost: job.cost, at: Date.now() }, ...log()]);
+        resolution: input.resolution, aspect_ratio: input.aspect_ratio, cost: job.cost, at: Date.now(), continues: input.previous_job_id }, ...log()]);
+      stopContinuing();
       drawGallery();
     });
   });
 
+  // A clip can be continued when its model lists a continuation price, on the provider that made it.
+  function continuable(e) {
+    if (e.provider !== state.provider) return false;
+    return canContinue(state.models.find((x) => x.id === e.model));
+  }
+  function startContinuing(e) {
+    continuing = e;
+    settings.selectModel(e.model);
+    // Start from the clip's own resolution and aspect ratio, so the two parts match.
+    for (const [name, value] of [['resolution', e.resolution], ['aspect_ratio', e.aspect_ratio]]) {
+      const sel = settings.root.querySelector(`select[name=${name}]`);
+      if (sel && value && [...sel.options].some((o) => o.value === String(value))) { sel.value = String(value); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
+    settings.setContinuing(true);
+    continueBar.hidden = false;
+    continueBar.replaceChildren(
+      el('strong', { text: 'Continuing a clip. ' }),
+      `${e.label || e.model}: "${e.prompt}". Describe what happens next; the new clip starts where that one ends, on the same model. Frame images are not sent. `,
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Stop continuing', onclick: stopContinuing }));
+    prompt.value = '';
+    prompt.focus();
+    form.scrollIntoView({ block: 'nearest' });
+  }
+  function stopContinuing() {
+    continuing = null;
+    settings.setContinuing(false);
+    continueBar.hidden = true;
+    continueBar.replaceChildren();
+  }
+
   drawGallery();
+  // Models load after the page opens; Continue this clip depends on them.
+  document.addEventListener('models-changed', drawGallery);
   // "Fetch the video again" is only offered on the provider that made the clip, so redraw on a switch.
-  $('#provider')?.addEventListener('change', () => setTimeout(drawGallery));
+  $('#provider')?.addEventListener('change', () => setTimeout(() => { if (continuing) stopContinuing(); drawGallery(); }));
   $('textarea', form).focus();
 }

@@ -157,6 +157,7 @@
         "resolution": "{{resolution}}",
         "aspect_ratio": "{{aspect_ratio}}",
         "generate_audio": "{{generate_audio}}",
+        "previous_job_id": "{{previous_job_id}}",
         "frame_images": [
           {
             "each": "first_frame",

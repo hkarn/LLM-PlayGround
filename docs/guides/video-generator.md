@@ -42,9 +42,9 @@ These are cheap tests, one or two runs per model with plain pictures (November 2
 | Grok Imagine 1.5 lite | Text or first frame, 1–15 s. Always has audio. Keeps the frame's shape whatever aspect ratio you ask for. Kept a realistic face |
 | Grok Imagine | Like 1.5 lite, about twice the price |
 | Gemini Omni 1.2 Flash | Text, first frame, or first and last. 360p is the cheap tier. Always has audio |
-| Veo 3.1 Lite | First and last frame, 4, 6 or 8 s, from 720p. Audio can be turned off (cheaper). Refuses realistic faces |
-| Seedance 2.0 mini | Text or frames, 4–15 s, priced per video token (an estimate). Refuses realistic faces, AI-made ones too |
 | Hailuo 3 Max | 5–15 s. Its clips had an audio track |
 | Wan 3.0 | First and last frame. Billed about twice its listed price in a test, which its price scale includes |
+
+Veo 3.1 Lite and Seedance 2.0 mini were tested too, and are no longer suggested: they refuse faces, even AI-made, non-human ones, so they don't suit DreamGen scenes. They worked for text-only clips and frames without faces, and are still under **Other video model**.
 
 For any video model with the raw request and response, use the **Video** tab under **API tester**.

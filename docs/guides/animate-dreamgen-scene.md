@@ -32,7 +32,7 @@ Edit the **Motion prompt** as you like; that is what the video model gets.
 ### 3. Model, settings and the clip
 
 1. Pick a **video model**. The cards show what each one takes and what we found when we tested it:
-   - **Faces:** some models keep a realistic face from the picture (Mischief, Grok Imagine); others refuse realistic faces (Veo, Seedance).
+   - **Faces:** the suggested models (Mischief, Grok Imagine) kept the face from the picture in our tests. Veo and Seedance were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
    - **Audio:** some always add sound, some can turn it off, some have none.
    - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
    - **Other video model** lists every other video model your key can use, marked untested.

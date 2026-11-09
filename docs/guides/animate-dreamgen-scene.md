@@ -14,7 +14,7 @@ Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/L
 The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
 
 - **Prompt writer:** the **chat model** that writes the motion prompt, its **Max tokens** and **System prompt**.
-- **Video model:** pick a card. Only models that take a first frame are offered. Each card shows the model's name and price; hover a card, or pick it, to see what it takes and what we found when we tested it (the chosen model's details show under the cards):
+- **Video model:** pick a row. Only models that take a first frame are offered. Each row shows the model's name, small marks for sound (always, optional or none) and a face kept in our tests (filled when it was a realistic one), explained in a legend under the list, and the price; hover a row, or pick it, for the words (the chosen model's details show under the list):
   - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1, HeyGen Video 1, Seedance 2.0 fast and Runway Gen-4.5 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
   - **Audio:** some always add sound, some can turn it off, some have none.
   - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
@@ -22,7 +22,7 @@ The **settings panel** on the right holds what you choose once and then leave al
 - **Duration, resolution and aspect ratio:** only what the chosen model supports is offered, and the cheapest settings are chosen first.
 - **Picture style:** shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.
 
-The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices. If the video model chosen in the Video Generator can't start from a picture, Animate doesn't swap it for another: it says so above the cards (and beside the folded Settings button on a phone) and waits for you to pick one. Your pick then becomes the choice in the Video Generator too.
+The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices. If the video model chosen in the Video Generator can't start from a picture, Animate doesn't swap it for another: it says so above the list (and beside the folded Settings button on a phone) and waits for you to pick one. Your pick then becomes the choice in the Video Generator too.
 
 ## Step by step
 
@@ -51,7 +51,7 @@ The job is sent to the provider and runs in the background, so you can make the 
 
 ## If a model refuses
 
-A refusal mentioning guidelines, policy or safety usually means the model won't take this picture, often because of a realistic face. Pick a model whose card says it **kept the face**, rather than rewording the prompt.
+A refusal mentioning guidelines, policy or safety usually means the model won't take this picture, often because of a realistic face. Pick a model with a filled face mark (it **kept the face**), rather than rewording the prompt.
 
 ## Privacy
 

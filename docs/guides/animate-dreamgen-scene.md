@@ -9,6 +9,21 @@ Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/L
 - An API key for a provider with video models. OpenRouter is the one we have tested; Requesty has no video.
 - A scene picture. The easiest is to draw one first in [Draw the DreamGen Scene](draw-dreamgen-scene.md) and press **Animate this picture →**, which brings the picture, its prompt and the session along. You can also upload any picture.
 
+## Settings
+
+The **settings panel** on the left holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed.
+
+- **Prompt writer:** the **chat model** that writes the motion prompt, its **Max tokens** and **System prompt**.
+- **Video model:** pick a card. Only models that take a first frame are offered. The cards show what each one takes and what we found when we tested it:
+  - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
+  - **Audio:** some always add sound, some can turn it off, some have none.
+  - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
+  - **Other video model** lists every other video model your key can use, marked untested.
+- **Duration, resolution and aspect ratio:** only what the chosen model supports is offered, and the cheapest settings are chosen first.
+- **Picture style:** shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.
+
+The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices.
+
 ## Step by step
 
 ### 1. Scene picture
@@ -20,24 +35,17 @@ The picture becomes the clip's first frame.
 
 ### 2. Motion prompt
 
-1. Pick a **chat model**.
-2. Give it the session: **Use the session from Draw the DreamGen Scene**, or **load an export**, or paste one. **Keep only the last 10k tokens of the Session** saves tokens.
-3. **What the picture shows** is filled in from Draw the DreamGen Scene, so the model knows what's in the frame. You can edit it.
-4. Press **Write motion prompt**. The model writes one or two sentences about what moves in the next few seconds: people, wind, water, light, and how the camera moves.
+1. Give it the session: **Use the session from Draw the DreamGen Scene**, or **load an export**, or paste one. **Keep only the last 10k tokens of the Session** saves tokens.
+2. **What the picture shows** is filled in from Draw the DreamGen Scene, so the model knows what's in the frame. You can edit it.
+3. Press **Write motion prompt**. It uses the chat model from the settings panel. The model writes one or two sentences about what moves in the next few seconds: people, wind, water, light, and how the camera moves.
 
 Edit the **Motion prompt** as you like; that is what the video model gets.
 
-**Picture style** adds a style to the end of the motion prompt, such as "Style: Watercolour illustration …". It is shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.
+The **picture style** from the settings panel is added to the end of the motion prompt, such as "Style: Watercolour illustration …".
 
-### 3. Model, settings and the clip
+### 3. Make the clip
 
-1. Pick a **video model**. The cards show what each one takes and what we found when we tested it:
-   - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
-   - **Audio:** some always add sound, some can turn it off, some have none.
-   - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
-   - **Other video model** lists every other video model your key can use, marked untested.
-2. Pick the **duration, resolution and aspect ratio**. Only what the chosen model supports is offered, and the cheapest settings are chosen first.
-3. Check the **Price** line, then press **Make video**.
+Check the **Price** line, then press **Make video**. It uses the video model and options from the settings panel.
 
 The clip takes about 15 seconds to a couple of minutes. **Cancel** stops waiting, but the provider may still finish the job and charge for it. When it's done, the clip plays and can be downloaded, with the time taken and the price billed.
 

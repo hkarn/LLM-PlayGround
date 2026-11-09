@@ -1,9 +1,9 @@
 /* LLM PlayGround: Tool: Draw the DreamGen Scene. */
 import { read, send } from '../adapter.js';
-import { curlFor, ep, lines, num, parseJsonLoose, str, usageLine } from '../core.js';
+import { curlFor, ep, num, parseJsonLoose, store, str, usageLine } from '../core.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
-import { $, $$, el } from '../ui/dom.js';
+import { $$, el } from '../ui/dom.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { setupModelOptions } from '../ui/model-options.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
@@ -14,7 +14,7 @@ import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
-import { settingsToggle } from '../ui/settings-toggle.js';
+import { panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
 
@@ -69,15 +69,14 @@ export function renderDreamGenScene(root) {
   const undo = []; // earlier versions of the box, newest last
   const undoBtn = el('button', { type: 'button', class: 'secondary', text: 'Undo', disabled: '', onclick: () => { if (undo.length) setExport(undo.pop(), { keepUndo: true }); } });
   const trimNote = el('div', { class: 'muted small' });
-  const chatSettings = el('div', { class: 'tool-settings' },
+  // The chat model and its options, in the settings panel; shared with the other tools.
+  const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
+    el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
     el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
-      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { promptForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })),
-    el('div', { class: 'grid3' },
-      el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' }))));
-  const promptForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
-    chatSettings,
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })));
+  const promptForm = el('form', { class: 'tool-form' },
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
       'The whole export is sent, so a long game costs many tokens. To save tokens, edit it down here before sending: ',
@@ -130,8 +129,8 @@ export function renderDreamGenScene(root) {
     empty: 'There is no prompt to copy yet.', done: 'Copied. Paste it into the DreamGen image generator, or wherever you like.',
   });
 
-  // 4. Image
-  const imageSettings = el('div', { class: 'tool-settings' },
+  // 4. Image. The image model and its options are in the settings panel; shared with the other tools.
+  const imageSet = el('form', { class: 'tool-form', 'data-kind': 'image', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'image', 'data-curated': 'on' }),
     el('div', { class: 'grid3' },
       el('label', {}, 'Size', el('select', { name: 'size' }, el('option', { value: '', text: 'default' }),
@@ -142,12 +141,11 @@ export function renderDreamGenScene(root) {
         ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
       el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
         ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))));
-  const imageForm = el('form', { class: 'tool-form', 'data-kind': 'image' },
-    imageSettings,
+  const imageForm = el('form', { class: 'tool-form' },
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
-  root.append(
+  const main = [
     el('div', { class: 'placeholder-note' },
       el('strong', { text: 'How it works' }),
       el('ol', {},
@@ -169,26 +167,37 @@ export function renderDreamGenScene(root) {
       sceneLine,
       el('label', {}, 'Image prompt', promptBox),
       copyRow,
-      el('div', { class: 'grid3' },
-        el('label', {}, 'Picture style', styleSelect),
-        el('label', { class: 'style-custom', hidden: '' }, 'Your style', styleCustom)),
       charList,
       portraits.node),
     el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut),
     el('p', { class: 'muted small' }, 'Next: ', el('a', { href: '#tools/dreamgen-video', text: 'Animate the DreamGen Scene' }),
-      ' turns the picture into a short clip. It takes the picture and this session straight from here.'));
+      ' turns the picture into a short clip. It takes the picture and this session straight from here.')];
+
+  // The settings panel: what is chosen once and left alone. The steps hold what changes each run.
+  const layout = toolLayout(root, {
+    panel: [
+      panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the image prompt (step 2).' }), chatForm),
+      panelSection('Image model', imageSet),
+      panelSection('Picture style',
+        el('label', {}, 'Style', styleSelect),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', styleCustom),
+        el('p', { class: 'muted small', text: 'Added to the end of the image prompt ("Style: …"). Shared with Animate the DreamGen Scene.' })),
+    ],
+    main,
+    summary: () => [chosenModel(chatForm), chosenModel(imageSet)].filter(Boolean).join(' · '),
+  });
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
-  setupModelOptions(imageForm);
+  setupModelOptions(imageSet);
   syncStyle();
   keepDrafts(root, 'dgscene', { skip: ['max_tokens', 'trim_tokens', 'style_custom'] });
-  // The chosen models are remembered per provider, and each step's settings fold away once
-  // its model is chosen, so a second run is: load the export, write the prompt, draw.
-  rememberModel(promptForm, 'chat', ['max_tokens', 'trim_tokens']);
-  rememberModel(imageForm, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
-  settingsToggle(promptForm, chatSettings, 'chat', () => `Chat model: ${chosenModel(promptForm)}`);
-  settingsToggle(imageForm, imageSettings, 'image', () => [`Image model: ${chosenModel(imageForm)}`,
-    ...['size', 'aspect_ratio', 'resolution', 'quality'].map((n) => str(imageForm, n) && `${n.replace('_', ' ')} ${str(imageForm, n)}`)].filter(Boolean).join(' · '));
+  // The chosen models and their options are remembered per provider, and shared with the other tools.
+  rememberModel(chatForm, 'chat', ['max_tokens']);
+  rememberModel(imageSet, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
+  layout.refresh();
+  const trimSelect = promptForm.elements.trim_tokens;
+  if ([...trimSelect.options].some((o) => o.value === store.get('dgscene_trim'))) trimSelect.value = store.get('dgscene_trim');
+  trimSelect.addEventListener('change', () => store.set('dgscene_trim', trimSelect.value));
 
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -217,14 +226,14 @@ export function renderDreamGenScene(root) {
     runStep(promptForm, promptOut, async () => {
       const exported = exportBox.value.trim();
       if (!exported) throw new Error('Load a session export first (step 1), or paste one.');
-      const model = chosenModel(promptForm);
-      if (!model) throw new Error('Pick or type a chat model first.');
+      const model = chosenModel(chatForm);
+      if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const focus = promptForm.elements.focus.value.trim();
       const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
-      const system = promptForm.elements.system.value.trim();
+      const system = chatForm.elements.system.value.trim();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
-        max_tokens: num(promptForm, 'max_tokens'),
+        max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: promptForm._abort?.signal });
       let rendered;
       if (resp.ok && resp.data?.choices) {
@@ -238,7 +247,7 @@ export function renderDreamGenScene(root) {
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered });
+      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
     });
   });
 
@@ -285,12 +294,12 @@ export function renderDreamGenScene(root) {
     runStep(imageForm, imageOut, async () => {
       const prompt = finalPrompt();
       if (!prompt) throw new Error('Write or generate an image prompt first (steps 2 and 3).');
-      const model = chosenModel(imageForm);
-      if (!model) throw new Error('Pick or type an image model first.');
+      const model = chosenModel(imageSet);
+      if (!model) throw new Error('Pick or type an image model first (Settings).');
       const fields = {
         model, prompt,
-        size: str(imageForm, 'size'), aspect_ratio: str(imageForm, 'aspect_ratio'),
-        resolution: str(imageForm, 'resolution'), quality: str(imageForm, 'quality'),
+        size: str(imageSet, 'size'), aspect_ratio: str(imageSet, 'aspect_ratio'),
+        resolution: str(imageSet, 'resolution'), quality: str(imageSet, 'quality'),
       };
       // With portraits it is an image edit; the provider's template decides how they travel.
       const kind = portraits.refs.length ? 'imageEdit' : 'image';
@@ -299,7 +308,7 @@ export function renderDreamGenScene(root) {
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(portraits.refs.map((r) => asJpeg(r.file))) } : fields;
       const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
       const { rendered, shown } = renderImages(resp, 'png', kind);
-      renderResult(imageOut, { resp: shown, request, curl, rendered });
+      renderResult(imageOut, { resp: shown, request, curl, rendered, quiet: true });
       // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
       const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
       const file = img && await imageToFile(img, 'scene');

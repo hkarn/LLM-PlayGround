@@ -7,22 +7,29 @@ import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
 import { downloadVideo, priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
+import { panelSection, toolLayout } from '../ui/tool-layout.js';
 
 const LOG_KEY = 'videogen:jobs'; // finished jobs (no video data): model, prompt, cost, job id
 const LOG_MAX = 20;
 const clips = new Map(); // job id → object URL of a video fetched this page session
 
 export function renderVideoGenerator(root) {
-  const settings = videoSettings({ key: 'videogen:settings' });
+  // The video model and its options are in the settings panel (shared with Animate the DreamGen
+  // Scene); the frames and the price stay here, with the prompt and the button that spends it.
+  const settings = videoSettings();
   const prompt = el('textarea', { name: 'prompt', rows: 3, required: '', placeholder: 'Describe the clip: what moves, how the camera moves, the light.' });
   const form = el('form', { class: 'tool-form' },
     el('label', {}, 'Prompt', prompt),
-    settings.root,
+    settings.frames,
+    settings.price,
     el('button', { type: 'submit', class: 'primary', text: 'Generate video' }));
   const out = el('div', { class: 'result' });
   const gallery = el('div', { class: 'vg-gallery' });
 
-  root.append(
+  const layout = toolLayout(root, {
+    panel: [panelSection('Video model', settings.root)],
+    summary: () => settings.model()?.label || settings.model()?.id || '',
+    main: [
     el('div', { class: 'placeholder-note' },
       el('p', { class: 'small', style: 'margin: 0' },
         'Video models we have run for real come first, each with its own durations, resolutions and aspect ratios, and what we found (faces, audio). Any other video model your key has is under Other video model, untested. ',
@@ -31,9 +38,11 @@ export function renderVideoGenerator(root) {
     el('section', { class: 'tool-step' }, el('h3', { text: 'Make a clip' }), form, out),
     el('section', { class: 'tool-step' }, el('h3', { text: 'Your clips' }),
       el('p', { class: 'muted small', text: 'Clips made on this page. The list (not the videos) is kept in this browser; a provider keeps a finished video for a while, so an older one can be fetched again without paying.' }),
-      gallery));
+      gallery)],
+  });
+  layout.refresh();
 
-  keepDrafts(form, 'videogen', { skip: ['generate_audio', 'videogen:settings-model'] });
+  keepDrafts(form, 'videogen');
 
   const log = () => { try { return JSON.parse(store.get(LOG_KEY) || '[]'); } catch { return []; } };
   // Saves the list, and frees the video of every clip no longer on it (removed, or past LOG_MAX):
@@ -79,11 +88,11 @@ export function renderVideoGenerator(root) {
     e.preventDefault();
     runStep(form, out, async () => {
       const m = settings.model();
-      if (!m) throw new Error('Pick a video model first.');
+      if (!m) throw new Error('Pick a video model first (Settings).');
       const input = { ...settings.read(), prompt: prompt.value.trim() };
       if (!input.prompt) throw new Error('Write a prompt first.');
       if (m.needsFirstFrame && !input.first_frame) throw new Error(`${m.label || m.id} needs a first frame image.`);
-      const est = settings.price();
+      const est = settings.priceNow();
       const status = el('div', { class: 'muted' });
       out.replaceChildren(status);
       const job = await runVideoJob(input, {
@@ -94,7 +103,7 @@ export function renderVideoGenerator(root) {
       const facts = el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
         job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost), { amount: Number(job.cost) }) : null,
         est ? ' · estimated ' : '', est ? priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }) : null);
-      const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
+      const raw = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       if (!job.ok || !job.blob) {
         out.replaceChildren(el('div', { class: 'output error', text: job.error || 'The job failed.' }),

@@ -306,9 +306,36 @@ button.danger { color: var(--err); }
 .scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
 .notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
 
-.settings-bar { align-items: center; }
-.tool-settings { display: flex; flex-direction: column; gap: 10px; }
-.tool-settings[hidden] { display: none; }
+/* Tool pages: the settings panel on the left, the steps on the right (ui/tool-layout.js). On a
+   narrow screen the panel folds into a Settings button above the steps. */
+.panel.hub:has(.tool-layout) { max-width: 1320px; }
+.tool-layout { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tool-panel {
+  position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+}
+.tool-panel-head { display: none; }
+.tool-panel-body { display: flex; flex-direction: column; gap: 14px; }
+.panel-section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel-section + .panel-section { border-top: 1px solid var(--border); padding-top: 14px; }
+.panel-section h3 { margin: 0; font-size: 15px; }
+.panel-section p { margin: 0; }
+.tool-panel .vg-models > .vg-model { flex-basis: 130px; }
+.tool-panel .vg-models > .vg-other { flex-basis: 100%; }
+.tool-panel .model-picker .row { flex-wrap: wrap; }
+.tool-panel .model-picker select { min-width: 0; flex: 1 1 100%; }
+@media (max-width: 900px) {
+  .tool-layout { grid-template-columns: minmax(0, 1fr); }
+  .tool-panel { position: static; max-height: none; }
+  .tool-panel-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .tool-panel-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tool-panel.open .tool-panel-head { margin-bottom: 14px; }
+  .tool-panel:not(.open) .tool-panel-body { display: none; }
+}
+/* The tools fold the status, request, response and cURL into one "Request details". */
+.request-details > summary { color: var(--muted); font-size: 13px; }
+.request-details[open] { display: flex; flex-direction: column; gap: 6px; }
 
 /* Long file inputs (e.g. "Add portraits") must not push past the card on phones. */
 .tool-step input[type=file] { max-width: 100%; min-width: 0; }

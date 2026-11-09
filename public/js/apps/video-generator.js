@@ -3,6 +3,7 @@
    sending. A job is watched in the background (ui/video-jobs.js), so the next clip can be started at
    once; the jobs list is in the settings panel. The Video tab stays the raw tester for every model. */
 import { $, el } from '../ui/dom.js';
+import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { runStep } from '../ui/run-step.js';
 import { priceTag } from '../ui/video-job.js';
@@ -42,9 +43,6 @@ export function renderVideoGenerator(root) {
 
   keepDrafts(form, 'videogen');
 
-  const player = (url, id) => el('div', { class: 'output' },
-    el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),
-    el('div', {}, el('a', { href: url, download: `video-${id}.mp4`, text: 'Download' })));
   const details = (job) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
     el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
 
@@ -56,29 +54,39 @@ export function renderVideoGenerator(root) {
       const input = { ...settings.read(), prompt: prompt.value.trim() };
       if (!input.prompt) throw new Error('Write a prompt first.');
       if (m.needsFirstFrame && !input.first_frame) throw new Error(`${m.label || m.id} needs a first frame image.`);
-      const est = settings.priceNow();
-      out.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
-      const job = await startVideoJob(input, { tool: 'video-generator', label: m.label || m.id, est, signal: form._abort?.signal });
-      const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
-      if (!job.ok) {
-        out.replaceChildren(el('div', { class: 'output error', text: job.error || 'The job could not be sent.' }), ...notes, details(job));
-        return;
-      }
-      // Sent: the form is free again. The clip shows here when it is done, if this is still the
-      // latest one, and always under Video jobs.
-      out.dataset.job = job.id;
-      const estTag = est ? [' Estimated ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), '.'] : [];
-      out.replaceChildren(el('div', { class: 'output' }, `Job sent. It runs in the background, so you can start another clip; it shows here when it is done, and under Video jobs in the settings panel.`, ...estTag),
-        ...notes, details(job));
-      job.done.then((r) => {
-        if (out.dataset.job !== job.id) return;
-        const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
-          r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
-        // Request details as sent, with the job's last answer (its end status and cost).
-        out.replaceChildren(r.ok && r.url ? player(r.url, job.id) : el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, details({ ...job, resp: r.resp || job.resp }));
-      });
+      await sendJob(input, m, settings.priceNow());
     });
   });
+
+  // Sends one job and shows it. Retry (in the finished clip's bar) sends this same input again as a
+  // new job, whatever has been changed in the form since: the prompt, the model, its options and the
+  // frame pictures as they were.
+  async function sendJob(input, m, est) {
+    out.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
+    const job = await startVideoJob(input, { tool: 'video-generator', label: m.label || m.id, est, signal: form._abort?.signal });
+    const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
+    if (!job.ok) {
+      out.replaceChildren(el('div', { class: 'output error', text: job.error || 'The job could not be sent.' }), ...notes, details(job));
+      return;
+    }
+    // Sent: the form is free again. The clip shows here when it is done, if this is still the
+    // latest one, and always under Video jobs.
+    out.dataset.job = job.id;
+    const estTag = est ? [' Estimated ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), '.'] : [];
+    out.replaceChildren(el('div', { class: 'output' }, `Job sent. It runs in the background, so you can start another clip; it shows here when it is done, and under Video jobs in the settings panel.`, ...estTag),
+      ...notes, details(job));
+    job.done.then((r) => {
+      if (out.dataset.job !== job.id) return;
+      const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
+        r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
+      // Request details as sent, with the job's last answer (its end status and cost): in the
+      // clip's bar, beside Retry (the same settings again, as a new job) and Download.
+      const raw = details({ ...job, resp: r.resp || job.resp });
+      if (!r.ok || !r.url) { out.replaceChildren(el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, raw); return; }
+      const retry = () => runStep(form, out, () => sendJob(input, m, est));
+      out.replaceChildren(el('div', { class: 'output' }, clip({ src: r.url, name: fileName('video', 'mp4'), left: raw, retry })), ...notes, facts);
+    });
+  }
 
   $('textarea', form).focus();
 }

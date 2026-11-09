@@ -4,6 +4,7 @@
 import { read, send } from '../adapter.js';
 import { curlFor, ep, num, usageLine } from '../core.js';
 import { $, $$, el } from '../ui/dom.js';
+import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
@@ -210,44 +211,48 @@ export function renderDreamGenVideo(root) {
       const prompt = style.withStyle(motionText);
       const m = settings.model();
       if (!m) throw new Error(settings.blocked() || 'Pick a video model first (Settings).');
-      const est = settings.priceNow();
-      clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
-      const job = await startVideoJob({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined },
-        { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
-      const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-        el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
-      const raw = rawFor(job.resp);
-      const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
-      // A refusal usually means the model won't take this picture, not the wording.
-      const refusalHint = (error) => (/guideline|policy|safety|sensitive|face|person/i.test(error || '')
-        ? el('div', { class: 'small', text: 'A refusal like this usually means the model won\'t take this picture (for example a realistic face). Try a model whose card says it kept the face, rather than rewording the prompt.' }) : null);
-      if (!job.ok) {
-        clipOut.replaceChildren(...[el('div', { class: 'output error', text: job.error || 'The job could not be sent.' }), refusalHint(job.error), ...notes, raw].filter(Boolean));
-        return;
-      }
-      // Sent: the button is free again. The clip shows here when it is done, if it is still the
-      // latest one, and always under Video jobs.
-      clipOut.dataset.job = job.id;
-      const estTag = est ? [' Estimated ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), '.'] : [];
-      clipOut.replaceChildren(el('div', { class: 'output' }, 'Job sent. It runs in the background, so you can make another clip; it shows here when it is done, and under Video jobs in the settings panel.', ...estTag), ...notes, raw);
-      job.done.then((r) => {
-        if (clipOut.dataset.job !== job.id) return;
-        // Request details as sent, with the job's last answer (its end status and cost).
-        const raw = rawFor(r.resp || job.resp);
-        // Prices only as the 1-5 scale ($$$$$), or the provider's billed amount.
-        const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
-          r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
-        if (!r.ok || !r.url) {
-          clipOut.replaceChildren(...[el('div', { class: 'output error', text: r.error || 'The job failed.' }), refusalHint(r.error), ...notes, facts, raw].filter(Boolean));
-          return;
-        }
-        clipOut.replaceChildren(el('div', { class: 'output' },
-          el('video', { controls: '', src: r.url, autoplay: '', muted: '', loop: '', playsinline: '' }),
-          el('div', {}, el('a', { href: r.url, download: `scene-${job.id}.mp4`, text: 'Download' }))),
-        ...notes, facts, raw);
-      });
+      await sendClip({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined }, m, settings.priceNow());
     });
   });
+
+  // Sends one clip job and shows it. Retry (in the finished clip's bar) sends this same input again
+  // as a new job: the same picture, motion, style and settings, whatever has changed since.
+  async function sendClip(input, m, est) {
+    clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
+    const job = await startVideoJob(input, { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
+    const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+      el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
+    const raw = rawFor(job.resp);
+    const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
+    // A refusal usually means the model won't take this picture, not the wording.
+    const refusalHint = (error) => (/guideline|policy|safety|sensitive|face|person/i.test(error || '')
+      ? el('div', { class: 'small', text: 'A refusal like this usually means the model won\'t take this picture (for example a realistic face). Try a model whose card says it kept the face, rather than rewording the prompt.' }) : null);
+    if (!job.ok) {
+      clipOut.replaceChildren(...[el('div', { class: 'output error', text: job.error || 'The job could not be sent.' }), refusalHint(job.error), ...notes, raw].filter(Boolean));
+      return;
+    }
+    // Sent: the button is free again. The clip shows here when it is done, if it is still the
+    // latest one, and always under Video jobs.
+    clipOut.dataset.job = job.id;
+    const estTag = est ? [' Estimated ', priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }), '.'] : [];
+    clipOut.replaceChildren(el('div', { class: 'output' }, 'Job sent. It runs in the background, so you can make another clip; it shows here when it is done, and under Video jobs in the settings panel.', ...estTag), ...notes, raw);
+    job.done.then((r) => {
+      if (clipOut.dataset.job !== job.id) return;
+      // Request details as sent, with the job's last answer (its end status and cost).
+      const raw = rawFor(r.resp || job.resp);
+      // Prices only as the 1-5 scale ($$$$$), or the provider's billed amount.
+      const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
+        r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
+      if (!r.ok || !r.url) {
+        clipOut.replaceChildren(...[el('div', { class: 'output error', text: r.error || 'The job failed.' }), refusalHint(r.error), ...notes, facts, raw].filter(Boolean));
+        return;
+      }
+      // In the clip's bar: Request details, Retry (a new job with the same picture and motion) and Download.
+      const retry = () => runStep(clipForm, clipOut, () => sendClip(input, m, est));
+      clipOut.replaceChildren(el('div', { class: 'output' }, clip({ src: r.url, name: fileName('scene-clip', 'mp4'), left: raw, retry })),
+        ...notes, facts);
+    });
+  }
 
   $('.tool-step', root)?.scrollIntoView?.({ block: 'nearest' });
 }

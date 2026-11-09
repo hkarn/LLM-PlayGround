@@ -255,6 +255,33 @@ button:disabled { opacity: .6; cursor: progress; }
 .output { white-space: pre-wrap; word-break: break-word; background: var(--bg); border-radius: 8px; padding: 12px; }
 .output.error { color: var(--err); }
 .output img { max-width: 100%; border-radius: 6px; display: block; margin: 0 auto 8px; }
+/* Pictures and clips with their bar (ui/media.js): Request details on the left, Retry and Download
+   on the right. A picture opens larger in the pop-out (.lightbox) when clicked. */
+figure.media { margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+figure.media .media-pic { cursor: zoom-in; margin-bottom: 0; }
+figure.media .media-pic:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+figure.media figcaption { margin: 0; }
+.media-bar { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.media-left { flex: 1 1 0; min-width: 0; }
+.media-actions { display: flex; gap: 4px; flex: none; margin-left: auto; }
+.media-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; }
+a.media-btn, a.media-btn:visited { color: var(--muted); }
+.media-btn:hover, a.media-btn:hover { color: var(--text); border-color: var(--accent); }
+.media-btn svg { width: 18px; height: 18px; }
+.media-details > summary { line-height: 34px; white-space: nowrap; }
+/* Opened, the details take the bar's full width under the buttons rather than squeezing beside them. */
+.media-bar { flex-wrap: wrap; }
+.media-left:has(details[open]) { flex-basis: 100%; order: 2; }
+.lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .86);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 12px; }
+.lightbox-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; color: #ddd; }
+.lightbox-actions { margin-left: auto; display: flex; gap: 6px; }
+.lightbox-img { grid-column: 2; grid-row: 2; max-width: 100%; max-height: 100%; margin: auto; border-radius: 6px; object-fit: contain; }
+.lightbox-prev { grid-column: 1; grid-row: 2; }
+.lightbox-next { grid-column: 3; grid-row: 2; }
+.lightbox .media-btn { background: rgba(30, 30, 34, .85); border-color: #555; color: #ddd; }
+.lightbox a.media-btn, .lightbox a.media-btn:visited { color: #ddd; }
 .result h3 { margin: 4px 0 0; font-size: 13px; }
 
 pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow: auto; max-height: 420px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }

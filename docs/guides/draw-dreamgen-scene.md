@@ -58,7 +58,8 @@ When the picture is done, **Animate this picture →** opens [Animate the DreamG
 - Image models rarely know real local places. The prompt describes what a place looks like instead of naming it; if a landmark comes out wrong, describe it more plainly in step 3.
 - Some image models refuse realistic faces in reference pictures. If one refuses, try another model rather than rewording the prompt.
 - With the settings chosen, a second picture is just: load the export, write the prompt, draw.
-- Each step's answer shows first. **Request details** under it holds the status, the request, the raw response and a cURL command, for when something goes wrong.
+- Each step's answer shows first. **Request details** holds the status, the request, the raw response and a cURL command, for when something goes wrong.
+- The picture has a bar under it: **Request details** on the left, and on the right **↻ Retry** (draw the same prompt again, at the same price) and the **download** icon (saved as `scene-<date>-<time>.png`). Click the picture to see it larger; Esc or a click outside closes it. Right-click works as usual.
 - What you type is kept if the page reloads (this tab only).
 
 ## Privacy

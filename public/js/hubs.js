@@ -11,7 +11,7 @@ import { $, $$, el } from './ui/dom.js';
 /* Games and Tools                                                     */
 /* ------------------------------------------------------------------ */
 // Each hub tab shows a launcher of icon cards. Opening one fills the page under the tab bar.
-// An app is { id, title, blurb, icon (inline SVG), status?, render(container) }.
+// An app is { id, title, blurb, icon (inline SVG), status?, video? (needs video models), render(container) }.
 export const svgIcon = (paths) => {
   const wrap = document.createElement('span');
   wrap.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -37,9 +37,9 @@ export const APPS = {
   tools: [
     { id: 'dreamgen-scene', title: 'Draw the DreamGen Scene', icon: ICONS.scene,
       blurb: 'Turn the last scene of a DreamGen session export into an image prompt, add reference portraits, and draw it.', render: renderDreamGenScene },
-    { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo,
+    { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo, video: true,
       blurb: 'Turn a scene picture into a short clip, with motion written from the last scene of the session.', render: renderDreamGenVideo },
-    { id: 'video-generator', title: 'Video Generator', icon: ICONS.video,
+    { id: 'video-generator', title: 'Video Generator', icon: ICONS.video, video: true,
       blurb: 'Make short clips with video models we have tested, each with its own settings and the price shown first.', render: renderVideoGenerator },
   ],
 };

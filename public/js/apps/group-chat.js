@@ -212,7 +212,7 @@ export function renderGroupChat(root) {
         picked = await strategy.order({ characters: active, log: s.log, userName: s.userName, settings: s, signal: run.abort.signal });
       } catch (err) {
         if (err?.name === 'AbortError') return; // Stop while deciding
-        note(`Turn order: ${strategy.label} failed (${err.message}), so this round is in random order.`);
+        note(`Turn order: ${strategy.label} failed (${err.message}), so this round is in random order.`, { warn: true });
         picked = GC_ORDER.random.order({ characters: active });
       } finally {
         run.deciding = false;
@@ -283,8 +283,9 @@ export function renderGroupChat(root) {
     runRound();
   }
 
-  function note(text) {
-    s.log.push({ id: uid(), from: 'note', name: '', text, error: true });
+  // warn: something went wrong but was handled (amber), rather than plain information (grey).
+  function note(text, { warn = false } = {}) {
+    s.log.push({ id: uid(), from: 'note', name: '', text, error: true, warn });
     renderLog();
   }
 
@@ -371,7 +372,7 @@ export function renderGroupChat(root) {
       const name = system ? 'System' : m.name;
       const c = m.from === 'user' || system ? null : charById(m.from);
       const color = m.from === 'user' ? 'var(--accent)' : system ? 'var(--muted)' : c?.color || '#888';
-      return el('div', { class: `gc-msg${m.from === 'user' ? ' me' : ''}${system ? ' system' : m.error ? ' failed' : ''}` },
+      return el('div', { class: `gc-msg${m.from === 'user' ? ' me' : ''}${system ? ` system${m.warn ? ' warn' : ''}` : m.error ? ' failed' : ''}` },
         avatar(name, color),
         el('div', { class: 'bubble' },
           el('div', { class: 'small muted gc-meta' },

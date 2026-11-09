@@ -22,10 +22,12 @@ export const ASSET_VERSION = 'dev';
 // baseUrl (only a suggestion: the URL field can be edited), modelsPaths (fetched and merged),
 // keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
 // server key may be sent), unsupported (tabs that stay usable but are dimmed), endpoints (per tab:
-// path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, json for
-// image edits sent as input_references), suggest (hardcoded option lists, false = not supported)
+// path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, and the
+// request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
 // and speechVoices (a voice list file in providers/). "_notes" hold the comments.
 export const PROVIDERS = {};
+// The shared request/response templates (providers/openai-standard.json), read by adapter.js.
+export const TEMPLATES = { endpoints: {} };
 
 async function fetchData(file) {
   const res = await fetch(`providers/${file}?v=${ASSET_VERSION}`);
@@ -35,7 +37,8 @@ async function fetchData(file) {
 
 // Loads every provider file once. Voice lists are shared between files that name the same one.
 export async function loadProviders() {
-  const { providers: ids } = await fetchData('index.json');
+  const { providers: ids, templates } = await fetchData('index.json');
+  if (templates) TEMPLATES.endpoints = (await fetchData(templates)).endpoints || {};
   const lists = {};
   for (const id of ids) {
     const p = await fetchData(`${id}.json`);
@@ -57,11 +60,12 @@ export const state = {
 };
 export const provider = () => PROVIDERS[state.provider];
 export const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
-// Where a tab sends its request on the current provider: { path, base, json }.
+// Where a tab sends its request on the current provider: { path, base }. How the request and the
+// answer look is in the templates, read by adapter.js.
 export function ep(kind) {
   const o = provider().endpoints?.[kind] || {};
   const base = o.base?.replace ? baseUrl().replace(new RegExp(o.base.replace[0]), o.base.replace[1]) : baseUrl();
-  return { path: o.path || ENDPOINT[kind], base, json: Boolean(o.json) };
+  return { path: o.path || ENDPOINT[kind], base };
 }
 
 // Use the server.js proxy when it serves the page. On a static host (e.g. GitHub Pages)
@@ -307,30 +311,6 @@ export const truncate = (s = '', n) => (s.length > n ? `${s.slice(0, n - 1)}…`
 /* Reference images for image edits                                    */
 /* ------------------------------------------------------------------ */
 export const MAX_EDIT_IMAGES = 16;
-// Image with reference pictures, on whatever the current provider uses for edits.
-// OpenRouter: JSON to /images with data URLs in input_references and no mask.
-// OpenAI style (Requesty, custom): multipart with one image[] field per picture.
-export async function sendImageEdit(fields, images, mask, signal) {
-  const { path, base, json } = ep('imageEdit');
-  if (json) {
-    const refs = await Promise.all(images.map(async (f) => ({ type: 'image_url', image_url: { url: await fileToDataUrl(f) } })));
-    const resp = await callApi(path, { base, json: { ...fields, input_references: refs }, signal });
-    const request = { ...fields, input_references: images.map((f) => ({ type: 'image_url', image_url: { url: `<${f.name} as base64 data URL>` } })) };
-    return { resp, request, curl: curlFor(path, { base, json: request }), maskDropped: Boolean(mask) };
-  }
-  const fd = new FormData();
-  for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-  for (const img of images) fd.append('image[]', img, img.name);
-  if (mask) fd.append('mask', mask, mask.name);
-  const resp = await callApi(path, { base, formData: fd, signal });
-  const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 1024).toFixed(1)} KB)`;
-  const request = { ...fields, 'image[]': images.map(describe), ...(mask ? { mask: describe(mask) } : {}) };
-  const curl = curlFor(path, { base, formFields: [
-    ...Object.entries(fields), ...images.map((f) => ['image[]', `@${f.name}`]), ...(mask ? [['mask', `@${mask.name}`]] : []),
-  ] });
-  return { resp, request, curl, maskDropped: false };
-}
-
 export function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();

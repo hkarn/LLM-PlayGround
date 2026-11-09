@@ -1,4 +1,5 @@
 /* LLM PlayGround: UI component: the result panel (status, rendered answer, raw response, request, headers, cURL) and image results. */
+import { read } from '../adapter.js';
 import { errorMessage } from '../core.js';
 import { el } from './dom.js';
 
@@ -38,15 +39,25 @@ export function renderException(container, err) {
 }
 
 // Shared by image generation and edits. `shown` shortens b64_json for the raw view.
-export function renderImages(resp, format = 'png') {
-  if (!resp.ok || !Array.isArray(resp.data?.data)) return { rendered: undefined, shown: resp };
-  const rendered = el('div', { class: 'output' }, ...resp.data.data.map((img, i) => {
-    const src = img.b64_json ? `data:${img.media_type || `image/${format}`};base64,${img.b64_json}` : img.url;
+// `kind` names the endpoint whose response map says where the images are (image or imageEdit).
+export function renderImages(resp, format = 'png', kind = 'image') {
+  const images = resp.ok ? read(kind, resp).images : undefined;
+  if (!images?.length) return { rendered: undefined, shown: resp };
+  const rendered = el('div', { class: 'output' }, ...images.map((img, i) => {
+    const src = img.b64 ? `data:${img.mime || `image/${format}`};base64,${img.b64}` : img.url;
     return el('div', {},
       src ? el('img', { src, alt: `Generated image ${i + 1}` }) : el('div', { text: '(no image data)' }),
-      img.revised_prompt ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised_prompt}` }) : null,
+      img.revised ? el('div', { class: 'muted small', text: `Revised prompt: ${img.revised}` }) : null,
       src ? el('a', { href: src, download: `image-${i + 1}.${format}`, target: '_blank', text: 'Download / open' }) : null);
   }), resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
-  const shown = { ...resp, data: { ...resp.data, data: resp.data.data.map((d) => (d.b64_json ? { ...d, b64_json: `<${d.b64_json.length.toLocaleString()} base64 chars>` } : d)) } };
+  const shown = { ...resp, data: shortenBase64(resp.data) };
   return { rendered, shown };
+}
+
+// A copy of a response with long base64 strings shortened, for the raw view.
+function shortenBase64(v) {
+  if (typeof v === 'string') return v.length > 2000 && /^[A-Za-z0-9+/=\s]+$/.test(v.slice(0, 200)) ? `<${v.length.toLocaleString()} base64 chars>` : v;
+  if (Array.isArray(v)) return v.map(shortenBase64);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shortenBase64(x)]));
+  return v;
 }

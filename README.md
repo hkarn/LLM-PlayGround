@@ -28,12 +28,13 @@ Plain JavaScript modules, no build step. `public/index.html` loads `public/js/ma
 | --- | --- |
 | `public/js/ui/dom.js` | `el()`, `$()`, `$$()`: building and finding page elements. Everything uses these |
 | `public/js/core.js` | Shared by everything, no screens of its own: the providers list, sending requests (`callApi`) and cURL, loading the models list, storage and small text helpers |
+| `public/js/adapter.js` | Turns what an app wants (a chat, an image, an image edit) into the provider's request using the templates in the provider files, and reads the answer back into plain values (text, images, usage) |
 | `public/js/ui/*.js` | Reusable pieces that apps put together: result panel, model picker, option dropdowns that follow the model, Send/Cancel, drafts kept across reloads, remembered choices, hide-settings toggle, copy button, named reference portraits |
 | `public/js/testers.js` | The endpoint tabs (Chat, Decision, Embeddings, …): plain raw debuggers, one handler per tab |
 | `public/js/apps/*.js` | One file per tool or game, named after its link: `dreamgen-scene.js`, `dreamgen-video.js`, `group-chat.js`, `video-generator.js` |
 | `public/js/hubs.js` | The Games and Tools launchers, the list of apps, and direct links (`#tools/…`) |
 | `public/js/main.js` | Start-up: wires the tabs, the endpoint picker and the forms |
-| `public/providers/*.json` | One settings file per provider (base URL, model lists, paths that differ, key and sign-up link, hardcoded option and voice lists). `index.json` sets the order; `server.js` reads the same files |
+| `public/providers/*.json` | One settings file per provider (base URL, model lists, paths that differ, key and sign-up link, hardcoded option and voice lists, and request/response templates where it differs from the standard). `openai-standard.json` holds the standard OpenAI-style templates every provider starts from. `index.json` sets the order; `server.js` reads the same files |
 | `public/style.css` | All styles, with light and dark colours as variables at the top |
 | `server.js` | Optional local server: serves `public/` and forwards `/api/*` to the chosen endpoint |
 

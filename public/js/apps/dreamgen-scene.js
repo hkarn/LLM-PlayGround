@@ -1,5 +1,6 @@
 /* LLM PlayGround: Tool: Draw the DreamGen Scene. */
-import { callApi, compact, curlFor, ep, lines, messageText, num, parseJsonLoose, sendImageEdit, store, str, usageLine } from '../core.js';
+import { read, send } from '../adapter.js';
+import { curlFor, ep, lines, num, parseJsonLoose, store, str, usageLine } from '../core.js';
 import { copyButton } from '../ui/copy-button.js';
 import { $, $$, el } from '../ui/dom.js';
 import { keepDrafts } from '../ui/drafts.js';
@@ -345,16 +346,14 @@ export function renderDreamGenScene(root) {
       const focus = promptForm.elements.focus.value.trim();
       const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
       const system = promptForm.elements.system.value.trim();
-      const body = compact({
+      const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(promptForm, 'max_tokens'),
-      });
-      const { path, base } = ep('chat');
-      const resp = await callApi(path, { base, json: body, signal: promptForm._abort?.signal });
+      }, { signal: promptForm._abort?.signal });
       let rendered;
       if (resp.ok && resp.data?.choices) {
         const choice = resp.data.choices[0] || {};
-        const reply = messageText(choice.message || {});
+        const reply = read('chat', resp).text || '';
         const parsed = parseJsonLoose(reply);
         applyScene(parsed?.prompt ? parsed : { prompt: reply.trim(), characters: [] });
         rendered = el('div', {},
@@ -362,6 +361,7 @@ export function renderDreamGenScene(root) {
           el('div', { class: 'muted small', text: usageLine(resp.data, choice) }));
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
+      const { path, base } = ep('chat');
       renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered });
     });
   });
@@ -411,21 +411,17 @@ export function renderDreamGenScene(root) {
       if (!prompt) throw new Error('Write or generate an image prompt first (steps 2 and 3).');
       const model = chosenModel(imageForm);
       if (!model) throw new Error('Pick or type an image model first.');
-      const fields = compact({
+      const fields = {
         model, prompt,
         size: str(imageForm, 'size'), aspect_ratio: str(imageForm, 'aspect_ratio'),
         resolution: str(imageForm, 'resolution'), quality: str(imageForm, 'quality'),
-      });
-      if (portraits.refs.length) {
-        const { resp, request, curl } = await sendImageEdit(fields, portraits.refs.map((r) => r.file), undefined, imageForm._abort?.signal);
-        const { rendered, shown } = renderImages(resp);
-        renderResult(imageOut, { resp: shown, request, curl, rendered });
-        return;
-      }
-      const { path, base } = ep('image');
-      const resp = await callApi(path, { base, json: fields, signal: imageForm._abort?.signal });
-      const { rendered, shown } = renderImages(resp);
-      renderResult(imageOut, { resp: shown, request: fields, curl: curlFor(path, { base, json: fields }), rendered });
+      };
+      // With portraits it is an image edit; the provider's template decides how they travel.
+      const kind = portraits.refs.length ? 'imageEdit' : 'image';
+      const input = kind === 'imageEdit' ? { ...fields, images: portraits.refs.map((r) => r.file) } : fields;
+      const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
+      const { rendered, shown } = renderImages(resp, 'png', kind);
+      renderResult(imageOut, { resp: shown, request, curl, rendered });
     });
   });
 }

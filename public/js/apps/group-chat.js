@@ -130,6 +130,8 @@ export function exportGroupChat(s) {
 export function readGroupChat(text) {
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('This is not a JSON file.'); }
+  // Only the version this page writes is read: a later format may mean something else by a field.
+  if (data?.format === GC_FORMAT && data.version !== 1) throw new Error(`This export is version ${data.version}; this page reads version 1. Update the page and try again.`);
   const chat = data?.format === GC_FORMAT ? data.chat : data;
   if (!chat || !Array.isArray(chat.characters)) throw new Error('This is not an AI Group Chat export (it has no characters list).');
   const str = (v, max = 20000) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -142,7 +144,8 @@ export function readGroupChat(text) {
       color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : GC_COLORS[i % GC_COLORS.length], active: c.active !== false };
   });
   if (!characters.length) throw new Error('The file has no characters with a name.');
-  const log = (Array.isArray(chat.log) ? chat.log : []).filter((m) => m && typeof m.text === 'string').map((m, i) => ({
+  // No messages list at all is not a chat (null); Import chat refuses it, Import characters doesn't need it.
+  const log = !Array.isArray(chat.log) ? null : chat.log.filter((m) => m && typeof m.text === 'string').map((m, i) => ({
     id: str(m.id, 40) || `m${i}`, from: str(m.from, 40) || 'user', name: str(m.name, 80), text: str(m.text, 100000),
     ...(m.model ? { model: str(m.model, 200) } : {}), ...(m.usage && typeof m.usage === 'object' ? { usage: m.usage } : {}),
     ...(m.error ? { error: true } : {}), ...(m.warn ? { warn: true } : {}),
@@ -153,7 +156,10 @@ export function readGroupChat(text) {
     userName: str(chat.userName, 80).trim() || d.userName, userBio: str(chat.userBio), scenario: typeof chat.scenario === 'string' ? str(chat.scenario) : d.scenario,
     defaultModel: str(chat.defaultModel, 200), order: GC_ORDER[chat.order] ? chat.order : d.order,
     decisionModels: Object.fromEntries(Object.entries(chat.decisionModels && typeof chat.decisionModels === 'object' ? chat.decisionModels : {}).map(([k, v]) => [str(k, 40), str(v, 200)])),
-    decisionCost: num(chat.decisionCost, 0), maxTokens: num(chat.maxTokens, d.maxTokens), temperature: num(chat.temperature, d.temperature),
+    // Kept within what the fields allow (max tokens at least 1, temperature 0 to 2), as typing would.
+    decisionCost: Math.max(0, num(chat.decisionCost, 0)),
+    maxTokens: Math.max(1, Math.round(num(chat.maxTokens, d.maxTokens))),
+    temperature: Math.min(2, Math.max(0, num(chat.temperature, d.temperature))),
   };
   return { characters, log, settings, provider: str(data?.provider, 40) };
 }
@@ -485,6 +491,7 @@ export function renderGroupChat(root) {
     if (!file) return;
     let loaded;
     try { loaded = readGroupChat(await file.text()); } catch (err) { note(`Import: ${err.message}`, { warn: true }); return; }
+    if (importWhat === 'chat' && !loaded.log) { note('Import: this file has characters but no messages list, so it is not a whole chat. Use Import characters… for a cast.', { warn: true }); return; }
     const what = importWhat === 'chat'
       ? `Replace this chat with ${file.name}: ${loaded.characters.length} characters, ${loaded.log.length} messages and its settings?`
       : `Replace the characters with the ${loaded.characters.length} in ${file.name}? The chat and settings stay.`;

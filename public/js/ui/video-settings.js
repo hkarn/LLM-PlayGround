@@ -82,6 +82,21 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
     return modelsIn('video').filter((m) => !ids.has(m.id)).map(untestedVideoModel).filter(takesFrame);
   };
   const model = () => tested().find((m) => m.id === chosen) || others().find((m) => m.id === chosen);
+  // The shared choice found among all video models, also when this tool can't use it.
+  const anyModel = (id) => {
+    const t = testedVideoModels().find((m) => m.id === id);
+    if (t) return t;
+    const meta = modelsIn('video').find((m) => m.id === id);
+    return meta ? untestedVideoModel(meta) : undefined;
+  };
+  // A shared choice this tool can't use (Animate takes only models that start from a picture). It is
+  // kept, not swapped for another model, so the tools never quietly disagree: the user picks again,
+  // and that pick becomes the choice in every video tool.
+  const unusable = () => (state.models.length && chosen && !model() ? anyModel(chosen) : undefined);
+  const blocked = () => {
+    const m = unusable();
+    return m ? `The video model chosen in the other video tools, ${m.label || m.id}, can't start from a picture, so it doesn't work here. Pick one under Settings; it becomes the choice in the other video tools too.` : '';
+  };
 
   const fillSelect = (label, values, want) => {
     const s = $('select', label);
@@ -97,9 +112,11 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
     const p = provider();
     notice.textContent = !state.models.length
       ? 'Load models (the connection chip at the top) to see each model\'s options and prices, and the other video models your key can use.'
-      : !list.length && !rest.length ? `No video models found for ${p?.label || 'this provider'}.` : '';
-    // Before the list is loaded the saved choice can't be checked, so it is kept as it is.
-    if (state.models.length && !model()) chosen = list[0]?.id ?? rest[0]?.id;
+      : !list.length && !rest.length ? `No video models found for ${p?.label || 'this provider'}.` : blocked();
+    notice.classList.toggle('vs-blocked', Boolean(unusable()));
+    // Before the list is loaded the saved choice can't be checked, so it is kept as it is. A choice
+    // that is gone from the list falls back to the first model; one this tool can't use is kept.
+    if (state.models.length && !model() && !unusable()) chosen = list[0]?.id ?? rest[0]?.id;
     cards.replaceChildren(...list.map((m) => {
       // Priced as it will be sent: "always" models always pay for audio, whatever the default says.
       const est = m.meta && estimateVideoCost(m.meta, { ...m.default, generate_audio: m.audio === 'always' ? true : m.default?.generate_audio, frames: m.needsFirstFrame || firstFrameOnly ? 1 : 0 });
@@ -142,6 +159,8 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
 
   // Options for the chosen model: the loaded metadata, narrowed by the file's lists when it has them.
   function applyModel(fresh) {
+    // A pick here replaces a choice this tool couldn't use: the warning goes.
+    if (notice.classList.contains('vs-blocked') && !unusable()) { notice.textContent = ''; notice.classList.remove('vs-blocked'); }
     $$('.vg-model', cards).forEach((c) => {
       const r = $('input[type=radio]', c);
       c.classList.toggle('chosen', r.value === chosen || (r.value === '__other' && others().some((m) => m.id === chosen)));
@@ -231,7 +250,8 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   // The tool appends the settings after this returns: from then on they count as shown.
   setTimeout(() => { if (root.isConnected) shown = true; });
   return {
-    root, frames, price, refresh, read, model, priceNow,
+    // blocked(): why there is no model to use here (the shared choice doesn't suit this tool), or ''.
+    root, frames, price, refresh, read, model, priceNow, blocked,
     // Frames the tool supplies itself (Animate the DreamGen Scene's scene picture) count in the price.
     setFrameCount(n) { externalFrames = n; update(); },
   };

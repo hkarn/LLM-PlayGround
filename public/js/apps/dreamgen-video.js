@@ -112,7 +112,8 @@ export function renderDreamGenVideo(root) {
         el('p', { class: 'muted small', text: 'Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
     ],
     main,
-    summary: () => [chosenModel(chatForm), settings.model()?.label].filter(Boolean).join(' · '),
+    // While folded, say so when the shared video model doesn't work here and a new pick is needed.
+    summary: () => [chosenModel(chatForm), settings.blocked() ? 'Video model: pick one that starts from a picture' : settings.model()?.label].filter(Boolean).join(' · '),
   });
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
@@ -205,7 +206,7 @@ export function renderDreamGenVideo(root) {
       // The picture style goes at the end, as Draw the DreamGen Scene adds it to the image prompt.
       const prompt = style.withStyle(motionText);
       const m = settings.model();
-      if (!m) throw new Error('Pick a video model first (Settings).');
+      if (!m) throw new Error(settings.blocked() || 'Pick a video model first (Settings).');
       const est = settings.priceNow();
       const status = el('div', { class: 'muted' });
       clipOut.replaceChildren(status);

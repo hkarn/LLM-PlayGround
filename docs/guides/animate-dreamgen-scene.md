@@ -22,7 +22,7 @@ The **settings panel** on the right holds what you choose once and then leave al
 - **Duration, resolution and aspect ratio:** only what the chosen model supports is offered, and the cheapest settings are chosen first.
 - **Picture style:** shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.
 
-The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices.
+The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices. If the video model chosen in the Video Generator can't start from a picture, Animate doesn't swap it for another: it says so above the cards (and beside the folded Settings button on a phone) and waits for you to pick one. Your pick then becomes the choice in the Video Generator too.
 
 ## Step by step
 

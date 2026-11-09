@@ -2,6 +2,7 @@
 import { follow, read, send } from './adapter.js';
 import { errorMessage, lines, MAX_EDIT_IMAGES, num, provider, state, str, truncate, usageLine } from './core.js';
 import { $, $$, el } from './ui/dom.js';
+import { framePngOrJpeg } from './ui/frame-image.js';
 import { chosenModel } from './ui/model-picker.js';
 import { pre, renderImages, renderResult } from './ui/result.js';
 import { wait } from './ui/run-step.js';
@@ -230,8 +231,14 @@ export const handlers = {
 
   // Async: submit a job, poll its status, then download the video from /videos/{id}/content.
   async video(form, out) {
-    const frame = form.elements.first_frame.files[0];
-    if (frame && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
+    const picked = form.elements.first_frame.files[0];
+    if (picked && form.elements.first_frame.disabled) throw new Error('This model takes no first frame image. Clear the file or pick another model.');
+    // JPEG and PNG go as they are; other formats (e.g. WebP) would fail the job after submit, so they go as PNG.
+    const { file: frame, note: frameNote } = await framePngOrJpeg(picked);
+    const showResult = (args) => {
+      renderResult(out, args);
+      if (frameNote) $('.status-line', out)?.after(el('div', { class: 'muted small', text: frameNote }));
+    };
     const signal = form._abort?.signal;
     const t0 = Date.now();
     let { resp, request: shownReq, curl } = await send('video', {
@@ -242,7 +249,7 @@ export const handlers = {
     }, { signal });
     let job = read('video', resp);
     const { id } = job;
-    if (!resp.ok || !id) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
+    if (!resp.ok || !id) { showResult({ resp, request: shownReq, curl, rendered: undefined }); return; }
 
     const progress = el('div', { class: 'muted' });
     out.replaceChildren(progress);
@@ -251,7 +258,7 @@ export const handlers = {
       progress.textContent = `Job ${id}: ${job.status || 'submitted'} · ${Math.round((Date.now() - t0) / 1000)} s. Checking every 5 s…`;
       await wait(5000, signal);
       resp = await follow('video', 'poll', { id }, { signal });
-      if (!resp.ok) { renderResult(out, { resp, request: shownReq, curl, rendered: undefined }); return; }
+      if (!resp.ok) { showResult({ resp, request: shownReq, curl, rendered: undefined }); return; }
       job = read('video', resp);
     }
     const { status } = job;
@@ -270,7 +277,7 @@ export const handlers = {
     } else {
       rendered = el('div', { class: 'output error', text: `Job ${status}${job.error ? `: ${typeof job.error === 'string' ? job.error : JSON.stringify(job.error)}` : ''}` });
     }
-    renderResult(out, { resp, request: shownReq, curl, rendered });
+    showResult({ resp, request: shownReq, curl, rendered });
   },
 };
 

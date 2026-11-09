@@ -16,7 +16,7 @@ You need an API key, loaded in the connection panel at the top. Any provider wit
 - The line under the chat shows who answers in this round, in order.
 - **×** next to a message deletes it, so the characters forget it in later rounds.
 
-If a character's answer fails (a wrong model id, or a missing or refused key), it shows the reason in red, and the round goes on with the next character.
+If a character's answer fails (a wrong model id, or a missing or refused key), it shows the reason in red, and the round goes on with the next character. **↻** next to a failed answer asks that character again, with its current model, about the chat up to that point; the new answer takes the failed one's place.
 
 ## Characters
 
@@ -38,12 +38,24 @@ Open **Chat settings** above the chat:
 | --- | --- |
 | Your name | What the characters call you |
 | Default model | Used by every character that has no model of its own |
-| Turn order | **Random** shuffles who speaks each round; **List order** follows the character list |
+| Turn order | **Random** shuffles who speaks each round; **List order** follows the character list; **Decision model** lets a decision model pick who talks next (see below) |
+| Decision model | Only with the Decision model turn order: the model that picks who talks next. Click it to see your provider's decision models. Kept per provider |
 | Max tokens per answer | Keeps answers short (300 by default) |
 | Temperature | Higher is more playful and surprising (0.9 by default) |
 | Setting (shared by everyone) | The situation every character knows, such as "A relaxed group chat between friends" |
 | Clear chat | Deletes all messages |
 | Reset characters | Puts the three example characters back |
+
+## Decision model turn order
+
+With **Turn order: Decision model**, each round starts with a quick question to a decision model: "Who should talk next in this conversation?" It reads the chat so far (your messages too, and the setting) and gives each ticked character a probability, using their personalities as the options. The round then goes from the most likely character to the least likely, and the line under the chat shows each one's percentage.
+
+- **You are never one of the options.** You decide yourself whether to talk (**Send**) or pass (**Another round**).
+- **When you pass,** whoever spoke last is left out of the question, shown at 0 %, and answers last, so nobody answers themselves.
+- **The cost** is tiny: about $0.000002–0.000006 a round with the models below. It's added to the total under the characters, as "turn order".
+- **If it fails** (no decision model chosen, a provider without decisions such as Custom, or an error), the round runs in random order and says why in the chat.
+
+Decision models are on OpenRouter and Requesty. On OpenRouter, in one test where you had just asked Bram something, `~perplexity/pplx-decider-flash-latest` gave Bram 92 % and `liquid/d1-ultra` 71 %, while `liquid/d1` leaned the wrong way (Bram 48 %). Start with one of the first two.
 
 ## Good to know
 

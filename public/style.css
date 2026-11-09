@@ -272,6 +272,8 @@ button.danger { color: var(--err); }
 .gc-chip.done { color: var(--muted); }
 .gc-chip.failed { border-color: var(--err); color: var(--err); }
 .gc-chip.skipped { color: var(--muted); text-decoration: line-through; }
+.gc-chip .gc-odds { color: var(--muted); font-variant-numeric: tabular-nums; }
+.gc-settings label[hidden] { display: none; }
 .gc-compose { display: flex; gap: 8px; align-items: stretch; }
 .gc-compose textarea { flex: 1; min-width: 0; }
 .gc-buttons { display: flex; flex-direction: column; gap: 6px; }

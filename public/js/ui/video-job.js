@@ -71,7 +71,12 @@ export function estimateVideoCost(model, { duration, resolution, aspect_ratio: a
   let perSecond;
   let basis;
   const mode = frames ? 'image_to_video' : 'text_to_video';
-  for (const key of [`${mode}_duration_seconds`, `duration_seconds_${audio ? 'with' : 'without'}_audio`, 'duration_seconds', 'duration_seconds_with_audio']) {
+  // With audio on, a with-audio price wins over the plain per-mode one: Kling 3.0 lists
+  // image_to_video_duration_seconds_720p (no audio) beside duration_seconds_with_audio.
+  const order = audio
+    ? ['duration_seconds_with_audio', `${mode}_duration_seconds`, 'duration_seconds']
+    : [`${mode}_duration_seconds`, 'duration_seconds_without_audio', 'duration_seconds', 'duration_seconds_with_audio'];
+  for (const key of order) {
     if (at(key) !== undefined) { perSecond = at(key); basis = `$${perSecond}/s${resText}`; break; }
   }
   if (perSecond === undefined) {

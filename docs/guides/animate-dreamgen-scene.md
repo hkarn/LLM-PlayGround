@@ -32,7 +32,7 @@ Edit the **Motion prompt** as you like; that is what the video model gets.
 ### 3. Model, settings and the clip
 
 1. Pick a **video model**. The cards show what each one takes and what we found when we tested it:
-   - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
+   - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1, HeyGen Video 1, Seedance 2.0 fast and Runway Gen-4.5 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
    - **Audio:** some always add sound, some can turn it off, some have none.
    - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
    - **Other video model** lists every other video model your key can use, marked untested.

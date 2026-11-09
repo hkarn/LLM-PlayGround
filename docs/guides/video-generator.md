@@ -2,7 +2,7 @@
 
 Make short video clips from a prompt, and optionally from a first and last picture. The models we have tested come first, each with only the settings it really supports and the price shown before you send.
 
-Open it: **Tools → Video Generator**, or <https://hkarn.github.io/LLM-PlayGround/#tools/video-generator>.
+Open it: **Tools → Video Generator**, or <https://hkarn.github.io/LLM-PlayGround/#tools/video-generator>. Inside it, the title at the top is a drop-down to switch to another tool straight away, and **←** goes back to the list; this header stays at the top while you scroll.
 
 ## Before you start
 

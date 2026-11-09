@@ -63,12 +63,10 @@ function appSwitcher(hub, current, openApp) {
   el('span', {}, el('strong', { text: a.title }), el('span', { class: 'muted small', text: a.blurb })),
   a.status ? el('span', { class: 'tag', text: a.status }) : null)));
   btn.addEventListener('click', () => open(list.hidden));
-  // A click outside closes it; the listener goes once this header has been replaced.
-  const outside = (e) => {
-    if (!wrap.isConnected) { document.removeEventListener('pointerdown', outside); return; }
-    if (!list.hidden && !wrap.contains(e.target)) open(false);
-  };
+  // A click outside closes it. dispose() removes the listener when the header is replaced.
+  const outside = (e) => { if (!list.hidden && !wrap.contains(e.target)) open(false); };
   document.addEventListener('pointerdown', outside);
+  wrap.dispose = () => document.removeEventListener('pointerdown', outside);
   wrap.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !list.hidden) { open(false); btn.focus(); }
     if (!list.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
@@ -84,7 +82,11 @@ function appSwitcher(hub, current, openApp) {
 export function setupHubs() {
   for (const panel of $$('.panel.hub')) {
     const hub = panel.dataset.hub;
+    // Whatever the open app's header set up (the switcher's listener, the height observer) goes
+    // before the panel is drawn again.
+    const disposeHead = () => { panel._disposeHead?.(); panel._disposeHead = null; };
     const showLauncher = () => {
+      disposeHead();
       store.del(`app_${hub}`);
       panel._app = null;
       setHash(hub);
@@ -110,10 +112,14 @@ export function setupHubs() {
           '← ', el('span', { class: 'app-back-text', text: `All ${HUBS[hub].title.toLowerCase()}` })),
         el('h2', {}, appSwitcher(hub, app, openApp)),
         app.status ? el('span', { class: 'tag', text: app.status }) : null);
+      disposeHead();
       panel.replaceChildren(head, body);
       // The header stays pinned under the top bar; its height lets the tool's sticky settings panel
       // stop below it (--apphead-h, read by .tool-panel in style.css).
-      new ResizeObserver(() => panel.style.setProperty('--apphead-h', `${head.offsetHeight}px`)).observe(head);
+      const sizer = new ResizeObserver(() => panel.style.setProperty('--apphead-h', `${head.offsetHeight}px`));
+      sizer.observe(head);
+      const switcher = head.querySelector('.app-switch-wrap');
+      panel._disposeHead = () => { sizer.disconnect(); switcher?.dispose?.(); panel.style.removeProperty('--apphead-h'); };
       app.render(body);
     };
     // Route to "#hub" (launcher) or "#hub/app-id" (that app).

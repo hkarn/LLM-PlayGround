@@ -20,7 +20,7 @@ export const ASSET_VERSION = 'dev';
 // Endpoints in the picker, loaded from public/providers/<id>.json by loadProviders() (the list and
 // order are in providers/index.json; server.js reads the same files). Each file has: label,
 // baseUrl (only a suggestion: the URL field can be edited), modelsPaths (fetched and merged),
-// keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
+// serverBaseUrl (used instead of baseUrl when server.js serves the page), baseUrlHint (placeholder text when the URL is empty), keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
 // server key may be sent), unsupported (tabs that stay usable but are dimmed), endpoints (per tab:
 // path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, and the
 // request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
@@ -58,6 +58,9 @@ export async function loadProviders() {
   }
   return PROVIDERS;
 }
+
+// The URL a provider starts with: serverBaseUrl through server.js (e.g. a gateway on localhost), else baseUrl.
+export const defaultBaseUrl = (p = provider()) => (state.viaServer && p.serverBaseUrl) || p.baseUrl;
 
 export const state = {
   models: [],         // raw model objects from the provider's model list

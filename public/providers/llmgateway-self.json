@@ -3,12 +3,15 @@
     "A self-hosted LLM Gateway (https://github.com/theopenco/llmgateway): run it yourself with your own provider keys, then use its own gateway API key here. Everything else (model tabs, image edit format, options) comes from llmgateway.json through extends.",
     "Unlike the hosted API, your own instance can allow browser calls: add the page's origin to its CORS allowlist (GATEWAY_CORS_ORIGINS in its quickstart), for example https://hkarn.github.io for the GitHub Pages site, or http://127.0.0.1:3000 for node server.js. Without that the browser blocks the calls, and the page shows the network error.",
     "attributionHeaders is false (from llmgateway.json): the gateway's CORS allows only its own request headers, so the page does not add HTTP-Referer and X-Title on direct calls.",
-    "The default base URL is the local development address from its OpenAPI spec. A gateway on another machine needs https when the page itself is https (GitHub Pages), or the browser blocks it as mixed content; http://localhost is allowed.",
-    "No server key: server.js only sends server keys to a provider's own domain, and a self-hosted gateway can be anywhere. Through server.js, a non-local base URL needs ALLOW_ANY_UPSTREAM."
+    "No server key: server.js only sends server keys to a provider's own domain, and a self-hosted gateway can be anywhere. Through server.js, a non-local base URL needs ALLOW_ANY_UPSTREAM.",
+    "On GitHub Pages no base URL is filled in: it is wherever you run your gateway (baseUrlHint is shown in the empty field). Through server.js the field starts at serverBaseUrl, the gateway's local development address (port 4001); edit it if yours runs elsewhere. A gateway on another machine needs https when the page itself is https (GitHub Pages), or the browser blocks it as mixed content.",
+    "LLM Gateway at llmgateway.io runs the same open-source gateway, so this file uses the same endpoints, options and templates through extends."
   ],
   "extends": "llmgateway.json",
   "label": "LLM Gateway (self-hosted)",
-  "baseUrl": "http://localhost:4001/v1",
+  "baseUrl": "",
+  "serverBaseUrl": "http://localhost:4001/v1",
+  "baseUrlHint": "Your gateway's URL, e.g. https://gateway.example.com/v1",
   "keyEnv": "API_KEY",
   "keyHint": "your gateway's API key",
   "signup": {

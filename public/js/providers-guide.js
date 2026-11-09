@@ -34,7 +34,7 @@ export function renderProviderGuide(container, { unavailable, choose }) {
   container.replaceChildren(
     el('div', { class: 'providers-intro' }, [
       el('h2', { text: 'Pick a provider' }),
-      el('p', { text: 'Everything here runs on your own API key from one of these providers. Get a key, paste it at the top and press Load models. The key stays in your browser and goes only to the provider you pick.' }),
+      el('p', { text: 'Everything here runs on your own API key from one of these providers. Get a key, paste it at the top and press Load models. The key is kept only in your browser and sent only to the provider you pick: directly from the page, or through your own server when you run one (Docker or node server.js), which passes it on without storing it.' }),
     ]),
     el('div', { class: 'provider-cards' }, cards),
   );

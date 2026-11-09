@@ -94,7 +94,8 @@
       "frames: the frame images the model takes. needsFirstFrame: refuses text-only jobs. audio: \"off\" (none), \"optional\" (generate_audio false works), \"always\" (an audio track every time). faces: what happened with a photoreal face as the first frame (2026-11-08 research, #26).",
       "tested: what was run, with the price billed. Test frames were plain gradients, 1024x576 PNG.",
       "priceSeen: shown next to the price when a test was billed differently from the listed price. priceFactor: the estimate is multiplied by it, so the price scale follows what was really billed. The tools show the provider's listed price, or a 1-5 scale ($$$$$) where only an estimate is possible (token prices, or a priceFactor); amounts from our tests are never shown.",
-      "Taken out on 2026-11-09: google/veo-3.1-lite and bytedance/seedance-2.0-mini refuse AI-generated faces too, even a clearly non-human one (an alien with head ridges), not only photoreal ones, which makes them no use for DreamGen scenes. They still worked for text-to-video and frames without faces (Veo: first and last frame, audio off, 4 s 720p for $0.12; Seedance: 4 s 480p for about $0.14), and stay usable under Other video model."
+      "Taken out on 2026-11-09: google/veo-3.1-lite and bytedance/seedance-2.0-mini refuse AI-generated faces too, even a clearly non-human one (an alien with head ridges), not only photoreal ones, which makes them no use for DreamGen scenes. They still worked for text-to-video and frames without faces (Veo: first and last frame, audio off, 4 s 720p for $0.12; Seedance: 4 s 480p for about $0.14), and stay usable under Other video model.",
+      "Tested on 2026-11-09 but not suggested (all kept an AI-made alien face as first frame, and stay usable under Other video model): google/gemini-omni-1.1-flash (3 s 360p, $0.10, always has audio and refuses generate_audio false; older than 1.2), x-ai/grok-imagine-video-1.5 (2 s 480p, $0.17, always has audio; dearer than Grok Imagine), alibaba/wan-3.0-prime (2 s 480p, $0.34, listed $0.14; an audio track even with audio off), bytedance/seedance-2.5 (4 s 480p audio off, $0.42, about 3 min), alibaba/wan-2.6 (5 s 720p audio off, $0.50, no track), alibaba/wan-2.7 (2 s 720p, $0.50, listed $0.20; an audio track even with audio off)."
     ],
     "tbc/mischief-1": {
       "label": "Mischief 1",
@@ -154,6 +155,25 @@
         "2026-11-09 (owner): AI-made faces as first frame at the lowest settings: faces kept, about a tenth of HappyHorse 1.1's price; the audio switch works both ways; with audio on it invented dialogue that fitted the story"
       ]
     },
+    "heygen/heygen-video-1": {
+      "label": "HeyGen Video 1",
+      "frames": [
+        "first_frame"
+      ],
+      "audio": "off",
+      "faces": "kept an AI-made alien face",
+      "default": {
+        "duration": 5,
+        "resolution": "480p",
+        "aspect_ratio": "16:9"
+      },
+      "note": "First frame, 5–30 s, from 480p. No audio. Kept an AI-made, non-human face. A test was billed half its listed price.",
+      "priceFactor": 0.5,
+      "priceSeen": "A test was billed about half the listed price, which this scale includes.",
+      "tested": [
+        "2026-11-09: AI alien face (grey-blue skin, bony head ridges) as first frame, 5 s 480p: 832x480, no audio track, face kept through the clip, $0.05 (listed $0.02/s, so $0.10), 46 s"
+      ]
+    },
     "x-ai/grok-imagine-video": {
       "label": "Grok Imagine",
       "frames": [
@@ -186,6 +206,42 @@
       "tested": [
         "2026-11-09: text, 3 s 360p: 640x360 with audio, $0.07, 29 s",
         "2026-11-09: first and last frame, 3 s 360p: 640x360 with audio, $0.07, 29 s"
+      ]
+    },
+    "bytedance/seedance-2.0-fast": {
+      "label": "Seedance 2.0 fast",
+      "frames": [
+        "first_frame",
+        "last_frame"
+      ],
+      "audio": "optional",
+      "faces": "kept an AI-made alien face",
+      "default": {
+        "duration": 4,
+        "resolution": "480p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false
+      },
+      "note": "First and last frame, 4–15 s, 480p or 720p. Kept an AI-made, non-human face, unlike Seedance 2.0 mini. Audio can be turned off. Priced per video token, so the price is an estimate.",
+      "tested": [
+        "2026-11-09: AI alien face as first frame, 4 s 480p, audio off: 864x496, no audio track, face kept through the clip, $0.17 (estimated $0.16), 82 s"
+      ]
+    },
+    "runway/gen-4.5": {
+      "label": "Runway Gen-4.5",
+      "frames": [
+        "first_frame"
+      ],
+      "audio": "off",
+      "faces": "kept an AI-made alien face",
+      "default": {
+        "duration": 2,
+        "resolution": "720p",
+        "aspect_ratio": "16:9"
+      },
+      "note": "First frame, 2–10 s, 720p. No audio. Kept an AI-made, non-human face. Billed exactly its listed price.",
+      "tested": [
+        "2026-11-09: AI alien face as first frame, 2 s 720p: 1280x720, no audio track, face kept through the clip, $0.24 (listed 12¢/s), 52 s"
       ]
     },
     "kwaivgi/kling-v3.0-std": {

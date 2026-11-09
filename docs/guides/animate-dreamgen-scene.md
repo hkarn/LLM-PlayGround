@@ -15,7 +15,7 @@ The **settings panel** on the right holds what you choose once and then leave al
 
 - **Prompt writer:** the **chat model** that writes the motion prompt, its **Max tokens** and **System prompt**.
 - **Video model:** pick a card. Only models that take a first frame are offered. Each card shows the model's name and price; hover a card, or pick it, to see what it takes and what we found when we tested it (the chosen model's details show under the cards):
-  - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
+  - **Faces:** the suggested models Mischief and Grok Imagine kept a realistic face from the picture, HappyHorse 1.1, HeyGen Video 1, Seedance 2.0 fast and Runway Gen-4.5 kept an AI-made alien face, Kling 3.0 Standard kept mildly alien faces, and Seedance 1.5 Pro kept AI-made faces (with audio on it may invent fitting dialogue). Veo 3.1 Lite and Seedance 2.0 mini were taken off the list because they refuse faces, even AI-made, non-human ones; you can still pick them under Other video model for a scene without faces.
   - **Audio:** some always add sound, some can turn it off, some have none.
   - **Price:** the provider's listed price for the cheapest clip, or **$** to **$$$$$** where only an estimate is possible.
   - **Other video model** lists every other video model your key can use, marked untested.

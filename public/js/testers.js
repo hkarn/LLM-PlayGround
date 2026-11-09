@@ -1,5 +1,5 @@
 /* LLM PlayGround: The endpoint testers: one handler per API tab, and the helpers only those tabs use. */
-import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, sendImageEdit, state, str, truncate, usageLine } from './core.js';
+import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, provider, sendImageEdit, state, str, truncate, usageLine } from './core.js';
 import { $, $$, el } from './ui/dom.js';
 import { chosenModel } from './ui/model-picker.js';
 import { pre, renderImages, renderResult } from './ui/result.js';
@@ -8,37 +8,9 @@ import { wait } from './ui/run-step.js';
 /* ------------------------------------------------------------------ */
 /* Speech voices                                                       */
 /* ------------------------------------------------------------------ */
-// /models/all has no voice names, so they are kept here, taken from each provider's docs.
+// /models/all has no voice names, so they are kept in providers/speech-voices.json, taken from each provider's docs.
 // The first matching entry wins. `groups` maps an optgroup label (or '' for none) to voices.
 // `def` is the provider's default voice. `required` means the API rejects a request without a voice.
-export const OPENAI_TTS1_VOICES = ['alloy', 'ash', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer'];
-export const SPEECH_VOICES = [
-  { match: /^openai\/tts-1/, required: true, groups: { '': OPENAI_TTS1_VOICES },
-    note: 'tts-1 and tts-1-hd support 9 voices. ballad, verse, marin and cedar are gpt-4o-mini-tts only.' },
-  { match: /^openai\//, required: true, groups: { '': ['marin', 'cedar', ...OPENAI_TTS1_VOICES, 'ballad', 'verse'] },
-    note: 'OpenAI recommends marin or cedar for best quality.' },
-  { match: /kokoro/i, def: 'af_bella', groups: {
-    'American English': ['af_heart', 'af_alloy', 'af_aoede', 'af_bella', 'af_jessica', 'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky',
-      'am_adam', 'am_echo', 'am_eric', 'am_fenrir', 'am_liam', 'am_michael', 'am_onyx', 'am_puck', 'am_santa'],
-    'British English': ['bf_alice', 'bf_emma', 'bf_isabella', 'bf_lily', 'bm_daniel', 'bm_fable', 'bm_george', 'bm_lewis'],
-    Japanese: ['jf_alpha', 'jf_gongitsune', 'jf_nezumi', 'jf_tebukuro', 'jm_kumo'],
-    'Mandarin Chinese': ['zf_xiaobei', 'zf_xiaoni', 'zf_xiaoxiao', 'zf_xiaoyi', 'zm_yunjian', 'zm_yunxi', 'zm_yunxia', 'zm_yunyang'],
-    Spanish: ['ef_dora', 'em_alex', 'em_santa'],
-    French: ['ff_siwis'],
-    Hindi: ['hf_alpha', 'hf_beta', 'hm_omega', 'hm_psi'],
-    Italian: ['if_sara', 'im_nicola'],
-    'Brazilian Portuguese': ['pf_dora', 'pm_alex', 'pm_santa'],
-  }, note: 'The second letter is f for female, m for male. Pick a voice that matches the language of the text.' },
-  { match: /orpheus/i, def: 'tara', groups: { '': ['tara', 'leah', 'jess', 'leo', 'dan', 'mia', 'zac', 'zoe'] },
-    note: 'English voices, listed from most to least natural. Emotive tags like <laugh> or <sigh> work in the text.' },
-  { match: /mimo.*tts/i, def: 'mimo_default', groups: { English: ['Mia', 'Chloe', 'Milo', 'Dean'], Chinese: ['冰糖', '茉莉', '苏打', '白桦'] },
-    note: 'mimo_default is Mia outside China.' },
-  { match: /voicedesign/i, groups: {}, placeholder: 'describe the voice, e.g. A deep male voice with a calm, authoritative tone',
-    note: 'No preset voices. Describe the voice you want in the text box.' },
-  { match: /chatterbox/i, groups: {}, note: 'No preset voices. Chatterbox takes the ID of a voice cloned on DeepInfra. Leave it empty for the default voice.' },
-  { match: /csm-1b/i, groups: {}, note: 'No documented preset voices. Leave it empty for the default voice.' },
-];
-
 // Fills the voice dropdown for the chosen model. Called whenever the model changes.
 export function setupVoicePicker(form) {
   const select = form.elements.voice_preset;
@@ -46,11 +18,12 @@ export function setupVoicePicker(form) {
   const note = $('.voice-note', form);
   const update = () => {
     const model = chosenModel(form);
-    // OpenRouter lists each speech model's voices in `supported_voices`; otherwise use SPEECH_VOICES.
+    // OpenRouter lists each speech model's voices in `supported_voices`; otherwise the provider's
+    // voice list (providers/speech-voices.json) is used.
     const listed = state.models.find((m) => m.id === model)?.supported_voices;
     const entry = listed?.length
       ? { required: true, groups: { '': listed }, note: `${listed.length} voices from the model list.` }
-      : SPEECH_VOICES.find((v) => v.match.test(model));
+      : (provider().speechVoices || []).find((v) => v.match.test(model));
     const groups = Object.entries(entry?.groups || {});
     select.replaceChildren(
       ...(entry?.required ? [] : [el('option', { value: '', text: entry?.def ? `model default (${entry.def})` : 'model default' })]),

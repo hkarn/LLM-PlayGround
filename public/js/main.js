@@ -1,5 +1,5 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
-import { apiKey, baseUrl, loadModels, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
+import { apiKey, baseUrl, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
@@ -13,7 +13,7 @@ import { runStep } from './ui/run-step.js';
 /* ------------------------------------------------------------------ */
 /* Wiring                                                              */
 /* ------------------------------------------------------------------ */
-export function init() {
+export async function init() {
   // Tabs
   $$('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
@@ -24,7 +24,13 @@ export function init() {
   const savedTab = store.get('tab');
   if (savedTab) showTab(savedTab);
 
-  // Endpoint and key. Keys are remembered per provider.
+  // Endpoint and key. Keys are remembered per provider. The provider list comes from providers/*.json.
+  try {
+    await loadProviders();
+  } catch (err) {
+    $('#models-status').textContent = `Could not load the provider list: ${err.message}`;
+    return;
+  }
   const keyName = () => `key_${state.provider}`;
   const legacyKey = store.get('requesty_key');
   if (legacyKey && !store.get('key_requesty')) store.set('key_requesty', legacyKey);

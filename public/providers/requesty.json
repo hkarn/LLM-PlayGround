@@ -1,0 +1,35 @@
+{
+  "_notes": [
+    "OpenAI-style image API: size, not aspect_ratio or resolution.",
+    "Speech voices: /models/all has no voice names, so they come from speech-voices.json."
+  ],
+  "label": "Requesty",
+  "baseUrl": "https://router.requesty.ai/v1",
+  "modelsPaths": [
+    "/models/all"
+  ],
+  "keyEnv": "REQUESTY_API_KEY",
+  "keyHint": "sk-…",
+  "signup": {
+    "href": "https://app.requesty.ai/join?ref=b1f2b1e1",
+    "text": "No key? Sign up for Requesty"
+  },
+  "server": {
+    "domain": "requesty.ai"
+  },
+  "unsupported": [
+    "rerank",
+    "video"
+  ],
+  "speechVoices": "speech-voices.json",
+  "suggest": {
+    "image": {
+      "aspect_ratio": false,
+      "resolution": false
+    },
+    "imageEdit": {
+      "aspect_ratio": false,
+      "resolution": false
+    }
+  }
+}

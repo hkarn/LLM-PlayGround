@@ -1,0 +1,10 @@
+{
+  "_notes": [
+    "The providers in the endpoint picker, in this order. Each id has a file <id>.json here; server.js reads the same files."
+  ],
+  "providers": [
+    "requesty",
+    "openrouter",
+    "custom"
+  ]
+}

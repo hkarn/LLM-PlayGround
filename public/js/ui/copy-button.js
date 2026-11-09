@@ -22,7 +22,8 @@ export async function copyText(text) {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
-    const field = el('textarea', { style: 'position:fixed;left:-9999px;top:0', 'aria-hidden': 'true' });
+    // Read-only keeps the phone keyboard from opening; older iOS Safari copies only from a selected field.
+    const field = el('textarea', { readonly: '', style: 'position:fixed;left:-9999px;top:0', 'aria-hidden': 'true' });
     field.value = text;
     document.body.append(field);
     field.select();

@@ -9,12 +9,28 @@
 //
 // The API key is entered in the UI and sent per request in the
 // Authorization header. The server never stores it. You can also set a key
-// per provider (REQUESTY_API_KEY, OPENROUTER_API_KEY). It is used when the
-// browser sends no key, and only for that provider's own domain.
+// per provider (REQUESTY_API_KEY, OPENROUTER_API_KEY, LLMGATEWAY_API_KEY), in the
+// environment or in a .env file next to this one. It is used when the browser
+// sends no key, and only for that provider's own domain.
 
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+
+// .env next to this file (KEY=value lines, as in .env.example), so `node server.js` picks up the
+// same keys `docker compose` does. Variables already set in the environment win.
+{
+  let text = '';
+  try { text = fs.readFileSync(path.join(__dirname, '.env'), 'utf8'); } catch { /* no .env: fine */ }
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || Object.hasOwn(process.env, m[1])) continue;
+    let value = m[2];
+    const quoted = value.match(/^(["'])(.*)\1$/);
+    value = quoted ? quoted[2] : value.replace(/\s+#.*$/, '');
+    process.env[m[1]] = value;
+  }
+}
 
 // Some hosts (iisnode, Passenger) pass a pipe or socket path instead of a port number.
 const PORT = process.env.PORT || 3000;

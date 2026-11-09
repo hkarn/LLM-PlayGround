@@ -36,7 +36,7 @@
       "Sign up at Requesty with the link below.",
       "Add credit in the dashboard.",
       "Create an API key and paste it at the top of this page.",
-      "If a model answers that it is not allowed, add it to your organization's approved models in the dashboard."
+      "If a model answers that it is not allowed, check the dashboard: the organization's approved models, and any access list on your key or its group."
     ],
     "good": [
       "Works straight from this page (GitHub Pages), no server needed.",

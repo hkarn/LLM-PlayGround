@@ -56,10 +56,11 @@ export function videoJobsLine() {
 // plus done: a promise of the finished job ({ ok, blob, url, cost, seconds, error }) for a tool
 // that wants to show it in its own step.
 export async function startVideoJob(input, { tool, label, est, signal } = {}) {
+  const provider = state.provider; // the job belongs to the provider it was sent to, even if the user switches meanwhile
   const sent = await submitVideoJob(input, { signal });
   if (!sent.ok) return sent;
   const entry = {
-    id: sent.id, provider: state.provider, tool, model: input.model, label, prompt: input.prompt,
+    id: sent.id, provider, tool, model: input.model, label, prompt: input.prompt,
     duration: input.duration, resolution: input.resolution, aspect_ratio: input.aspect_ratio,
     est: est ? { usd: est.usd, approx: est.approx, listed: est.listedUsd } : undefined,
     status: sent.job.status || 'submitted', at: Date.now(),
@@ -97,11 +98,15 @@ function watch(id) {
 
 // Picks up every unfinished job made on the chosen provider, and pauses the others: a job id
 // only works with the provider that made it. Called at start-up and on a provider switch.
-export function resumeVideoJobs() {
-  if (!keyReady()) return; // without a key every check would fail; models loading tries again
+// Stops checking jobs of another provider at once: a check goes to the chosen provider's address.
+function pauseOtherProviders() {
   for (const [id, w] of watching) {
     if (load().find((j) => j.id === id)?.provider !== state.provider) w.ac.abort();
   }
+}
+export function resumeVideoJobs() {
+  pauseOtherProviders();
+  if (!keyReady()) return; // without a key every check would fail; models loading tries again
   for (const j of load()) if (isRunning(j) && j.provider === state.provider) watch(j.id);
   document.dispatchEvent(new CustomEvent('video-jobs'));
 }
@@ -109,7 +114,9 @@ let started = false;
 export function startWatchingVideoJobs() {
   if (started) return;
   started = true;
-  document.getElementById('provider')?.addEventListener('change', () => setTimeout(resumeVideoJobs));
+  // main.js's own change handler, added earlier, has already set state.provider: pause the other
+  // provider's jobs now, and resume this one's once its address and key are in place.
+  document.getElementById('provider')?.addEventListener('change', () => { pauseOtherProviders(); setTimeout(resumeVideoJobs); });
   document.addEventListener('models-changed', () => setTimeout(resumeVideoJobs));
   resumeVideoJobs();
 }

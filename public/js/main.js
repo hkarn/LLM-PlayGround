@@ -138,8 +138,6 @@ export async function init() {
   $('.add-question', decisionForm).addEventListener('click', () => addQuestion(decisionForm));
   // After the tab pickers: an open app sets up its own pickers.
   setupHubs();
-  // Video jobs sent from the video tools are watched wherever you are, and picked up after a reload.
-  startWatchingVideoJobs();
   // A link with a hash wins over the remembered tab and app.
   route();
   window.addEventListener('hashchange', route);
@@ -170,6 +168,9 @@ export async function init() {
   setupModelFilter($('#model-filter-editor'));
 
   applyProvider();
+  // Video jobs from the video tools are watched wherever you are, and picked up after a reload. Only
+  // now, with the provider's address and key in place, so the first check goes to the right place.
+  startWatchingVideoJobs();
 }
 
 // Fills the URL, key and links for the chosen provider, clears the old model list and

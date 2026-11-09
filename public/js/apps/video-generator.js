@@ -74,7 +74,8 @@ export function renderVideoGenerator(root) {
         if (out.dataset.job !== job.id) return;
         const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
           r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);
-        out.replaceChildren(r.ok && r.url ? player(r.url, job.id) : el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, details(job));
+        // Request details as sent, with the job's last answer (its end status and cost).
+        out.replaceChildren(r.ok && r.url ? player(r.url, job.id) : el('div', { class: 'output error', text: r.error || 'The job failed.' }), ...notes, facts, details({ ...job, resp: r.resp || job.resp }));
       });
     });
   });

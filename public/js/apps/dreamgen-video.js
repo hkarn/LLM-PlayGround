@@ -214,8 +214,9 @@ export function renderDreamGenVideo(root) {
       clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
       const job = await startVideoJob({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined },
         { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
-      const raw = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-        el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
+      const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+        el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
+      const raw = rawFor(job.resp);
       const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
       // A refusal usually means the model won't take this picture, not the wording.
       const refusalHint = (error) => (/guideline|policy|safety|sensitive|face|person/i.test(error || '')
@@ -231,6 +232,8 @@ export function renderDreamGenVideo(root) {
       clipOut.replaceChildren(el('div', { class: 'output' }, 'Job sent. It runs in the background, so you can make another clip; it shows here when it is done, and under Video jobs in the settings panel.', ...estTag), ...notes, raw);
       job.done.then((r) => {
         if (clipOut.dataset.job !== job.id) return;
+        // Request details as sent, with the job's last answer (its end status and cost).
+        const raw = rawFor(r.resp || job.resp);
         // Prices only as the 1-5 scale ($$$$$), or the provider's billed amount.
         const facts = el('div', { class: 'muted small' }, `Took ${r.seconds} s.`,
           r.cost != null ? ' Billed ' : '', r.cost != null ? priceTag(Number(r.cost), { amount: Number(r.cost) }) : null);

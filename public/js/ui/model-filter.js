@@ -60,7 +60,9 @@ function filterList(k) {
 
   function showSuggestions() {
     const list = matches();
+    // The rows are redrawn, so nothing is highlighted any more.
     active = -1;
+    input.removeAttribute('aria-activedescendant');
     suggest.replaceChildren(...list.slice(0, SUGGEST_MAX).map((o, i) => el('li', {
       id: `${listId}-${i}`, role: 'option', 'aria-selected': 'false', 'data-value': o.value,
       // mousedown, so the input keeps focus and the list stays open for the next pick
@@ -72,10 +74,12 @@ function filterList(k) {
     input.setAttribute('aria-expanded', 'true');
   }
   const hideSuggestions = () => { suggest.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); };
-  const highlight = (i) => {
+  // step: +1 (ArrowDown) or -1 (ArrowUp). With nothing highlighted, down starts at the first row
+  // and up at the last.
+  const highlight = (step) => {
     const rows = $$('[role=option]', suggest);
     if (!rows.length) return;
-    active = (i + rows.length) % rows.length;
+    active = active < 0 ? (step > 0 ? 0 : rows.length - 1) : (active + step + rows.length) % rows.length;
     rows.forEach((r, n) => r.setAttribute('aria-selected', String(n === active)));
     input.setAttribute('aria-activedescendant', rows[active].id);
     rows[active].scrollIntoView({ block: 'nearest' });
@@ -88,7 +92,7 @@ function filterList(k) {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (suggest.hidden) showSuggestions();
-      highlight(active + (e.key === 'ArrowDown' ? 1 : -1));
+      highlight(e.key === 'ArrowDown' ? 1 : -1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const row = $$('[role=option]', suggest)[active];

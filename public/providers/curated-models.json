@@ -1,0 +1,50 @@
+{
+  "_notes": [
+    "Curated models: one list for every router, matched by the model's own name. The picker's \"curated\" checkbox shows the entries found on the current key, in this order (cheapest first), each under its label. It is on by default in the DreamGen tools, which these were tested for on 2026-11-09 (on OpenRouter and Requesty).",
+    "name: the model's name without its maker or router prefix. It matches any id whose last part is that name, ignoring case, . versus - (claude-haiku-5.5 = claude-haiku-5-5), a date tag (-0731), a region (@eu) and a variant (:flex). When a key lists several, the first plain one is shown.",
+    "draft: true marks a real candidate we are not sure of yet: tested but slow or odd, or not run yet (no price until it is). Drafts show after the confirmed models, marked \"draft\". Move one up (drop draft) after a good run, or take it out.",
+    "price: relative, $ (cheapest) to $$$$, never an amount from our tests. note: what the tests found, shown under the picker.",
+    "chat: each got Draw the DreamGen Scene's system prompt with a sample session (it must answer the JSON the tool reads), then Animate the DreamGen Scene's motion prompt. All of these answered valid JSON, named the two characters in frame and left out the one who had just left.",
+    "image: each got a scene prompt with one reference portrait as AVIF and as WebP (PNG or JPEG where one failed), and kept the portrait's likeness. AVIF was refused by Seedream, Grok Imagine, GPT Image and MAI, and WebP by MAI; JPEG was taken by all, so Draw the DreamGen Scene sends references as JPEG."
+  ],
+  "chat": [
+    { "name": "deepseek-v4-flash", "label": "DeepSeek V4 Flash", "price": "$", "note": "The cheapest that does the job well. About 7–9 s." },
+    { "name": "mistral-small-2603", "label": "Mistral Small", "price": "$", "note": "Cheap and fast (2–4 s); clear, plain prompts." },
+    { "name": "gemini-3.1-flash-lite", "label": "Gemini 3.1 Flash Lite", "price": "$$", "note": "The fastest (about 2 s). In motion prompts it describes people by their looks, as asked." },
+    { "name": "glm-5.3-flash", "label": "GLM-5.3 Flash", "price": "$$", "note": "Good at showing who just left (an empty stool). About 3–7 s." },
+    { "name": "gpt-5.6-luna", "label": "GPT-5.6 Luna", "price": "$$", "note": "Follows the rules closely: describes landmarks instead of naming them." },
+    { "name": "claude-haiku-5.5", "label": "Claude Haiku 5.5", "price": "$$", "note": "Rich, detailed scenes; a little over the word limits." },
+    { "name": "gemini-3.8-flash", "label": "Gemini 3.8 Flash", "price": "$$$", "note": "Careful, well-lit scenes. About 7–8 s." },
+    { "name": "claude-sonnet-5.5", "label": "Claude Sonnet 5.5", "price": "$$$$", "note": "The most thorough scenes and motion; a little long." },
+    { "name": "grok-4.3", "label": "Grok 4.3", "price": "$$$", "draft": true, "note": "Draft: worked well (valid JSON, right characters), but names people in motion prompts instead of describing them. About 8 s." },
+    { "name": "deepseek-v4-pro", "label": "DeepSeek V4 Pro", "price": "$$$", "draft": true, "note": "Draft: good scene prompt in 4 s, but the motion prompt took 25 s." },
+    { "name": "qwen3.8-flash", "label": "Qwen 3.8 Flash", "price": "$$", "draft": true, "note": "Draft: good prompts, but slow (about 37 s for the scene)." },
+    { "name": "kimi-k2.6", "label": "Kimi K2.6", "price": "$$$$", "draft": true, "note": "Draft: good prompts that describe instead of naming, but slow (about 40 s) and pricier." },
+    { "name": "gpt-5-mini", "label": "GPT-5 mini", "price": "", "draft": true, "note": "Draft: not run yet." },
+    { "name": "mistral-medium-3.1", "label": "Mistral Medium 3.1", "price": "", "draft": true, "note": "Draft: not run yet." }
+  ],
+  "image": [
+    { "name": "gpt-image-2", "label": "GPT Image 2", "price": "$", "note": "Cheapest at quality low; kept the portrait well. Refuses AVIF." },
+    { "name": "flux.2-klein-4b", "label": "FLUX.2 klein 4B", "price": "$", "note": "Fast (about 6 s); kept the portrait well." },
+    { "name": "mai-image-2.6-flash", "label": "MAI Image 2.6 Flash", "price": "$", "note": "Takes only JPEG or PNG references. About 20 s." },
+    { "name": "gemini-2.5-flash-image", "label": "Gemini 2.5 Flash Image", "price": "$", "note": "About 8 s; picks its own picture shape." },
+    { "name": "gemini-3.1-flash-lite-image", "label": "Gemini 3.1 Flash Lite Image", "price": "$$", "note": "Fast (about 6 s)." },
+    { "name": "seedream-5-0-lite", "label": "Seedream 5.0 Lite", "price": "$$", "note": "Slower (about 35 s). Refuses AVIF." },
+    { "name": "gemini-3.1-flash-image", "label": "Gemini 3.1 Flash Image", "price": "$$", "note": "About 9 s; kept the portrait well. Picks its own picture shape." },
+    { "name": "gpt-image-1.5", "label": "GPT Image 1.5", "price": "$$", "note": "About 18 s. Refuses AVIF." },
+    { "name": "k3-edit", "label": "Krea K3 Edit", "price": "$$", "note": "Needs at least one reference portrait: edits only." },
+    { "name": "flux-3-image", "label": "FLUX 3 Image", "price": "$$$", "note": "About 20 s; kept the portrait well." },
+    { "name": "flux.2-pro", "label": "FLUX.2 Pro", "price": "$$$", "note": "About 10–15 s; strong likeness." },
+    { "name": "grok-imagine-image-2.0", "label": "Grok Imagine 2.0", "price": "$$$$", "note": "About 15 s. Refuses AVIF." },
+    { "name": "gemini-3-pro-image", "label": "Gemini 3 Pro Image", "price": "$$$$", "note": "About 20 s; took AVIF and WebP." },
+    { "name": "qwen-image-3", "label": "Qwen Image 3", "price": "$$", "draft": true, "note": "Draft: took AVIF and WebP, but slow (about 48 s) and drew the character small." },
+    { "name": "seedream-5-0-pro", "label": "Seedream 5.0 Pro", "price": "$$$", "draft": true, "note": "Draft: kept the portrait, but slow (1.5–2 min). Refuses AVIF." },
+    { "name": "flux-3-image-klein", "label": "FLUX 3 Image klein", "price": "", "draft": true, "note": "Draft: not run yet (the smaller FLUX 3; up to 10 references)." },
+    { "name": "seedream-5-0-flash", "label": "Seedream 5.0 Flash", "price": "", "draft": true, "note": "Draft: not run yet. Its family refuses AVIF." },
+    { "name": "qwen-image-2.1-turbo", "label": "Qwen Image 2.1 Turbo", "price": "", "draft": true, "note": "Draft: not run yet (up to 4 references)." },
+    { "name": "gpt-image-2.5-flare", "label": "GPT Image 2.5 Flare", "price": "", "draft": true, "note": "Draft: not run yet. GPT Image refuses AVIF." },
+    { "name": "gpt-image-2.5-sunburst", "label": "GPT Image 2.5 Sunburst", "price": "", "draft": true, "note": "Draft: not run yet. GPT Image refuses AVIF." },
+    { "name": "mai-image-2.6", "label": "MAI Image 2.6", "price": "", "draft": true, "note": "Draft: not run yet. MAI takes only JPEG or PNG." },
+    { "name": "gemini-nano-banana-2.1", "label": "Nano Banana 2.1", "price": "", "draft": true, "note": "Draft: not run yet (up to 14 references)." }
+  ]
+}

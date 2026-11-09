@@ -8,7 +8,7 @@
   --accent-text: #ffffff;
   --ok: #1f8a4c;
   --err: #c2372f;
-  --warn: #b7791f;
+  --warn: #b85c00;
   --code-bg: #f1f2f5;
   --highlight: #e9e9fd;
   --link: #3f3fc4;
@@ -25,7 +25,7 @@
     --accent-text: #111;
     --ok: #4fc283;
     --err: #ff7a70;
-    --warn: #e0a84a;
+    --warn: #ff9a3c;
     --code-bg: #24262b;
     --highlight: #2c2c4a;
     --link: #a8b0ff;
@@ -275,8 +275,9 @@ button.danger { color: var(--err); }
 .gc-msg.system .bubble { border: 1px dashed var(--border); background: none; }
 .gc-msg.system .gc-text { color: var(--muted); }
 /* A fallback that was handled (the round still ran): amber, a heads-up rather than a failure. */
-.gc-msg.system.warn .bubble { border-color: color-mix(in srgb, var(--warn) 55%, transparent); border-left: 3px solid var(--warn); }
-.gc-msg.system.warn .gc-meta span:first-child { color: var(--warn); }
+.gc-msg.system.warn .bubble { border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.gc-msg.system.warn .gc-meta span:first-child, .gc-msg.system.warn .gc-text { color: var(--warn); }
+.gc-msg.system.warn .gc-avatar { background: var(--warn) !important; }
 /* Group Chat's "typing…" indicator. Its own class, so other .dots (the Providers tab's setup level) stay still. */
 .gc-dots { letter-spacing: 2px; animation: gc-blink 1.2s infinite; }
 @keyframes gc-blink { 50% { opacity: .3; } }

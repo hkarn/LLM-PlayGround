@@ -14,6 +14,8 @@ Pick an endpoint at the top of the page. Its base URL is filled in for you, and 
 | --- | --- | --- | --- |
 | **Requesty** | `https://router.requesty.ai/v1` | [Sign up through my referral link](https://app.requesty.ai/join?ref=b1f2b1e1) or at [requesty.ai](https://requesty.ai) | Every tab except Rerank and Video, which are greyed out |
 | **OpenRouter** | `https://openrouter.ai/api/v1` | [openrouter.ai/keys](https://openrouter.ai/keys) | Every tab. Decisions go to `/api/alpha/decisions`, images and image edits to `/v1/images` (reference images as `input_references`) |
+| **LLM Gateway** | `https://api.llmgateway.io/v1` | [Sign up through my referral link](https://llmgateway.io/?ref=LucsNqyxkxzf3rsY9aaN) | **Only with your own server** (Docker or `node server.js`): its API does not allow calls from a browser page, so on GitHub Pages it is greyed out and only the sign-up link is shown. A model's tab comes from what it outputs; image edits go as JSON `images[]`, no mask. Server key: `LLMGATEWAY_API_KEY` |
+| **LLM Gateway (self-hosted)** | `http://localhost:4001/v1` through your own server; empty on GitHub Pages (your gateway's URL) | Your own gateway's key | [LLM Gateway](https://github.com/theopenco/llmgateway) that you run yourself with your own provider keys. Works from GitHub Pages too, once your gateway allows the page's origin in its CORS settings (`GATEWAY_CORS_ORIGINS`, e.g. `https://hkarn.github.io`). llmgateway.io runs the same open-source gateway, so both use the same templates, model tabs and image edit format. A gateway on another machine needs https when the page is https |
 | **Custom** | (empty) | If the endpoint needs one | Any OpenAI-compatible API, e.g. a local Ollama at `http://localhost:11434/v1`. Decision, Rerank and Video are greyed out, since OpenAI has no standard format for them |
 
 Each endpoint keeps its own key, so switching back and forth doesn't lose it.
@@ -73,7 +75,7 @@ The same page works with or without its small server, and picks the mode by itse
 | --- | --- | --- |
 | Where requests go | Browser → your server → endpoint | Browser → endpoint |
 | Your API key | Typed into the page and sent with each request to your server, which passes it on to the endpoint. The server doesn't store or log it. | Typed into the page and sent only to the endpoint. No other server sees it. |
-| Server-side key | Optional: set `REQUESTY_API_KEY` or `OPENROUTER_API_KEY` so nobody has to type a key. Only do this on a private setup, since anyone who can open the page can then use your key. | Not possible |
+| Server-side key | Optional: set `REQUESTY_API_KEY`, `OPENROUTER_API_KEY` or `LLMGATEWAY_API_KEY` so nobody has to type a key. Only do this on a private setup, since anyone who can open the page can then use your key. | Not possible |
 | Custom endpoints | Allowed when the server listens on `127.0.0.1` (and in the compose setup). Elsewhere set `ALLOW_ANY_UPSTREAM=1` | Only if the endpoint allows CORS |
 | Extras | Full response headers and upstream timing | Browsers show only a few response headers |
 
@@ -114,7 +116,7 @@ Or, without compose:
 docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/hkarn/llm-playground:latest
 ```
 
-Optional: copy `.env.example` to `.env` and set `REQUESTY_API_KEY=sk-...` and/or `OPENROUTER_API_KEY=sk-or-...` so you don't have to type a key. A key typed in the UI always takes precedence.
+Optional: copy `.env.example` to `.env` and set `REQUESTY_API_KEY=sk-...`, `OPENROUTER_API_KEY=sk-or-...` and/or `LLMGATEWAY_API_KEY=llmgtwy_...` so you don't have to type a key. A key typed in the UI always takes precedence.
 
 To build from source, switch `image:` to `build: .` in `docker-compose.yml`, or run:
 
@@ -138,7 +140,8 @@ node server.js
 | --- | --- | --- |
 | `REQUESTY_API_KEY` | – | Requesty key used when the browser doesn't send one. Only sent to `*.requesty.ai` |
 | `OPENROUTER_API_KEY` | – | OpenRouter key used when the browser doesn't send one. Only sent to `*.openrouter.ai` |
-| `ALLOW_ANY_UPSTREAM` | on when `HOST` is loopback, else off (on in `docker-compose.yml`) | Let the proxy forward to any URL typed in the UI, not just Requesty and OpenRouter |
+| `LLMGATEWAY_API_KEY` | – | LLM Gateway key used when the browser doesn't send one. Only sent to `*.llmgateway.io` |
+| `ALLOW_ANY_UPSTREAM` | on when `HOST` is loopback, else off (on in `docker-compose.yml`) | Let the proxy forward to any URL typed in the UI, not just the providers with a server key |
 | `PORT` | `3000` | Listen port |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in Docker) | Listen address |
 
@@ -146,7 +149,7 @@ node server.js
 
 Any host that runs Node 18 or later works. Upload `server.js`, `package.json` and `public/`, and set the start file to `server.js`. `PORT` can be a port number or a pipe/socket path, as some hosts (iisnode, Passenger) provide. If the host connects to the app over TCP from another machine, set `HOST=0.0.0.0`.
 
-**Don't set `REQUESTY_API_KEY` or `OPENROUTER_API_KEY` on a public site.** Anyone who opens it could then send requests billed to your keys. Without them, every visitor uses their own key, which stays in their browser and passes through the server per request. Request bodies are capped at 40 MB. Leave `ALLOW_ANY_UPSTREAM` off there too, or anyone could use your server to reach other hosts, including ones on its internal network.
+**Don't set `REQUESTY_API_KEY`, `OPENROUTER_API_KEY` or `LLMGATEWAY_API_KEY` on a public site.** Anyone who opens it could then send requests billed to your keys. Without them, every visitor uses their own key, which stays in their browser and passes through the server per request. Request bodies are capped at 40 MB. Leave `ALLOW_ANY_UPSTREAM` off there too, or anyone could use your server to reach other hosts, including ones on its internal network.
 
 ## GitHub Pages (static, no server)
 

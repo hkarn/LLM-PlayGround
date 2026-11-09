@@ -1,6 +1,6 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
 import { read } from './adapter.js';
-import { apiKey, baseUrl, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
+import { apiKey, baseUrl, defaultBaseUrl, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { hubPanel, route, setHash, setupHubs, showTab } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
@@ -36,17 +36,27 @@ export async function init() {
   const legacyKey = store.get('requesty_key');
   if (legacyKey && !store.get('key_requesty')) store.set('key_requesty', legacyKey);
   store.del('requesty_key');
+  // A provider marked needsServer (no CORS, e.g. LLM Gateway) works only through server.js. On a
+  // static page it is greyed out, and its sign-up link is shown next to the others instead.
+  await serverConfig;
+  const unavailable = (p) => Boolean(p.needsServer && !state.viaServer);
   const providerSelect = $('#provider');
-  providerSelect.replaceChildren(...Object.entries(PROVIDERS).map(([id, p]) => el('option', { value: id, text: p.label })));
+  providerSelect.replaceChildren(...Object.entries(PROVIDERS).map(([id, p]) => el('option', {
+    value: id, text: unavailable(p) ? `${p.label} (needs your own server)` : p.label,
+    disabled: unavailable(p) || undefined, title: unavailable(p) ? p.needsServerReason : undefined,
+  })));
+  for (const p of Object.values(PROVIDERS).filter((x) => unavailable(x) && x.signup)) {
+    $('#signup-link').after(el('a', { href: p.signup.href, target: '_blank', rel: 'noopener', title: p.needsServerReason, text: `${p.label}: get a key (needs your own server)` }));
+  }
   const savedProvider = store.get('provider');
-  if (PROVIDERS[savedProvider]) state.provider = savedProvider;
+  if (PROVIDERS[savedProvider] && !unavailable(PROVIDERS[savedProvider])) state.provider = savedProvider;
   providerSelect.value = state.provider;
   $('#base-url').addEventListener('change', () => {
     const url = baseUrl();
-    if (url && url !== provider().baseUrl) store.set(`base_${state.provider}`, url); else store.del(`base_${state.provider}`);
+    if (url && url !== defaultBaseUrl()) store.set(`base_${state.provider}`, url); else store.del(`base_${state.provider}`);
   });
   $('#reset-url').addEventListener('click', () => {
-    $('#base-url').value = provider().baseUrl;
+    $('#base-url').value = defaultBaseUrl();
     store.del(`base_${state.provider}`);
     $('#base-url').focus();
   });
@@ -114,7 +124,9 @@ export async function init() {
 // loads the new one when a key is available.
 export function applyProvider() {
   const p = provider();
-  $('#base-url').value = store.get(`base_${state.provider}`) || p.baseUrl;
+  $('#base-url').value = store.get(`base_${state.provider}`) || defaultBaseUrl(p);
+  // A provider without a fixed URL (custom, a self-hosted gateway) can say what to enter.
+  $('#base-url').placeholder = p.baseUrlHint || 'Base URL, e.g. http://localhost:11434/v1';
   const saved = store.get(`key_${state.provider}`);
   $('#api-key').value = state.keys[state.provider] ?? saved ?? '';
   $('#remember-key').checked = Boolean(saved);

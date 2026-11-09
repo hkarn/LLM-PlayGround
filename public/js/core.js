@@ -20,11 +20,14 @@ export const ASSET_VERSION = 'dev';
 // Endpoints in the picker, loaded from public/providers/<id>.json by loadProviders() (the list and
 // order are in providers/index.json; server.js reads the same files). Each file has: label,
 // baseUrl (only a suggestion: the URL field can be edited), modelsPaths (fetched and merged),
-// keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
+// serverBaseUrl (used instead of baseUrl when server.js serves the page), baseUrlHint (placeholder text when the URL is empty), keyEnv (the server.js env var and the name used in cURL), keyHint, signup, server.domain (where a
 // server key may be sent), unsupported (tabs that stay usable but are dimmed), endpoints (per tab:
 // path relative to the base URL, base {replace: [pattern, with]} applied to the base URL, and the
 // request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
-// and speechVoices (a voice list file in providers/). "_notes" hold the comments.
+// speechVoices (a voice list file in providers/), categorize (which model field decides its tab) and
+// needsServer (no browser access: usable only through server.js), attributionHeaders (false: no
+// HTTP-Referer / X-Title on direct calls) and extends (another provider file to start from).
+// "_notes" hold the comments.
 export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.
 export const TEMPLATES = { endpoints: {} };
@@ -41,7 +44,12 @@ export async function loadProviders() {
   if (templates) TEMPLATES.endpoints = (await fetchData(templates)).endpoints || {};
   const lists = {};
   for (const id of ids) {
-    const p = await fetchData(`${id}.json`);
+    let p = await fetchData(`${id}.json`);
+    // extends: start from another provider file and override what this one lists (its notes stay its own).
+    if (p.extends) {
+      const { _notes, ...base } = await fetchData(p.extends);
+      p = { ...base, ...p };
+    }
     if (p.speechVoices) {
       lists[p.speechVoices] ??= fetchData(p.speechVoices).then((d) => d.voices.map((v) => ({ ...v, match: new RegExp(v.match, v.flags || '') })));
       p.speechVoices = await lists[p.speechVoices];
@@ -50,6 +58,9 @@ export async function loadProviders() {
   }
   return PROVIDERS;
 }
+
+// The URL a provider starts with: serverBaseUrl through server.js (e.g. a gateway on localhost), else baseUrl.
+export const defaultBaseUrl = (p = provider()) => (state.viaServer && p.serverBaseUrl) || p.baseUrl;
 
 export const state = {
   models: [],         // raw model objects from the provider's model list
@@ -95,6 +106,15 @@ export const store = {
 // Requesty's GET /v1/models/all tags every model with its modality in `api`. OpenRouter lists
 // the endpoints each model works with in `endpoints`. The name-based fallback is for the rest.
 export function categorize(model) {
+  // A provider file can say which field lists what a model produces, and which value means which
+  // tab (first match wins), e.g. LLM Gateway's architecture.output_modalities.
+  const rule = provider()?.categorize;
+  if (rule) {
+    const value = rule.field.split('.').reduce((o, k) => o?.[k], model);
+    const values = Array.isArray(value) ? value : [value];
+    for (const [match, category] of rule.order) if (values.includes(match)) return category;
+    return 'other';
+  }
   if (model.api && CATEGORY_LABEL[model.api]) return model.api;
   if (Array.isArray(model.endpoints)) {
     const has = (suffix) => model.endpoints.some((e) => e.endsWith(suffix));
@@ -133,7 +153,11 @@ export async function callApi(path, { method = 'POST', json, formData, base = ba
     Object.assign(headers, { 'X-Upstream-Base': base, 'X-Upstream-Provider': state.provider });
   } else {
     // server.js adds these itself; direct calls send them so routers can attribute the app.
-    Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+    // A provider file can turn this off ("attributionHeaders": false) when its CORS allows only its own
+    // headers, as LLM Gateway's does; extra headers would make the browser's preflight fail.
+    if (provider()?.attributionHeaders !== false) {
+      Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
+    }
   }
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }

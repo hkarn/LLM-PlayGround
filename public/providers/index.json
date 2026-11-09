@@ -6,6 +6,8 @@
   "providers": [
     "requesty",
     "openrouter",
+    "llmgateway",
+    "llmgateway-self",
     "custom"
   ],
   "templates": "openai-standard.json"

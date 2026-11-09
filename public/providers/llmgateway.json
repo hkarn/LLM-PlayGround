@@ -1,0 +1,68 @@
+{
+  "_notes": [
+    "LLM Gateway, an OpenAI-compatible router: https://docs.llmgateway.io. Spec saved as docs/llmgateway-openapi.json.",
+    "needsServer: the hosted API sends no Access-Control-Allow-Origin header (checked 2026-11-09 from https://hkarn.github.io and other origins), so browsers cannot call it from a static page such as GitHub Pages. It works through server.js (Docker or node server.js), which calls it server to server. On a static page it is greyed out in the picker and only its sign-up link is shown.",
+    "/v1/models needs no key. A model's tab comes from architecture.output_modalities (categorize); image+text models go to Image, text and audio+text to Chat, audio alone to Speech. The search and ocr models (3 on 2026-11-09: perplexity-search, perplexity-search-fast, mistral-ocr-latest) have no tab here, so they are only in All models.",
+    "Model ids are bare (gpt-4o: the gateway picks the provider and can fall back) or provider/model (pinned, no fallback).",
+    "Image edits are JSON to /images/edits with the pictures as data URLs in images[].image_url (1-16), and no mask (endpoints.imageEdit). Image options have size, aspect_ratio and quality but no resolution.",
+    "Checked 2026-11-09 through server.js with a key: the model list (291 models) and one chat call; the image edit format against the spec only.",
+    "attributionHeaders is false: its CORS allows only its own request headers (Content-Type, Authorization, x-api-key, x-session-id, …), so direct browser calls must not add HTTP-Referer and X-Title. llmgateway-self.json extends this file."
+  ],
+  "label": "LLM Gateway",
+  "baseUrl": "https://api.llmgateway.io/v1",
+  "modelsPaths": ["/models"],
+  "keyEnv": "LLMGATEWAY_API_KEY",
+  "keyHint": "llmgtwy_…",
+  "signup": {
+    "href": "https://llmgateway.io/?ref=LucsNqyxkxzf3rsY9aaN",
+    "text": "No key? Sign up for LLM Gateway"
+  },
+  "server": {
+    "domain": "llmgateway.io"
+  },
+  "needsServer": true,
+  "needsServerReason": "LLM Gateway does not allow calls from a browser page (no CORS), so it only works when you run your own server: Docker or node server.js.",
+  "attributionHeaders": false,
+  "speechVoices": "speech-voices.json",
+  "categorize": {
+    "field": "architecture.output_modalities",
+    "order": [
+      ["video", "video"],
+      ["image", "image"],
+      ["embedding", "embedding"],
+      ["decision", "decision"],
+      ["rerank", "rerank"],
+      ["transcription", "transcription"],
+      ["text", "chat"],
+      ["audio", "speech"]
+    ]
+  },
+  "endpoints": {
+    "imageEdit": {
+      "body": "json",
+      "request": {
+        "model": "{{model}}",
+        "prompt": "{{prompt}}",
+        "size": "{{size}}",
+        "aspect_ratio": "{{aspect_ratio}}",
+        "quality": "{{quality}}",
+        "images": {
+          "each": "images",
+          "as": {
+            "image_url": "{{item.dataUrl}}"
+          }
+        }
+      },
+      "files": [],
+      "drops": ["mask"]
+    }
+  },
+  "suggest": {
+    "image": {
+      "resolution": false
+    },
+    "imageEdit": {
+      "resolution": false
+    }
+  }
+}

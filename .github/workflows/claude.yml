@@ -48,7 +48,8 @@ jobs:
           # or an API key.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Read-only. The action's mention mode allows file edits and `git add/commit/push`;
+          # Read-only. The action's mention mode allows file edits (acceptEdits: Edit, MultiEdit,
+          # Write) and `git add/commit/push`;
           # deny rules win over its allow list, so Claude keeps Read, Glob, Grep and its reply
           # comment. The reply is public, so the places a secret can be read are denied too:
           # `.git` (the action puts its App token in the remote URL there) and `/proc` (the
@@ -57,4 +58,4 @@ jobs:
           # from the reply can be dodged by encoding; Read rules cover Grep and Glob as well.
           # The action revokes the App token when the job ends.
           claude_args: >-
-            --disallowedTools "Bash,Edit,Write,NotebookEdit,Read(./.git/**),Read(//proc/**)"
+            --disallowedTools "Bash,Edit,MultiEdit,Write,NotebookEdit,Read(./.git/**),Read(//proc/**)"

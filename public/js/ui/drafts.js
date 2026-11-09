@@ -1,4 +1,5 @@
 /* LLM PlayGround: UI component: typed text kept across a reload (sessionStorage). */
+import { read } from '../adapter.js';
 import { $$ } from './dom.js';
 
 /* ------------------------------------------------------------------ */

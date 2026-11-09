@@ -1,10 +1,12 @@
 {
   "_notes": [
-    "The providers in the endpoint picker, in this order. Each id has a file <id>.json here; server.js reads the same files."
+    "The providers in the endpoint picker, in this order. Each id has a file <id>.json here; server.js reads the same files.",
+    "templates is the file with the shared OpenAI-standard request and response templates; each provider file lays its own endpoints over it."
   ],
   "providers": [
     "requesty",
     "openrouter",
     "custom"
-  ]
+  ],
+  "templates": "openai-standard.json"
 }

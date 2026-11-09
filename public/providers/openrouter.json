@@ -2,7 +2,7 @@
   "_notes": [
     "output_modalities=all lists every model group (chat, image, embeddings, rerank, video, speech, transcription, decisions); without it /models only returns text models.",
     "Decisions are at /api/alpha/decisions: the base URL with /v1 replaced by /alpha.",
-    "Images and image edits both POST /images; edits send the pictures as data URLs in input_references (json: true), no mask.",
+    "Images and image edits both POST /images; edits are JSON with the pictures as data URLs in input_references, and no mask (endpoints.imageEdit).",
     "Image and video options come per model from /images/models and /videos/models; suggest covers what no list gives. /audio/speech only returns mp3 or pcm (pcm does not play in the page)."
   ],
   "label": "OpenRouter",
@@ -36,7 +36,28 @@
     },
     "imageEdit": {
       "path": "/images",
-      "json": true
+      "body": "json",
+      "request": {
+        "model": "{{model}}",
+        "prompt": "{{prompt}}",
+        "size": "{{size}}",
+        "aspect_ratio": "{{aspect_ratio}}",
+        "resolution": "{{resolution}}",
+        "quality": "{{quality}}",
+        "input_references": {
+          "each": "images",
+          "as": {
+            "type": "image_url",
+            "image_url": {
+              "url": "{{item.dataUrl}}"
+            }
+          }
+        }
+      },
+      "files": [],
+      "drops": [
+        "mask"
+      ]
     }
   },
   "suggest": {

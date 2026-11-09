@@ -1,5 +1,6 @@
 /* LLM PlayGround: The endpoint testers: one handler per API tab, and the helpers only those tabs use. */
-import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, provider, sendImageEdit, state, str, truncate, usageLine } from './core.js';
+import { send } from './adapter.js';
+import { callApi, compact, curlFor, ep, errorMessage, fileToDataUrl, lines, MAX_EDIT_IMAGES, messageText, num, provider, state, str, truncate, usageLine } from './core.js';
 import { $, $$, el } from './ui/dom.js';
 import { chosenModel } from './ui/model-picker.js';
 import { pre, renderImages, renderResult } from './ui/result.js';
@@ -58,11 +59,10 @@ export const handlers = {
     if (str(form, 'extra')) {
       try { extra = JSON.parse(form.elements.extra.value); } catch (e) { throw new Error(`Extra JSON is invalid: ${e.message}`); }
     }
-    const body = compact({
+    const { resp, request, curl } = await send('chat', {
       model: chosenModel(form), messages,
-      temperature: num(form, 'temperature'), max_tokens: num(form, 'max_tokens'), top_p: num(form, 'top_p'), ...extra,
-    });
-    const resp = await callApi(ep('chat').path, { signal: form._abort?.signal, base: ep('chat').base, json: body });
+      temperature: num(form, 'temperature'), max_tokens: num(form, 'max_tokens'), top_p: num(form, 'top_p'), extra,
+    }, { signal: form._abort?.signal });
     let rendered;
     if (resp.ok && resp.data?.choices) {
       const choice = resp.data.choices[0] || {};
@@ -77,7 +77,7 @@ export const handlers = {
         })),
       );
     }
-    renderResult(out, { resp, request: body, curl: curlFor(ep('chat').path, { base: ep('chat').base, json: body }), rendered });
+    renderResult(out, { resp, request, curl, rendered });
   },
 
   async decision(form, out) {
@@ -148,30 +148,30 @@ export const handlers = {
   },
 
   async image(form, out) {
-    const body = compact({
+    const { resp, request, curl } = await send('image', {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
       size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'),
       n: num(form, 'n'), quality: str(form, 'quality'),
       background: str(form, 'background'), output_format: str(form, 'output_format'),
-    });
-    const resp = await callApi(ep('image').path, { signal: form._abort?.signal, base: ep('image').base, json: body });
-    const { rendered, shown } = renderImages(resp, body.output_format);
-    renderResult(out, { resp: shown, request: body, curl: curlFor(ep('image').path, { base: ep('image').base, json: body }), rendered });
+    }, { signal: form._abort?.signal });
+    const { rendered, shown } = renderImages(resp, request.output_format);
+    renderResult(out, { resp: shown, request, curl, rendered });
   },
 
-  // Reference images go as JSON input_references (OpenRouter) or multipart image[] fields.
+  // How the reference images travel (multipart image[] fields, JSON input_references, …) is in
+  // the provider's imageEdit template.
   async imageEdit(form, out) {
     const images = form._refImages || [];
     if (!images.length) throw new Error('Add at least one reference image.');
     if (images.length > MAX_EDIT_IMAGES) throw new Error(`At most ${MAX_EDIT_IMAGES} reference images.`);
     const mask = form.elements.mask.files[0];
-    const fields = compact({
+    const { resp, request, curl, dropped } = await send('imageEdit', {
       model: chosenModel(form), prompt: form.elements.prompt.value.trim(),
       size: str(form, 'size'), aspect_ratio: str(form, 'aspect_ratio'), resolution: str(form, 'resolution'), quality: str(form, 'quality'),
-    });
-    const { resp, request, curl, maskDropped } = await sendImageEdit(fields, images, mask, form._abort?.signal);
-    const { rendered, shown } = renderImages(resp);
-    const note = maskDropped ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
+      images, mask,
+    }, { signal: form._abort?.signal });
+    const { rendered, shown } = renderImages(resp, 'png', 'imageEdit');
+    const note = dropped.includes('mask') ? el('div', { class: 'muted small', text: 'The mask was not sent: this endpoint has no mask field.' }) : null;
     renderResult(out, { resp: shown, request, curl, rendered: rendered && el('div', {}, note, rendered) });
   },
 

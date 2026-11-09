@@ -1,4 +1,5 @@
 /* LLM PlayGround: Games and Tools hubs (icon launcher, apps list) and direct links (#tab, #hub, #hub/app-id). */
+import { fill } from './adapter.js';
 import { renderDreamGenScene } from './apps/dreamgen-scene.js';
 import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';

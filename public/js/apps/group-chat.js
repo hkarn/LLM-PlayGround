@@ -1,5 +1,6 @@
 /* LLM PlayGround: Game: AI Group Chat. */
-import { callApi, compact, ep, errorMessage, messageText, modelsIn, store } from '../core.js';
+import { read, send } from '../adapter.js';
+import { errorMessage, modelsIn, store } from '../core.js';
 import { $, el } from '../ui/dom.js';
 
 // Each character is a persona on its own chat model. A round works like this: the active
@@ -105,11 +106,11 @@ export function renderGroupChat(root) {
   async function askCharacter(c, signal) {
     const model = modelOf(c);
     if (!model) throw new Error(`No model for ${c.name}. Set a default model or one for the character.`);
-    const body = compact({ model, messages: buildMessages(c), max_tokens: s.maxTokens || undefined, temperature: s.temperature ?? undefined });
-    const resp = await callApi(ep('chat').path, { signal, base: ep('chat').base, json: body });
+    const { resp } = await send('chat', { model, messages: buildMessages(c), max_tokens: s.maxTokens || undefined, temperature: s.temperature ?? undefined }, { signal });
     if (!resp.ok) throw new Error(errorMessage(resp));
-    const text = cleanReply(c, messageText(resp.data?.choices?.[0]?.message || {}));
-    return { text: text || '(empty reply)', model: resp.data?.model || model, usage: resp.data?.usage };
+    const answer = read('chat', resp);
+    const text = cleanReply(c, answer.text || '');
+    return { text: text || '(empty reply)', model: answer.model || model, usage: answer.usage };
   }
 
   /* ---- Rounds ---- */
@@ -153,7 +154,7 @@ export function renderGroupChat(root) {
     }
   }
 
-  function send() {
+  function sendUserMessage() {
     const text = input.value.trim();
     if (run.busy) return;
     if (text) {
@@ -280,8 +281,8 @@ export function renderGroupChat(root) {
   }
 
   const input = el('textarea', { rows: 2, placeholder: 'Write a message… (Enter sends, Shift+Enter for a new line)' });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
-  const sendBtn = el('button', { type: 'button', class: 'primary', text: 'Send', onclick: send });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); } });
+  const sendBtn = el('button', { type: 'button', class: 'primary', text: 'Send', onclick: sendUserMessage });
   const roundBtn = el('button', { type: 'button', class: 'secondary', text: 'Another round', title: 'Let the characters answer again without a new message', onclick: () => !run.busy && runRound() });
   const stopBtn = el('button', { type: 'button', class: 'secondary', text: 'Stop', title: 'Cancel the reply in progress and end this round', onclick: () => { run.stop = true; stopBtn.disabled = true; run.abort?.abort(); } });
   function renderControls() {

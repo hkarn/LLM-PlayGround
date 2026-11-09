@@ -26,7 +26,8 @@ const path = require('node:path');
     const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
     if (!m || Object.hasOwn(process.env, m[1])) continue;
     let value = m[2];
-    const quoted = value.match(/^(["'])(.*)\1$/);
+    // A quoted value may have a comment after the closing quote: KEY="value" # note
+    const quoted = value.match(/^(["'])(.*?)\1\s*(?:#.*)?$/);
     value = quoted ? quoted[2] : value.replace(/\s+#.*$/, '');
     process.env[m[1]] = value;
   }

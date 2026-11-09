@@ -12,13 +12,14 @@ export function setupPicker(picker) {
   const custom = el('input', { name: 'model_custom', placeholder: 'or type a model id, e.g. openai/gpt-4o-mini', spellcheck: 'false' });
   const showAll = el('input', { type: 'checkbox' });
   // "curated": only the models we have tested for this kind (providers/curated-models.json), the
-  // entries whose id is on the current key. Remembered per kind; a picker can start it on with
-  // data-curated="on" (the DreamGen tools).
+  // entries whose id is on the current key. Offered only where a picker asks for it with
+  // data-curated (the tools, where it helps to choose; "on" starts it ticked), and remembered per
+  // kind. The API tester tabs are for trying any model, so they don't offer it.
+  const offered = Boolean(picker.dataset.curated);
   const curated = el('input', { type: 'checkbox' });
   const curatedLabel = el('label', { class: 'inline small', title: 'Only models we have tested for this' }, curated, 'curated');
-  // Remembered separately for the tools (data-curated set) and the raw tester tabs.
-  const curatedKey = `picker_curated_${category}_${picker.dataset.curated ? 'tools' : 'tabs'}`;
-  curated.checked = (store.get(curatedKey) ?? (picker.dataset.curated === 'on' ? '1' : '0')) === '1';
+  const curatedKey = `picker_curated_${category}_tools`;
+  curated.checked = offered && (store.get(curatedKey) ?? (picker.dataset.curated === 'on' ? '1' : '0')) === '1';
   // The curated entries on this key: { <model id>: entry }, in the file's order. An entry names a
   // model ("claude-haiku-5.5"); it matches an id whose last part is that name, ignoring case, . versus -,
   // a region (@eu), a variant (:flex) and, failing an exact match, a trailing date tag (-0731).
@@ -57,7 +58,7 @@ export function setupPicker(picker) {
   const fill = () => {
     const prev = select.value;
     const tested = curatedList();
-    curatedLabel.hidden = !Array.isArray(CURATED[category]);
+    curatedLabel.hidden = !offered || !Array.isArray(CURATED[category]);
     const onlyTested = Boolean(tested && curated.checked);
     let list = showAll.checked ? visibleModels() : modelsIn(category);
     // Curated: the tested models, in the file's order (cheapest first).

@@ -36,7 +36,15 @@ export function renderVideoGenerator(root) {
   keepDrafts(form, 'videogen', { skip: ['generate_audio', 'videogen:settings-model'] });
 
   const log = () => { try { return JSON.parse(store.get(LOG_KEY) || '[]'); } catch { return []; } };
-  const saveLog = (entries) => store.set(LOG_KEY, JSON.stringify(entries.slice(0, LOG_MAX)));
+  // Saves the list, and frees the video of every clip no longer on it (removed, or past LOG_MAX):
+  // each one is a Blob of a megabyte or more held by its object URL.
+  const saveLog = (entries) => {
+    const kept = entries.slice(0, LOG_MAX);
+    store.set(LOG_KEY, JSON.stringify(kept));
+    for (const [id, url] of clips) {
+      if (!kept.some((x) => x.id === id)) { URL.revokeObjectURL(url); clips.delete(id); }
+    }
+  };
 
   const player = (url, id) => el('div', { class: 'output' },
     el('video', { controls: '', src: url, autoplay: '', muted: '', loop: '', playsinline: '' }),

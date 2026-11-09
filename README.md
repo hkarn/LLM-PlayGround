@@ -95,7 +95,7 @@ In both modes the key stays in that browser tab, unless you tick **Remember**, w
 | **Video** | `POST /v1/videos` | Prompt, duration, resolution, aspect ratio, audio and an optional first frame. Polls the job every 5 s and plays the video when it's done |
 | **Speech** | `POST /v1/audio/speech` | Plays the audio in the browser and lets you download it |
 | **Transcriptions** | `POST /v1/audio/transcriptions` | Upload a file (≤ 32 MB) or record from your mic, with optional language |
-| **All models** | `GET /v1/models/all` (Requesty), `GET /v1/models?output_modalities=all` (OpenRouter), `GET /v1/models` (custom) | Searchable table plus the raw response |
+| **Filter models** (top bar) | `GET /v1/models/all` (Requesty), `GET /v1/models?output_modalities=all` (OpenRouter), `GET /v1/models` (custom) | The model filter (it narrows every model list on the page), a searchable table and the raw response |
 
 Paste your API key and click **Load models**. On Requesty, `GET /v1/models/all` only returns the models approved for your key's organization, and each tab's dropdown is filtered by the model's `api` field (`chat`, `decision`, `embedding`, `image`, `speech`, `transcription`). On OpenRouter the filter uses each model's `endpoints` list; without `output_modalities=all`, OpenRouter's `/models` only returns text models. Tick **show all** or type any model ID to override that.
 

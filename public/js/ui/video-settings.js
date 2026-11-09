@@ -7,7 +7,6 @@ import { modelsIn, provider, state, store } from '../core.js';
 import { $, $$, el } from './dom.js';
 import { estimateVideoCost, priceTag } from './video-job.js';
 
-const AUDIO_TEXT = { off: 'no audio', optional: 'audio optional', always: 'always has audio' };
 
 // Tested models of the current provider, in the file's order, with the loaded /videos/models entry
 // (options and prices) when models are loaded.
@@ -66,7 +65,7 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   const last = el('input', { type: 'file', name: 'last_frame', accept: 'image/*' });
   const firstLabel = el('label', {}, 'First frame', first);
   const lastLabel = el('label', {}, 'Last frame', last);
-  const modelNote = el('div', { class: 'muted small' });
+  const modelNote = el('div', { class: 'vg-model-note small' });
   const price = el('div', { class: 'vs-price' });
   const root = el('div', { class: 'video-settings' },
     notice, cards, modelNote,
@@ -106,12 +105,13 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
       const est = m.meta && estimateVideoCost(m.meta, { ...m.default, generate_audio: m.audio === 'always' ? true : m.default?.generate_audio, frames: m.needsFirstFrame || firstFrameOnly ? 1 : 0 });
       const radio = el('input', { type: 'radio', name: 'video-model', value: m.id, checked: m.id === chosen || undefined,
         onchange: () => { chosen = m.id; touched = true; applyModel(true); } });
-      return el('label', { class: `vg-model${m.id === chosen ? ' chosen' : ''}`, title: m.id },
+      // A card shows only the name and the price of its cheapest clip; what the model takes and what
+      // we found are in its tooltip, and under the cards for the chosen one (a phone has no hover).
+      const cheapest = est ? `Price for ${m.default?.duration} s ${m.default?.resolution || ''}`.trim() : '';
+      return el('label', { class: `vg-model${m.id === chosen ? ' chosen' : ''}`, title: [m.label || m.id, ...facts(m), cheapest, m.id].filter(Boolean).join('\n') },
         el('span', { class: 'vg-model-head' }, radio, el('strong', { text: m.label || m.id })),
-        el('span', { class: 'muted small', text: [m.frames?.includes('last_frame') ? 'first + last frame' : 'first frame', m.needsFirstFrame ? '(needed)' : '', AUDIO_TEXT[m.audio] || ''].filter(Boolean).join(' · ') }),
-        m.faces ? el('span', { class: 'muted small', text: `Faces: ${m.faces}` }) : null,
-        est ? el('span', { class: 'small' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx || Boolean(m.priceFactor), amount: est.usd }), ` for ${m.default?.duration} s ${m.default?.resolution || ''}`)
-          : el('span', { class: 'small', text: m.meta ? '' : 'not in the loaded list' }));
+        est ? el('span', { class: 'vg-model-price' }, priceTag(est.usd * (m.priceFactor || 1), { approx: est.approx || Boolean(m.priceFactor), amount: est.usd }))
+          : el('span', { class: 'muted small', text: m.meta ? '' : 'not in the loaded list' }));
     }), ...(rest.length ? [otherCard(rest)] : []));
     applyModel(false);
   }
@@ -124,10 +124,20 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
     const radio = el('input', { type: 'radio', name: 'video-model', value: '__other', checked: isOther || undefined,
       onchange: () => { chosen = pick.value; touched = true; applyModel(true); } });
     pick.addEventListener('change', () => { chosen = pick.value; radio.checked = true; touched = true; applyModel(true); });
-    return el('label', { class: `vg-model vg-other${isOther ? ' chosen' : ''}` },
-      el('span', { class: 'vg-model-head' }, radio, el('strong', { text: 'Other video model' })),
-      el('span', { class: 'muted small', text: `Untested: ${rest.length} more on this key` }),
+    return el('label', { class: `vg-model vg-other${isOther ? ' chosen' : ''}`, title: `${rest.length} more video models on this key, not tested here` },
+      el('span', { class: 'vg-model-head' }, radio, el('strong', { text: `Other video model (${rest.length}, untested)` })),
       pick);
+  }
+
+  // What a model takes and what we found, as short lines: for a card's tooltip and the chosen model.
+  function facts(m) {
+    if (!m) return [];
+    return [
+      // Animate supplies the one picture itself, so an end frame means nothing there.
+      firstFrameOnly ? '' : m.frames?.includes('last_frame') ? 'Starts from a picture, and can end on another' : m.frames?.includes('first_frame') ? `Starts from a picture${m.needsFirstFrame ? ' (needed)' : ''}` : 'Text only',
+      { off: 'No sound', optional: 'Sound can be turned on or off', always: 'Always has sound', unknown: '' }[m.audio] || '',
+      m.faces ? `Faces: ${m.faces}` : '',
+    ].filter(Boolean);
   }
 
   // Options for the chosen model: the loaded metadata, narrowed by the file's lists when it has them.
@@ -151,7 +161,9 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
     firstLabel.firstChild.textContent = m?.needsFirstFrame ? 'First frame (needed)' : 'First frame (optional)';
     if (last.disabled) last.value = '';
     if (first.disabled) first.value = '';
-    modelNote.textContent = m?.note || '';
+    // The chosen model's facts, then its note (what our tests found, or that it is untested).
+    modelNote.replaceChildren(...(m ? [el('strong', { text: m.label || m.id }), el('ul', {}, ...facts(m).map((t) => el('li', { text: t }))),
+      m.note ? el('div', { text: m.note }) : null].filter(Boolean) : []));
     update();
   }
 

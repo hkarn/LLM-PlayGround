@@ -59,7 +59,12 @@ export function setupTopBar() {
   const testerRow = $('#tester-tabs');
   const testerToggle = $('#tester-toggle');
   const home = { parent: testerRow.parentNode, next: testerRow.nextSibling };
-  const caret = () => { $('.caret', testerToggle).textContent = testerToggle.classList.contains('active') ? '▾' : '▸'; };
+  // Back in the bar, caret and aria-expanded describe the endpoint row again, as showTab sets them.
+  const caret = () => {
+    const active = testerToggle.classList.contains('active');
+    $('.caret', testerToggle).textContent = active ? '▾' : '▸';
+    testerToggle.setAttribute('aria-expanded', String(active));
+  };
   function placeTesterRow() {
     if (bar.classList.contains('menu')) {
       if (testerRow.parentNode !== nav) testerToggle.after(testerRow);
@@ -72,6 +77,7 @@ export function setupTopBar() {
   const openSub = (open) => {
     nav.classList.toggle('sub-open', open);
     $('.caret', testerToggle).textContent = open ? '▾' : '▸';
+    testerToggle.setAttribute('aria-expanded', String(open)); // in the drop-down it opens the list
     if (!open) return;
     nav.classList.toggle('sub-below', window.innerWidth - nav.getBoundingClientRect().right < 180);
     testerRow.style.top = nav.classList.contains('sub-below') ? '' : `${testerToggle.offsetTop - 6}px`;

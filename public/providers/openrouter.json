@@ -169,6 +169,46 @@
         "2026-11-09: first and last frame, 3 s 360p: 640x360 with audio, $0.07, 29 s"
       ]
     },
+    "kwaivgi/kling-v3.0-std": {
+      "label": "Kling 3.0 Standard",
+      "frames": [
+        "first_frame",
+        "last_frame"
+      ],
+      "audio": "optional",
+      "faces": "kept mildly alien faces",
+      "default": {
+        "duration": 3,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false
+      },
+      "note": "First and last frame, 3–15 s, 720p. Audio can be turned on or off (off is cheaper). Kept realistic characters with mildly alien faces; not yet tried with strongly non-human ones.",
+      "tested": [
+        "2026-11-09 (owner): a scene picture of realistic characters with mildly alien faces as first frame: faces kept; the audio switch works both ways"
+      ]
+    },
+    "alibaba/happyhorse-1.1": {
+      "label": "HappyHorse 1.1",
+      "frames": [
+        "first_frame"
+      ],
+      "audio": "optional",
+      "faces": "kept an AI-made alien face",
+      "default": {
+        "duration": 3,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true
+      },
+      "note": "First frame, 3–15 s, from 720p, many aspect ratios. Kept an AI-made, non-human face. With audio on it gave real sound. Audio off is not tested yet.",
+      "priceFactor": 1.6,
+      "priceSeen": "A test with audio on was billed about 1.6 times the listed price, which this scale includes.",
+      "tested": [
+        "2026-11-09: AI alien face (grey-blue skin, bony head ridges) as first frame, 3 s 720p, audio on: 1282x720, 3.16 s, real audio (124 kbps), face kept through the clip, $0.494 (listed $0.0988/s), 79 s",
+        "2026-11-09: the same with audio off: not run (the account's credit check refused it)"
+      ]
+    },
     "minimax/hailuo-3-max": {
       "label": "Hailuo 3 Max",
       "frames": [

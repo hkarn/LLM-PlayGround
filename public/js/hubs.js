@@ -1,7 +1,7 @@
 /* LLM PlayGround: Games and Tools hubs (icon launcher, apps list) and direct links (#tab, #hub, #hub/app-id). */
 import { fill } from './adapter.js';
 import { renderDreamGenScene } from './apps/dreamgen-scene.js';
-import { renderDreamGenVideoPlaceholder } from './apps/dreamgen-video.js';
+import { renderDreamGenVideo } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';
 import { renderVideoGenerator } from './apps/video-generator.js';
 import { store } from './core.js';
@@ -37,8 +37,8 @@ export const APPS = {
   tools: [
     { id: 'dreamgen-scene', title: 'Draw the DreamGen Scene', icon: ICONS.scene,
       blurb: 'Turn the last scene of a DreamGen session export into an image prompt, add reference portraits, and draw it.', render: renderDreamGenScene },
-    { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo, status: 'Coming soon',
-      blurb: 'Turn a scene picture into a short clip, with motion written from the last scene of the session.', render: renderDreamGenVideoPlaceholder },
+    { id: 'dreamgen-video', title: 'Animate the DreamGen Scene', icon: ICONS.sceneVideo,
+      blurb: 'Turn a scene picture into a short clip, with motion written from the last scene of the session.', render: renderDreamGenVideo },
     { id: 'video-generator', title: 'Video Generator', icon: ICONS.video,
       blurb: 'Make short clips with video models we have tested, each with its own settings and the price shown first.', render: renderVideoGenerator },
   ],

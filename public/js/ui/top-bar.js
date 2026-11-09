@@ -8,7 +8,7 @@
    If even that wraps (a very narrow phone), the bar wraps and is no longer pinned (.wrapped).
    The chip always shows the provider. It also keeps --masthead-h, the pinned bar's height, for
    scroll-padding and the tools' sticky settings panel. */
-import { $, $$ } from './dom.js';
+import { $, $$, el } from './dom.js';
 
 const STEPS = ['short', 'menu', 'tight', 'tiny'];
 
@@ -67,10 +67,16 @@ export function setupTopBar() {
   });
   // The menu button says which tab is open ("API tester" for an endpoint tab, whose own row shows
   // which endpoint).
+  // Every label sits in the button, stacked in one grid cell with only the current one visible, so
+  // the button is as wide as the longest and the bar looks the same whichever tab is open.
+  const name = (b) => (b.id === 'tester-toggle' ? 'API tester'
+    : [...b.childNodes].filter((n) => !n.classList?.contains('opt')).map((n) => n.textContent).join('').trim());
+  const items = $$('.tabs button, #tester-toggle', nav);
+  const current = $('.nav-current', menuBtn);
+  current.replaceChildren(...items.map((b) => el('span', { text: name(b) })));
   const label = () => {
-    const tab = $$('.tabs button.active').find((b) => !b.closest('#tester-tabs'));
-    const inTester = $('#tester-toggle').classList.contains('active');
-    $('.nav-current', menuBtn).textContent = inTester ? 'API tester' : tab?.textContent || 'Menu';
+    const open = $('#tester-toggle').classList.contains('active') ? $('#tester-toggle') : items.find((b) => b.classList.contains('active'));
+    items.forEach((b, i) => current.children[i].classList.toggle('on', b === open));
     fit();
   };
   // Watch only the tab buttons and the chip's text, not the bar's own classes (fit sets those).

@@ -126,6 +126,10 @@ html { scroll-padding-top: calc(var(--masthead-h, 0px) + 12px); }
   padding: 6px 12px; border-radius: 8px; background: var(--bg); font-weight: 600;
 }
 .nav-menu .burger, .nav-menu .caret { color: var(--muted); font-weight: 400; }
+/* All tab names stacked in one cell, only the open one visible: the button keeps one width. */
+.nav-current { display: inline-grid; text-align: left; }
+.nav-current > span { grid-area: 1 / 1; visibility: hidden; }
+.nav-current > span.on { visibility: visible; }
 .nav-menu[aria-expanded=true] { border-color: var(--accent); }
 .topbar.menu .nav-wrap { display: none; }
 .topbar.menu .nav-wrap.open {

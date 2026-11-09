@@ -14,16 +14,18 @@ async function realImageType(file) {
 // drawn through a canvas, with a note to show in the result. Throws when the browser can't read it.
 export async function framePngOrJpeg(file) {
   if (!file) return { file, note: '' };
+  // A Blob (e.g. a picture made in the page) has no name; the request needs one.
+  const fileName = file.name || 'frame';
   const real = await realImageType(file);
   if (real) {
     // Sent as it is; a wrong declared type (e.g. a JPEG saved as .png) is corrected so the data URL says what it is.
-    return { file: real === file.type ? file : new File([file], file.name, { type: real }), note: '' };
+    return { file: real === file.type && file.name ? file : new File([file], fileName, { type: real }), note: '' };
   }
   let bitmap;
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error(`The frame image "${file.name}" (${file.type || 'unknown type'}) could not be read. Use a PNG or JPEG.`);
+    throw new Error(`The frame image "${fileName}" (${file.type || 'unknown type'}) could not be read. Use a PNG or JPEG.`);
   }
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;
@@ -31,9 +33,9 @@ export async function framePngOrJpeg(file) {
   canvas.getContext('2d').drawImage(bitmap, 0, 0);
   bitmap.close?.();
   const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not convert the frame image to PNG.'))), 'image/png'));
-  const name = `${file.name.replace(/\.[^.]*$/, '') || 'frame'}.png`;
+  const name = `${fileName.replace(/\.[^.]*$/, '') || 'frame'}.png`;
   return {
     file: new File([blob], name, { type: 'image/png' }),
-    note: `${file.name} (${['image/png', 'image/jpeg'].includes(file.type) ? `named ${file.type}, but not one inside` : file.type || 'unknown type'}) was converted to PNG before sending: video models take JPEG or PNG frames only.`,
+    note: `${fileName} (${['image/png', 'image/jpeg'].includes(file.type) ? `named ${file.type}, but not one inside` : file.type || 'unknown type'}) was converted to PNG before sending: video models take JPEG or PNG frames only.`,
   };
 }

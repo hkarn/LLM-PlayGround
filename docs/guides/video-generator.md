@@ -8,19 +8,23 @@ Open it: **Tools → Video Generator**, or <https://hkarn.github.io/LLM-PlayGrou
 
 You need an API key for a provider with video models, loaded in the connection panel at the top. OpenRouter is the one we have tested; Requesty has no video. Video costs real money per clip, so start with the cheapest settings.
 
+## Settings
+
+The **settings panel** on the right holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
+
+- **Video model:** pick a card. Each card shows the model's name and its **price** for the cheapest clip: the provider's listed price, or **$** (cheapest) to **$$$$$** where only an estimate is possible. Hover a card, or pick it, to see the rest; the chosen model's details show under the cards:
+   - which pictures it takes (one to start from, or one to start and one to end on);
+   - its **sound**: always on, can be turned on or off, or none;
+   - what happened with a **face** in our tests.
+
+   **Other video model** lists every other video model your key can use. These are untested: their options and prices come from the provider's list, and they may refuse some settings or pictures.
+- **Duration, resolution and aspect ratio** offer only what the chosen model supports, starting from the cheapest. Audio is a checkbox only where turning it off works.
+
 ## Make a clip
 
 1. **Prompt:** describe the clip: what moves, how the camera moves, the light.
-2. **Video model:** pick a card. Each card shows:
-   - which pictures the model takes (first frame, or first and last);
-   - its **audio**: always on, optional, or none;
-   - what happened with a realistic **face** in our tests;
-   - its **price** for the cheapest clip. That is the provider's listed price, or **$** (cheapest) to **$$$$$** where only an estimate is possible.
-
-   **Other video model** lists every other video model your key can use. These are untested: their options and prices come from the provider's list, and they may refuse some settings or pictures.
-3. **Settings:** duration, resolution and aspect ratio offer only what the chosen model supports, starting from the cheapest. Audio is a checkbox only where turning it off works.
-4. **First frame / Last frame** (optional): the clip starts from your picture, and ends on the other where the model supports it. Some models need a first frame (the card says "(needed)"). WebP, GIF and other formats are converted to PNG automatically.
-5. Check the **Price** line and press **Generate video**.
+2. **First frame / Last frame** (optional): the clip starts from your picture, and ends on the other where the model supports it. Some models need a first frame (the card says "(needed)"). WebP, GIF and other formats are converted to PNG automatically.
+3. Check the **Price** line and press **Generate video**.
 
 The job runs at the provider; the page checks every 5 seconds. A clip usually takes 15 seconds to a couple of minutes. **Cancel** stops waiting, but the provider may still finish and charge for it.
 

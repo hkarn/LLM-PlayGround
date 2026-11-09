@@ -12,6 +12,7 @@ import { renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
+import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 import { priceTag, runVideoJob } from '../ui/video-job.js';
 import { videoSettings } from '../ui/video-settings.js';
 
@@ -48,13 +49,14 @@ export function renderDreamGenVideo(root) {
   const useSession = el('button', { type: 'button', class: 'secondary', text: 'Use the session from Draw the DreamGen Scene' });
   const sessionNote = el('div', { class: 'muted small' });
   const imagePrompt = el('textarea', { name: 'image_prompt', rows: 3, placeholder: 'Optional: what the picture shows (filled in from Draw the DreamGen Scene).' });
-  const motionForm = el('form', { class: 'tool-form', 'data-kind': 'chat' },
-    el('div', { class: 'tool-settings' },
-      el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
-      el('details', {}, el('summary', { text: 'System prompt' }),
-        el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
-        el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { motionForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })),
-      el('div', { class: 'grid3' }, el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })))),
+  // The chat model and its options, in the settings panel; shared with the other tools.
+  const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
+    el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
+    el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
+    el('details', {}, el('summary', { text: 'System prompt' }),
+      el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })));
+  const motionForm = el('form', { class: 'tool-form' },
     el('div', { class: 'row' }, useSession, el('label', { class: 'inline' }, 'or load an export ', exportFile)),
     sessionNote,
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
@@ -74,16 +76,16 @@ export function renderDreamGenVideo(root) {
   };
   exportBox.addEventListener('input', countExport);
 
-  // 3 and 4. Model, settings and the clip
-  const settings = videoSettings({ key: 'dgvideo:settings', firstFrameOnly: true });
+  // 3. The clip. The video model and its options are in the settings panel (shared with the Video
+  // Generator); the price stays here, by the button that spends it.
+  const settings = videoSettings({ firstFrameOnly: true });
   const clipForm = el('form', { class: 'tool-form' },
-    settings.root,
+    settings.price,
     el('button', { type: 'submit', class: 'primary', text: 'Make video' }));
   const clipOut = el('div', { class: 'result' });
 
-  root.append(
-    el('div', { class: 'placeholder-note' },
-      el('strong', { text: 'How it works' }),
+  const main = [
+    aboutBox('dreamgen-video',
       el('ol', {},
         el('li', {}, 'Start from a scene picture: the last one drawn in ', el('a', { href: '#tools/dreamgen-scene', text: 'Draw the DreamGen Scene' }), ', or one you upload. It is the clip\'s first frame.'),
         el('li', { text: 'A chat model reads the same session export and writes a short motion prompt: what moves in the next few seconds of the last scene.' }),
@@ -95,17 +97,30 @@ export function renderDreamGenVideo(root) {
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
       preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
-      el('label', {}, 'Motion prompt (sent to the video model)', motion),
-      el('div', { class: 'grid3' },
-        el('label', {}, 'Picture style', style.select),
-        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom)),
-      el('div', { class: 'muted small', text: 'The style is added to the end of the motion prompt when the clip is made ("Style: …"). It is shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
-    el('section', { class: 'tool-step' }, el('h3', { text: '3. Model, settings and the clip' }), clipForm, clipOut));
+      el('label', {}, 'Motion prompt (sent to the video model)', motion)),
+    el('section', { class: 'tool-step' }, el('h3', { text: '3. Make the clip' }),
+      el('div', { class: 'muted small', text: 'With the video model and options chosen under Settings.' }), clipForm, clipOut)];
+
+  // The settings panel: what is chosen once and left alone. The steps hold what changes each run.
+  const layout = toolLayout(root, {
+    panel: [
+      panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
+      panelSection('Video model', settings.root),
+      panelSection('Picture style',
+        el('label', {}, 'Style', style.select),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom),
+        el('p', { class: 'muted small', text: 'Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
+    ],
+    main,
+    summary: () => [chosenModel(chatForm), settings.model()?.label].filter(Boolean).join(' · '),
+  });
 
   for (const picker of $$('.model-picker', root)) setupPicker(picker);
-  rememberModel(motionForm, 'motion', ['max_tokens']);
+  // Shared with the other tools: the same chat model as Draw the DreamGen Scene.
+  rememberModel(chatForm, 'chat', ['max_tokens']);
+  layout.refresh();
   style.sync();
-  keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'dgvideo:settings-model', 'style_custom'] });
+  keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'video-model', 'style_custom', 'max_tokens'] });
   countExport();
 
   // The handoff from Draw the DreamGen Scene: offered when there is one, and taken at once when
@@ -158,14 +173,14 @@ export function renderDreamGenVideo(root) {
     runStep(motionForm, motionOut, async () => {
       const exported = exportBox.value.trim();
       if (!exported) throw new Error('Load or paste a session export first.');
-      const model = chosenModel(motionForm);
-      if (!model) throw new Error('Pick or type a chat model first.');
+      const model = chosenModel(chatForm);
+      if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const seen = imagePrompt.value.trim();
       const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}Write the motion prompt for the next few seconds of the final moment of the last scene.`;
-      const system = motionForm.elements.system.value.trim();
+      const system = chatForm.elements.system.value.trim();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
-        max_tokens: num(motionForm, 'max_tokens'),
+        max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: motionForm._abort?.signal });
       let rendered;
       if (resp.ok) {
@@ -177,7 +192,7 @@ export function renderDreamGenVideo(root) {
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered });
+      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
     });
   });
 
@@ -190,8 +205,8 @@ export function renderDreamGenVideo(root) {
       // The picture style goes at the end, as Draw the DreamGen Scene adds it to the image prompt.
       const prompt = style.withStyle(motionText);
       const m = settings.model();
-      if (!m) throw new Error('Pick a video model first.');
-      const est = settings.price();
+      if (!m) throw new Error('Pick a video model first (Settings).');
+      const est = settings.priceNow();
       const status = el('div', { class: 'muted' });
       clipOut.replaceChildren(status);
       const job = await runVideoJob({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined }, {
@@ -202,7 +217,7 @@ export function renderDreamGenVideo(root) {
       const facts = () => el('div', { class: 'muted small' }, `Took ${job.seconds} s.`,
         job.cost != null ? ' Billed ' : '', job.cost != null ? priceTag(Number(job.cost), { amount: Number(job.cost) }) : null,
         est ? ' · estimated ' : '', est ? priceTag(est.usd, { approx: est.approx, amount: est.listedUsd }) : null);
-      const raw = el('details', {}, el('summary', { text: 'Request and last response' }),
+      const raw = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
         el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
       const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
       if (!job.ok || !job.blob) {

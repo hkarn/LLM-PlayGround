@@ -44,10 +44,49 @@ export const APPS = {
   ],
 };
 
+// The open app's title as a drop-down of every app in its hub, so another tool or game is one pick
+// away without going back to the launcher. Esc or a click outside closes it.
+function appSwitcher(hub, current, openApp) {
+  const list = el('div', { class: 'app-switch-list', role: 'menu', hidden: '' });
+  const btn = el('button', { type: 'button', class: 'app-switch', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: `Switch to another of the ${HUBS[hub].title.toLowerCase()}` },
+    el('span', { class: 'app-icon' }, svgIcon(current.icon)), el('span', { text: current.title }), el('span', { class: 'caret', 'aria-hidden': 'true', text: '▾' }));
+  const wrap = el('div', { class: 'app-switch-wrap' }, btn, list);
+  const open = (yes) => {
+    list.hidden = !yes;
+    btn.setAttribute('aria-expanded', String(yes));
+    if (yes) (list.querySelector('[aria-current]') || list.querySelector('button'))?.focus();
+  };
+  list.append(...APPS[hub].map((a) => el('button', {
+    type: 'button', role: 'menuitem', class: 'app-switch-item', 'aria-current': a.id === current.id ? 'true' : undefined,
+    onclick: () => { open(false); if (a.id !== current.id) openApp(a); },
+  }, el('span', { class: 'app-icon' }, svgIcon(a.icon)),
+  el('span', {}, el('strong', { text: a.title }), el('span', { class: 'muted small', text: a.blurb })),
+  a.status ? el('span', { class: 'tag', text: a.status }) : null)));
+  btn.addEventListener('click', () => open(list.hidden));
+  // A click outside closes it. dispose() removes the listener when the header is replaced.
+  const outside = (e) => { if (!list.hidden && !wrap.contains(e.target)) open(false); };
+  document.addEventListener('pointerdown', outside);
+  wrap.dispose = () => document.removeEventListener('pointerdown', outside);
+  wrap.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !list.hidden) { open(false); btn.focus(); }
+    if (!list.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const items = [...list.querySelectorAll('button')];
+      const i = items.indexOf(document.activeElement);
+      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus();
+    }
+  });
+  return wrap;
+}
+
 export function setupHubs() {
   for (const panel of $$('.panel.hub')) {
     const hub = panel.dataset.hub;
+    // Whatever the open app's header set up (the switcher's listener, the height observer) goes
+    // before the panel is drawn again.
+    const disposeHead = () => { panel._disposeHead?.(); panel._disposeHead = null; };
     const showLauncher = () => {
+      disposeHead();
       store.del(`app_${hub}`);
       panel._app = null;
       setHash(hub);
@@ -67,12 +106,20 @@ export function setupHubs() {
       if (panel._app === app.id) return; // already open: keep its state
       panel._app = app.id;
       const body = el('div', { class: 'app-view' });
-      panel.replaceChildren(
-        el('div', { class: 'hub-head' },
-          el('button', { type: 'button', class: 'secondary', text: `← All ${HUBS[hub].title.toLowerCase()}`, onclick: showLauncher }),
-          el('h2', { text: app.title }),
-          app.status ? el('span', { class: 'tag', text: app.status }) : null),
-        body);
+      const head = el('div', { class: 'hub-head app-head' },
+        // On a phone the back button shrinks to its arrow (the label stays for screen readers).
+        el('button', { type: 'button', class: 'secondary app-back', title: `All ${HUBS[hub].title.toLowerCase()}`, 'aria-label': `All ${HUBS[hub].title.toLowerCase()}`, onclick: showLauncher },
+          '← ', el('span', { class: 'app-back-text', text: `All ${HUBS[hub].title.toLowerCase()}` })),
+        el('h2', {}, appSwitcher(hub, app, openApp)),
+        app.status ? el('span', { class: 'tag', text: app.status }) : null);
+      disposeHead();
+      panel.replaceChildren(head, body);
+      // The header stays pinned under the top bar; its height lets the tool's sticky settings panel
+      // stop below it (--apphead-h, read by .tool-panel in style.css).
+      const sizer = new ResizeObserver(() => panel.style.setProperty('--apphead-h', `${head.offsetHeight}px`));
+      sizer.observe(head);
+      const switcher = head.querySelector('.app-switch-wrap');
+      panel._disposeHead = () => { sizer.disconnect(); switcher?.dispose?.(); panel.style.removeProperty('--apphead-h'); };
       app.render(body);
     };
     // Route to "#hub" (launcher) or "#hub/app-id" (that app).

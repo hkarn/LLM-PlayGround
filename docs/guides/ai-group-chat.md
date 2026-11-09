@@ -2,7 +2,7 @@
 
 A group chat with several AI characters, each with its own personality and its own model. You write a message, and the characters answer one after another, reacting to you and to each other.
 
-Open it: **Games → AI Group Chat**, or <https://hkarn.github.io/LLM-PlayGround/#games/group-chat>. It is a working prototype.
+Open it: **Games → AI Group Chat**, or <https://hkarn.github.io/LLM-PlayGround/#games/group-chat>. It is a working prototype. Inside it, the title at the top is a drop-down to switch to another game straight away, and **←** goes back to the list; this header stays at the top while you scroll.
 
 ## Before you start
 

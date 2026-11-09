@@ -259,6 +259,7 @@ button:disabled { opacity: .6; cursor: progress; }
    on the right. A picture opens larger in the pop-out (.lightbox) when clicked. */
 figure.media { margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 figure.media .media-pic { cursor: zoom-in; margin-bottom: 0; }
+figure.media .media-pic:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 figure.media figcaption { margin: 0; }
 .media-bar { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
 .media-left { flex: 1 1 0; min-width: 0; }

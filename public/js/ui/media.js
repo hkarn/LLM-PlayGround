@@ -37,8 +37,12 @@ export function mediaBar({ left, download, retry } = {}) {
 
 // Pictures: [{ src, alt?, caption?, name }]. Returns one figure per picture, each with its bar.
 export function pictures(list, { retry } = {}) {
+  // The picture is a button for the keyboard too: Tab to it, Enter or Space opens the pop-out.
+  const open = (i) => openPictures(list, i);
   return list.map((p, i) => el('figure', { class: 'media' },
-    el('img', { src: p.src, alt: p.alt || `Picture ${i + 1}`, class: 'media-pic', title: 'Click to see it larger', onclick: () => openPictures(list, i) }),
+    el('img', { src: p.src, alt: p.alt || `Picture ${i + 1}`, class: 'media-pic', title: 'Click to see it larger', role: 'button', tabindex: '0',
+      'aria-label': `${p.alt || `Picture ${i + 1}`}: open larger`, onclick: () => open(i),
+      onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); } } }),
     p.caption ? el('figcaption', { class: 'muted small', text: p.caption }) : null,
     mediaBar({ download: { href: p.src, name: p.name }, retry: i === list.length - 1 ? retry : undefined })));
 }

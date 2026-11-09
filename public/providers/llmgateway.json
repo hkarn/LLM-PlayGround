@@ -6,7 +6,8 @@
     "Model ids are bare (gpt-4o: the gateway picks the provider and can fall back) or provider/model (pinned, no fallback).",
     "Image edits are JSON to /images/edits with the pictures as data URLs in images[].image_url (1-16), and no mask (endpoints.imageEdit). Image options have size, aspect_ratio and quality but no resolution.",
     "Checked 2026-11-09 through server.js with a key: the model list (291 models) and one chat call; the image edit format against the spec only.",
-    "attributionHeaders is false: its CORS allows only its own request headers (Content-Type, Authorization, x-api-key, x-session-id, …), so direct browser calls must not add HTTP-Referer and X-Title. llmgateway-self.json extends this file."
+    "attributionHeaders is false: its CORS allows only its own request headers (Content-Type, Authorization, x-api-key, x-session-id, …), so direct browser calls must not add HTTP-Referer and X-Title. llmgateway-self.json extends this file.",
+    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
   ],
   "label": "LLM Gateway",
   "baseUrl": "https://api.llmgateway.io/v1",
@@ -64,5 +65,22 @@
     "imageEdit": {
       "resolution": false
     }
+  },
+  "guide": {
+    "level": 3,
+    "ease": "Easy key, needs your own server",
+    "summary": "Getting a key is easy, but the hosted API does not accept calls from a web page, so it only works when you run this playground yourself.",
+    "steps": [
+      "Sign up at LLM Gateway with the link below and add credit.",
+      "Create an API key.",
+      "Run this playground yourself: docker compose up, or node server.js (see the README on GitHub).",
+      "Open your own copy, pick LLM Gateway and paste the key."
+    ],
+    "good": [
+      "One key for many providers, and it can fall back to another provider when one fails."
+    ],
+    "watch": [
+      "Greyed out on the GitHub Pages site: the hosted API sends no CORS header."
+    ]
   }
 }

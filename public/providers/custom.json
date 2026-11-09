@@ -1,12 +1,11 @@
 {
   "_notes": [
-    "Only OpenAI standard endpoints; decisions, rerank and video have no common format."
+    "Only OpenAI standard endpoints; decisions, rerank and video have no common format.",
+    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
   ],
   "label": "Custom (OpenAI-compatible)",
   "baseUrl": "",
-  "modelsPaths": [
-    "/models"
-  ],
+  "modelsPaths": ["/models"],
   "keyEnv": "API_KEY",
   "keyHint": "if needed",
   "unsupported": [
@@ -24,5 +23,21 @@
       "aspect_ratio": false,
       "resolution": false
     }
+  },
+  "guide": {
+    "level": 3,
+    "ease": "Depends on the server",
+    "summary": "Any OpenAI-compatible URL: a local model server such as Ollama or LM Studio, or another provider.",
+    "steps": [
+      "Start the server, e.g. Ollama (http://localhost:11434/v1) or LM Studio (http://localhost:1234/v1).",
+      "Allow this page's origin if the server checks it (for Ollama, OLLAMA_ORIGINS).",
+      "Enter its base URL at the top of this page, and a key if it needs one."
+    ],
+    "good": [
+      "Local models cost nothing per call and nothing leaves your machine."
+    ],
+    "watch": [
+      "Only the endpoints the server really has will work. Decisions, rerank and video are off: they have no OpenAI standard."
+    ]
   }
 }

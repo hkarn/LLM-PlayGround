@@ -64,7 +64,7 @@ export const defaultBaseUrl = (p = provider()) => (state.viaServer && p.serverBa
 
 export const state = {
   models: [],         // raw model objects from the provider's model list
-  provider: 'requesty',
+  provider: null,     // set at start-up: the saved choice, else the first provider in providers/index.json that works here
   keys: {},           // keys typed this session, per provider, so switching back keeps them
   viaServer: false,   // true when server.js serves the page and proxies /api/*
   config: null,       // server.js `config`, or null on a static host

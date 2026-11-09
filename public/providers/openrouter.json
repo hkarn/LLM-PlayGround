@@ -3,7 +3,8 @@
     "output_modalities=all lists every model group (chat, image, embeddings, rerank, video, speech, transcription, decisions); without it /models only returns text models.",
     "Decisions are at /api/alpha/decisions: the base URL with /v1 replaced by /alpha.",
     "Images and image edits both POST /images; edits are JSON with the pictures as data URLs in input_references, and no mask (endpoints.imageEdit).",
-    "Image and video options come per model from /images/models and /videos/models; suggest covers what no list gives. /audio/speech only returns mp3 or pcm (pcm does not play in the page)."
+    "Image and video options come per model from /images/models and /videos/models; suggest covers what no list gives. /audio/speech only returns mp3 or pcm (pcm does not play in the page).",
+    "guide is the text of the Providers tab: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
   ],
   "label": "OpenRouter",
   "baseUrl": "https://openrouter.ai/api/v1",
@@ -55,9 +56,7 @@
         }
       },
       "files": [],
-      "drops": [
-        "mask"
-      ]
+      "drops": ["mask"]
     }
   },
   "suggest": {
@@ -67,5 +66,23 @@
         "pcm"
       ]
     }
+  },
+  "guide": {
+    "level": 1,
+    "ease": "Easiest",
+    "summary": "Sign in, add credit, make a key. Every model is switched on from the start, so there is nothing else to set up.",
+    "steps": [
+      "Sign in at openrouter.ai, for example with your Google account.",
+      "Add credit under Credits (pay as you go).",
+      "Create a key under Keys and paste it at the top of this page."
+    ],
+    "good": [
+      "All models are available at once, with nothing to enable.",
+      "Works straight from this page (GitHub Pages), no server needed.",
+      "Has every tab here, including video and rerank."
+    ],
+    "watch": [
+      "Pay as you go: the key spends your credit, so set a limit on the key if you share it."
+    ]
   }
 }

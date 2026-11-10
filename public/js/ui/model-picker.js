@@ -115,7 +115,7 @@ export function setupPicker(picker) {
       el('summary', { class: 'small', text: summary }),
       entry?.note ? el('p', { class: 'small', text: entry.draft ? `Draft: ${entry.note}` : entry.note }) : null,
       bits.length ? el('p', { class: 'small muted', text: bits.join(' · ') }) : null,
-      el('details', {}, el('summary', { class: 'small', text: 'Model metadata' }), pre(stripPrivate(m)))), 'model_facts', tested));
+      el('details', {}, el('summary', { class: 'small', text: 'Model metadata' }), pre(stripPrivate(m)))), `model_facts_${state.provider}_${category}_${m.id}`, tested));
   };
   select.addEventListener('change', showInfo);
   showAll.addEventListener('change', fill);

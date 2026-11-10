@@ -80,6 +80,7 @@ export function renderDreamGenVideo(root) {
   const motionOut = el('div', { class: 'result' });
   const motion = el('textarea', { name: 'motion', rows: 3, placeholder: 'e.g. The man on the wall turns his head toward the empty space beside him; the streetlight flickers; the river runs on.' });
   const style = sceneStylePicker();
+  style.select.setAttribute('aria-label', 'Style');
   const countExport = () => {
     exportCount.textContent = exportBox.value ? `(about ${tokensFor(exportBox.value).toLocaleString()} tokens)` : '';
   };
@@ -118,7 +119,7 @@ export function renderDreamGenVideo(root) {
       panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
       // The style goes with the prompt it is added to; the video choice after it, its jobs last.
       panelSection('Picture style',
-        el('label', {}, el('span', {}, 'Style ', helpTip('Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.')), style.select),
+        el('div', {}, el('div', { class: 'tip-row' }, el('span', { text: 'Style' }), helpTip('Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.')), style.select),
         el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom)),
       panelSection('Video model', settings.root),
       panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),

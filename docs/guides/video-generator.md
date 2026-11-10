@@ -10,7 +10,7 @@ You need an API key for a provider with video models, loaded in the connection p
 
 ## Settings
 
-The **settings panel** on the right holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
+The **settings panel** on the right holds the video model and its options. On a phone it folds into a **Settings** button above the page, which shows the chosen model while it is closed. The choice is shared with Animate the DreamGen Scene, and each provider keeps its own. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again. Click a heading in the panel to fold its section away (or open it again); they all start open.
 
 - **Video model:** pick a row. Each row shows the model's name, small marks for what matters when choosing (a picture icon: it can start from a picture, in the accent colour when it needs one; an end-picture icon; a speaker: always sound, sound you can turn on or off, or none; a face: it kept a face in our tests, filled when it was a realistic one), explained in a legend under the list, and its **price** for the cheapest clip: the provider's listed price, or **$** (cheapest) to **$$$$$** where only an estimate is possible. Hover a row, or pick it, for the words; the chosen model's details show under the list:
    - which pictures it takes (one to start from, or one to start and one to end on);

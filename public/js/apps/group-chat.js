@@ -543,7 +543,9 @@ export function renderGroupChat(root) {
   thresholdField.title = 'A character less likely than this to talk next sits the round out.';
   whoSelect.addEventListener('change', () => { s.decisionWho = whoSelect.value; save(); showDecision(); });
   thresholdInput.addEventListener('change', () => {
-    s.decisionThreshold = Math.min(100, Math.max(1, Math.round(Number(thresholdInput.value) || 20)));
+    // An empty or non-numeric field goes back to 20; a number, 0 included, is kept within 1 to 100.
+    const n = Number(thresholdInput.value);
+    s.decisionThreshold = thresholdInput.value.trim() === '' || !Number.isFinite(n) ? 20 : Math.min(100, Math.max(1, Math.round(n)));
     thresholdInput.value = s.decisionThreshold;
     save();
   });

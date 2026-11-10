@@ -104,11 +104,16 @@ export function setupPicker(picker) {
     if (m.geolocation) bits.push(m.geolocation);
     if (m.owned_by) bits.push(`by ${m.owned_by}`);
     if (m.description) bits.push(String(m.description).slice(0, 140));
-    // What our tests found, for a curated model.
-    // What our tests found, for a curated model (a draft's note says itself that it is a draft).
+    // What our tests found, for a curated model, under a fold named for it. A draft's note says
+    // itself that it is a draft and is not a test result, so it folds as "Model details".
     const entry = curatedList()?.[m.id];
-    if (entry?.note) bits.unshift(entry.draft ? entry.note : `Tested: ${entry.note}`);
-    info.append(bits.join(' · '), ' ', el('details', {}, el('summary', { class: 'small', text: 'model metadata' }), pre(stripPrivate(m))));
+    const tested = entry?.note && !entry.draft;
+    const summary = tested ? 'Test results' : 'Model details';
+    info.replaceChildren(el('details', { class: 'model-facts' },
+      el('summary', { class: 'small', text: summary }),
+      entry?.note ? el('p', { class: 'small', text: entry.draft ? `Draft: ${entry.note}` : entry.note }) : null,
+      bits.length ? el('p', { class: 'small muted', text: bits.join(' · ') }) : null,
+      el('details', {}, el('summary', { class: 'small', text: 'Model metadata' }), pre(stripPrivate(m)))));
   };
   select.addEventListener('change', showInfo);
   showAll.addEventListener('change', fill);

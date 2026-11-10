@@ -745,3 +745,7 @@ a.button-link:hover { filter: brightness(1.08); }
 .price-tag .on { color: var(--text); }
 .price-tag .off { color: var(--muted); opacity: .45; }
 .price-tag .price-amount { font-weight: 400; letter-spacing: 0; color: var(--muted); }
+
+/* A model's test results and details, folded under the model picker (ui/model-picker.js). */
+.model-picker .model-facts > summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.model-picker .model-facts p { margin: 6px 0 0; }

@@ -60,6 +60,10 @@ List every character visible in the picture, the player's character included whe
 - Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
 
+// Added to the image prompt when "Will animate" is ticked: the picture becomes a clip's first frame
+// in Animate the DreamGen Scene, and a video model cannot keep a face that is turned away.
+export const ANIMATE_NOTE = "This picture will be the first frame of a video clip, so the faces matter most: show every character's face clearly to the camera, facing the viewer or in three-quarter view. No one is seen from behind, turned away, in profile with the face hidden, or with the face covered, in deep shadow or cut off by the frame. Keep each face large and sharp enough to recognise.";
+
 export function renderDreamGenScene(root) {
   const st = { session: null };
 
@@ -145,7 +149,14 @@ export function renderDreamGenScene(root) {
         ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
       el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
         ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))));
+  // For a picture that will be animated: a video model can only keep a face it can see in the
+  // first frame, so this asks for every face turned to the camera. Remembered in this browser.
+  const willAnimate = el('input', { type: 'checkbox' });
+  willAnimate.checked = store.get('dgscene_animate') === '1';
+  willAnimate.addEventListener('change', () => store.set('dgscene_animate', willAnimate.checked ? '1' : '0'));
   const imageForm = el('form', { class: 'tool-form' },
+    el('label', { class: 'inline', title: 'Adds an instruction to the image prompt to show every face to the camera. A video model cannot keep a face it does not see in the first frame.' },
+      willAnimate, 'Will animate: show every face to the camera'),
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
@@ -293,7 +304,7 @@ export function renderDreamGenScene(root) {
   // With references, "Reference image 1 shows …" lines tell the model who is who.
   function finalPrompt() {
     if (!promptBox.value.trim()) return '';
-    const base = withStyle(promptBox.value.trim());
+    const base = withStyle(promptBox.value.trim()) + (willAnimate.checked ? `\n\n${ANIMATE_NOTE}` : '');
     const named = portraits.active().map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
     if (!addNames.checked || !named.length) return base;
     return `${base}\n\nUse the reference images for the characters' faces and looks: ${named.join('; ')}.`;
@@ -318,7 +329,7 @@ export function renderDreamGenScene(root) {
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
-      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images });
+      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images, posed: willAnimate.checked });
     });
   });
 

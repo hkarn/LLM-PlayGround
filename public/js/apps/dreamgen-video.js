@@ -23,6 +23,10 @@ import { priceTag } from '../ui/video-job.js';
 import { startVideoJob, videoJobsLine, videoJobsList } from '../ui/video-jobs.js';
 import { videoSettings } from '../ui/video-settings.js';
 
+// When the first frame was drawn with Will animate (faces turned to the camera, see Draw the DreamGen
+// Scene), this opens the motion prompt, so the clip turns the characters back into the scene at once.
+export const POSED_MOTION_NOTE = 'The clip opens with the characters facing the camera, as in the picture. Within the first second they turn naturally away from the camera and into the action below, keeping their faces and looks.';
+
 export const MOTION_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write a motion prompt for an image-to-video model. The clip starts from a still picture of the final moment of the last scene (the image prompt it was drawn from may follow the export) and lasts only a few seconds.
 
 Write what moves in the next few seconds of that moment, in one or two sentences and at most 50 words:
@@ -40,9 +44,15 @@ export function renderDreamGenVideo(root) {
   const upload = el('input', { type: 'file', accept: 'image/*' });
   const useLast = el('button', { type: 'button', class: 'secondary', text: 'Use the last drawn scene' });
   const pictureNote = el('div', { class: 'muted small' });
+  // Ticked when the picture comes from Draw the DreamGen Scene drawn with Will animate: the faces were
+  // turned to the camera for the video model, so the motion prompt starts by turning them back.
+  const posed = el('input', { type: 'checkbox' });
+  const posedRow = el('label', { class: 'inline small', title: 'Starts the motion prompt with the characters turning from the camera into the scene. Ticked by itself when the picture was drawn with Will animate.' },
+    posed, 'Faces posed for the camera: turn them back into the scene at the start');
   // Pictures embedded in a JSON export (a location, a character): any can be the first frame.
   const pictures = exportPictures({ actions: [{ label: 'Use as first frame', onclick: (i) => setFrame(i.file, `From the export: ${i.name || i.kind}.`) }] });
-  function setFrame(file, note = '') {
+  function setFrame(file, note = '', facesPosed = false) {
+    posed.checked = !!facesPosed;
     if (st.frameUrl) URL.revokeObjectURL(st.frameUrl);
     st.frame = file;
     st.frameUrl = file ? URL.createObjectURL(file) : null;
@@ -105,7 +115,7 @@ export function renderDreamGenVideo(root) {
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
-      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, pictures.node),
+      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, posedRow, pictures.node),
     // As in Draw the DreamGen Scene: the details of the last run sit under its button, and the text it
     // wrote is in the box below, which may have been edited since.
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
@@ -149,12 +159,12 @@ export function renderDreamGenVideo(root) {
   const takeHandoff = () => {
     const s = scenePicture();
     if (!s) return;
-    setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`);
+    setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed);
     if (s.exportText) { exportBox.value = s.exportText; countExport(); sessionNote.textContent = 'The session as it was sent for that picture.'; }
     if (s.prompt) imagePrompt.value = s.prompt;
     if (s.pictures?.length) pictures.set(s.pictures);
   };
-  useLast.addEventListener('click', () => { const s = scenePicture(); if (s) setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`); });
+  useLast.addEventListener('click', () => { const s = scenePicture(); if (s) setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed); });
   useSession.addEventListener('click', () => {
     const s = scenePicture();
     if (!s?.exportText) return;
@@ -194,7 +204,7 @@ export function renderDreamGenVideo(root) {
       const model = chosenModel(chatForm);
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const seen = imagePrompt.value.trim();
-      const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}Write the motion prompt for the next few seconds of the final moment of the last scene.`;
+      const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}${posed.checked ? 'The picture was posed with every face turned to the camera, so the video model can keep the faces. A line before your prompt already has them turn away from the camera at the start; describe what they do once they have turned.\n\n' : ''}Write the motion prompt for the next few seconds of the final moment of the last scene.`;
       const system = chatForm.elements.system.value.trim();
       const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
@@ -222,7 +232,7 @@ export function renderDreamGenVideo(root) {
       const motionText = motion.value.trim();
       if (!motionText) throw new Error('Write a motion prompt first (step 2).');
       // The picture style goes at the end, as Draw the DreamGen Scene adds it to the image prompt.
-      const prompt = style.withStyle(motionText);
+      const prompt = style.withStyle(posed.checked ? `${POSED_MOTION_NOTE}\n\n${motionText}` : motionText);
       const m = settings.model();
       if (!m) throw new Error(settings.blocked() || 'Pick a video model first (Settings).');
       await sendClip({ ...settings.read(), prompt, first_frame: st.frame, last_frame: undefined }, m, settings.priceNow());

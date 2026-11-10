@@ -51,6 +51,7 @@ Press **Draw the scene**. It uses the image model and options from the settings 
 
 - With portraits, the picture is made as an image edit, so the model can use their faces and looks.
 - Without portraits, it is a plain image generation.
+- **Will animate: show every face to the camera:** tick it when the picture will become a clip. It adds an instruction to the prompt to show every character's face clearly to the camera, not from behind, turned away, covered or in deep shadow, because a video model can only keep a face it sees in the first frame. The choice is remembered in this browser. Animate this picture → then turns them back into the scene at the start of the clip (see **Faces posed for the camera** in that guide).
 
 When the picture is done, **Animate this picture →** opens [Animate the DreamGen Scene](animate-dreamgen-scene.md) with this picture and this session.
 

@@ -217,7 +217,7 @@ export function renderDreamGenScene(root) {
       setExport(s.text, { keepUndo: true });
       // Every embedded picture is listed in step 3, unticked; the ones for the characters the
       // model puts in the scene are ticked when the prompt is written. Nothing is sent by loading.
-      portraits.set(s.images.map((i) => ({ name: i.name, file: i.file, kind: i.kind, send: false, fromExport: true, index: i.index, caption: i.name })));
+      portraits.set(s.images.map((i) => ({ name: i.name, file: i.file, kind: i.kind, send: false, fromExport: true, index: i.index, caption: i.name, alias: i.alias })));
     } catch (err) {
       st.session = null;
       summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
@@ -279,7 +279,8 @@ export function renderDreamGenScene(root) {
     const ticked = new Set();
     for (const c of chars) {
       const n = norm(c.name);
-      const img = firsts.find((r) => norm(r.caption) === n) || firsts.find((r) => norm(r.caption).split(' ')[0] === n.split(' ')[0]);
+      const img = firsts.find((r) => [r.caption, r.alias].some((x) => norm(x || '') === n))
+        || firsts.find((r) => [r.caption, r.alias].some((x) => norm(x || '').split(' ')[0] === n.split(' ')[0]));
       if (img && !ticked.has(img)) { ticked.add(img); img.send = true; img.name = c.name; }
     }
     portraits.refresh();

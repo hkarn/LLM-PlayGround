@@ -53,13 +53,13 @@ export function dreamGenJsonToMarkdown(doc) {
   // DreamGen requires a caption on characters, locations and objects (display.name); the narrator's
   // is "narrator" and the scenario's own pictures are "cover". The caption stays blank if the file has none.
   const images = [];
-  const addImages = (list, name, kind, base) => (list || []).forEach((img, index) => {
+  const addImages = (list, name, kind, base, alias = '') => (list || []).forEach((img, index) => {
     if (!img?.dataBase64) return;
-    images.push({ name, kind, index, nsfw: !!img.nsfw, file: base64ToFile(img.dataBase64, img.mimeType, `${base}${index ? `_${index + 1}` : ''}`) });
+    images.push({ name, alias, kind, index, nsfw: !!img.nsfw, file: base64ToFile(img.dataBase64, img.mimeType, `${base}${index ? `_${index + 1}` : ''}`) });
   });
   for (const e of entities) {
     const kind = e.kind === 'character_user' ? 'persona' : e.kind;
-    addImages(e.display?.images, e.kind === 'narrator' ? 'narrator' : nameOf(e), kind, e.label || nameOf(e) || kind);
+    addImages(e.display?.images, e.kind === 'narrator' ? 'narrator' : (e.display?.name || ''), kind, e.label || nameOf(e) || kind, nameOf(e));
   }
   addImages(scenario?.display?.images, 'cover', 'cover', 'cover');
   const personas = entities.filter((e) => e.kind === 'character_user');

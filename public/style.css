@@ -529,9 +529,11 @@ button.danger { color: var(--err); }
 .ref-portraits:empty { display: none; }
 .ref-portraits figure { position: relative; margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .ref-portraits img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--border); border-radius: 6px; display: block; }
-.ref-portraits button { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 12px; }
+.ref-portraits .remove { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 12px; }
 .ref-portraits input[type=text], .ref-portraits input:not([type]) { font-size: 12px; padding: 4px 6px; }
 .ref-portraits figure.off img { opacity: .4; }
+.ref-portraits .small-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.ref-portraits .small-row button { padding: 2px 6px; font-size: 12px; }
 .ref-portraits .send { display: flex; align-items: center; gap: 4px; }
 .export-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 8px; }
 .export-pictures figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }

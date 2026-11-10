@@ -32,7 +32,7 @@ export function refPortraits({ max = MAX_EDIT_IMAGES, pickerLabel = 'Add portrai
     grid.replaceChildren(...api.refs.map((r, i) => {
       const fig = el('figure', { title: [r.kind, r.file.name].filter(Boolean).join(' · '), class: r.send ? '' : 'off' },
         thumb(r),
-        el('button', { type: 'button', class: 'secondary', title: 'Remove', text: '×', onclick: () => { api.refs.splice(i, 1); render(); } }),
+        el('button', { type: 'button', class: 'secondary remove', title: 'Remove', text: '×', onclick: () => { api.refs.splice(i, 1); render(); } }),
         el('label', { class: 'inline small send' },
           el('input', { type: 'checkbox', checked: r.send ? '' : null, 'aria-label': `Send reference ${i + 1}`, onchange: (e) => { r.send = e.target.checked; fig.classList.toggle('off', !r.send); tally(); } }),
           'Send'),

@@ -276,8 +276,10 @@ export function renderGroupChat(root) {
       // threshold sits this round out (shown struck through, with its percentage). The most likely
       // one always answers, so a round never passes in silence.
       if (odds && s.order === 'decision' && s.decisionWho === 'threshold') {
-        const min = (Number(s.decisionThreshold) || 0) / 100;
-        run.queue.forEach((item, i) => { if (i > 0 && (item.odds ?? 0) < min) item.status = 'left'; });
+        const pct = Number(s.decisionThreshold) || 0;
+        // Each left-out item keeps the threshold of its round, so its chip stays right if the
+        // setting changes later.
+        run.queue.forEach((item, i) => { if (i > 0 && (item.odds ?? 0) < pct / 100) { item.status = 'left'; item.threshold = pct; } });
       }
       renderQueue(); renderCharacters();
       for (const item of run.queue) {
@@ -465,7 +467,7 @@ export function renderGroupChat(root) {
     // With the decision model, each chip shows how likely that character was to talk next.
     const pctOf = (q) => `${Math.round(q.odds * 100)} %`;
     queueBar.replaceChildren(el('span', { class: 'muted small', text: run.busy ? 'This round:' : 'Last round:' }),
-      ...run.queue.map((q) => el('span', { class: `gc-chip ${q.status}`, title: q.status === 'left' ? `Left out this round: ${pctOf(q)}, below the ${s.decisionThreshold} % threshold` : q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
+      ...run.queue.map((q) => el('span', { class: `gc-chip ${q.status}`, title: q.status === 'left' ? `Left out this round: ${pctOf(q)}, below the ${q.threshold} % threshold` : q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
         el('span', { class: 'dot', style: `background:${q.c.color}` }), q.c.name,
         q.odds != null ? el('span', { class: 'gc-odds', text: pctOf(q) }) : null)));
   }

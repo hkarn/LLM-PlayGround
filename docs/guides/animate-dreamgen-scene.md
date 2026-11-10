@@ -2,7 +2,7 @@
 
 Turn a scene picture into a short video clip of what happens next. A chat model reads the same DreamGen session and writes a motion prompt, then a video model brings the picture to life for a few seconds.
 
-Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-video>. Clicking **Tools** in the top bar opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
+Open it: **Tools → Animate the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-video>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
 ## Before you start
 

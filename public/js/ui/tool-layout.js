@@ -5,13 +5,14 @@
    keep their own layout. */
 import { store } from '../core/state.js';
 import { el } from './dom.js';
+import { rememberFold } from './fold.js';
 
 // One block of the panel: a heading that folds it away, and its fields. Every block starts open.
 export function panelSection(title, ...children) {
   return el('section', { class: 'panel-section' },
-    el('details', { open: '' },
+    rememberFold(el('details', {},
       el('summary', {}, el('h3', { text: title })),
-      el('div', { class: 'panel-section-body' }, ...children)));
+      el('div', { class: 'panel-section-body' }, ...children)), `panel_${title}`, true));
 }
 
 // A tool's "How it works" (and privacy) text, folded. It is open on the first visit to the tool and

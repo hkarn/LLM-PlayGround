@@ -3,7 +3,7 @@ import { read, send } from '../adapter.js';
 import { store } from '../core/state.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, parseJsonLoose, str, usageLine } from '../core/helpers.js';
+import { num, parseJsonLoose, str, usageSummary } from '../core/helpers.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $$, el } from '../ui/dom.js';
@@ -12,7 +12,8 @@ import { setupModelOptions } from '../ui/model-options.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
-import { renderImages, renderResult } from '../ui/result.js';
+import { answerFacts, renderImages, renderResult } from '../ui/result.js';
+import { rememberFold } from '../ui/fold.js';
 import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
@@ -76,9 +77,9 @@ export function renderDreamGenScene(root) {
   const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
     el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
-    el('details', {}, el('summary', { text: 'System prompt' }),
+    rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
-      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })));
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })), 'system_prompt'));
   const promptForm = el('form', { class: 'tool-form' },
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
@@ -234,23 +235,26 @@ export function renderDreamGenScene(root) {
       const focus = promptForm.elements.focus.value.trim();
       const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
       const system = chatForm.elements.system.value.trim();
+      const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: promptForm._abort?.signal });
-      let rendered;
+      const seconds = Math.round((Date.now() - t0) / 1000);
+      // The prompt and characters go into step 3; this box holds the request details and the stats.
+      let note;
       if (resp.ok && resp.data?.choices) {
-        const choice = resp.data.choices[0] || {};
         const reply = read('chat', resp).text || '';
         const parsed = parseJsonLoose(reply);
         applyScene(parsed?.prompt ? parsed : { prompt: reply.trim(), characters: [] });
-        rendered = el('div', {},
-          el('div', { class: 'output', text: parsed?.prompt ? 'Prompt written. Check it in step 3.' : 'The reply was not the JSON asked for; it is in step 3 as it came.' }),
-          el('div', { class: 'muted small', text: usageLine(resp.data, choice) }));
+        if (!parsed?.prompt) note = el('div', { class: 'muted small', text: 'The reply was not the JSON asked for; it is in step 3 as it came.' });
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
+      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), quiet: true });
+      if (note) promptOut.append(note);
+      const facts = resp.ok ? answerFacts(resp.data?.usage, seconds) : null;
+      if (facts) promptOut.append(facts);
     });
   });
 
@@ -328,12 +332,17 @@ export function renderDreamGenScene(root) {
     // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
     const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
     const file = img && await imageToFile(img, 'scene');
-    if (file) {
-      setScenePicture({ file, ...handoff });
-      rendered?.append(el('div', { class: 'row' },
-        el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
-        el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })));
-    } else if (img) {
+    // The tokens and cost on the left; the Animate button on the right, with its line under it.
+    const usage = resp.ok ? usageSummary(resp.data?.usage) : '';
+    if (file) setScenePicture({ file, ...handoff });
+    if (file || usage) {
+      rendered?.append(el('div', { class: 'handoff-row' },
+        el('span', { class: 'muted small', text: usage }),
+        file ? el('div', { class: 'handoff-action' },
+          el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
+          el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })) : null));
+    }
+    if (!file && img) {
       rendered?.append(el('div', { class: 'muted small', text: 'This picture can\'t be passed on directly (the provider\'s image link can\'t be read from the page). Save it and upload it in Animate the DreamGen Scene.' }));
     }
   }

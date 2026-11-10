@@ -48,6 +48,12 @@
         "type": "shell",
         "command": "docker compose down",
         "problemMatcher": []
+      },
+      {
+        "label": "Docker: pull and run hosted image (port 8031)",
+        "type": "shell",
+        "command": "docker pull ghcr.io/hkarn/llm-playground; docker rm -f llm-playground; docker run -d -p 8031:3000 --name llm-playground ghcr.io/hkarn/llm-playground",
+        "problemMatcher": []
       }
     ]
   },

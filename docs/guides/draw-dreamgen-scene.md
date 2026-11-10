@@ -2,7 +2,7 @@
 
 Turn the last scene of a [DreamGen](https://dreamgen.com/) role-play into a picture. A chat model reads your session, finds where the last scene happens and who is in it, and writes an image prompt. An image model then draws it, using your character portraits if you add them.
 
-Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-scene>. Clicking **Tools** in the top bar opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
+Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-scene>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
 ## Before you start
 

@@ -123,7 +123,13 @@ export function setupHubMenus() {
     tab.after(menu);
     // Capture at the button runs before main.js's tab handler (which would jump to the hub) and,
     // in the folded drop-down, before ui/top-bar.js closes it.
-    tab.addEventListener('click', (e) => { e.stopImmediatePropagation(); show(menu.hidden); }, true);
+    // From another tab the click goes through to main.js, which jumps to the hub (its last app, or the
+    // launcher). The menu opens only when this hub is already the open tab.
+    tab.addEventListener('click', (e) => {
+      if (!tab.classList.contains('active')) return;
+      e.stopImmediatePropagation();
+      show(menu.hidden);
+    }, true);
     menu.addEventListener('click', (e) => {
       if (!e.target.closest('a')) return;
       show(false);

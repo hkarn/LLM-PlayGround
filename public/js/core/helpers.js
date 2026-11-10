@@ -18,6 +18,18 @@ export function lines(text) { return text.split('\n').map((s) => s.trim()).filte
 /* ------------------------------------------------------------------ */
 /* Small utilities                                                     */
 /* ------------------------------------------------------------------ */
+// The tokens and cost of one answer, short enough to read under a picture. The raw usage is in
+// Request details.
+export function usageSummary(u) {
+  if (!u) return '';
+  const prompt = u.prompt_tokens ?? u.input_tokens;
+  const completion = u.completion_tokens ?? u.output_tokens;
+  const parts = [];
+  if (prompt != null || completion != null) parts.push(`${(prompt ?? 0).toLocaleString()} prompt + ${(completion ?? 0).toLocaleString()} completion tokens`);
+  if (u.cost != null) parts.push(`$${u.cost}`);
+  return parts.join(' · ');
+}
+
 export function usageLine(data, choice) {
   const parts = [];
   if (data?.model) parts.push(`model: ${data.provider ? `${data.provider}/` : ''}${data.model}`);

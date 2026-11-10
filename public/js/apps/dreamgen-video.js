@@ -4,15 +4,17 @@
 import { read, send } from '../adapter.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, usageLine } from '../core/helpers.js';
+import { num } from '../core/helpers.js';
 import { $, $$, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { exportPictures } from '../ui/export-pictures.js';
+import { helpTip } from '../ui/help-tip.js';
+import { rememberFold } from '../ui/fold.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { rememberModel } from '../ui/remember.js';
-import { renderResult } from '../ui/result.js';
+import { answerFacts, renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
@@ -60,9 +62,9 @@ export function renderDreamGenVideo(root) {
   const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
     el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
-    el('details', {}, el('summary', { text: 'System prompt' }),
+    rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
-      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })));
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })), 'system_prompt'));
   const motionForm = el('form', { class: 'tool-form' },
     el('div', { class: 'row' }, useSession, el('label', { class: 'inline' }, 'or load an export ', exportFile)),
     sessionNote,
@@ -78,6 +80,7 @@ export function renderDreamGenVideo(root) {
   const motionOut = el('div', { class: 'result' });
   const motion = el('textarea', { name: 'motion', rows: 3, placeholder: 'e.g. The man on the wall turns his head toward the empty space beside him; the streetlight flickers; the river runs on.' });
   const style = sceneStylePicker();
+  style.select.setAttribute('aria-label', 'Style');
   const countExport = () => {
     exportCount.textContent = exportBox.value ? `(about ${tokensFor(exportBox.value).toLocaleString()} tokens)` : '';
   };
@@ -103,6 +106,8 @@ export function renderDreamGenVideo(root) {
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
       preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, pictures.node),
+    // As in Draw the DreamGen Scene: the details of the last run sit under its button, and the text it
+    // wrote is in the box below, which may have been edited since.
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
       el('label', {}, 'Motion prompt (sent to the video model)', motion)),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Make the clip' }),
@@ -114,9 +119,8 @@ export function renderDreamGenVideo(root) {
       panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
       // The style goes with the prompt it is added to; the video choice after it, its jobs last.
       panelSection('Picture style',
-        el('label', {}, 'Style', style.select),
-        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom),
-        el('p', { class: 'muted small', text: 'Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
+        el('div', {}, el('div', { class: 'tip-row' }, el('span', { text: 'Style' }), helpTip('Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.')), style.select),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom)),
       panelSection('Video model', settings.root),
       panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),
     ],
@@ -192,21 +196,22 @@ export function renderDreamGenVideo(root) {
       const seen = imagePrompt.value.trim();
       const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}Write the motion prompt for the next few seconds of the final moment of the last scene.`;
       const system = chatForm.elements.system.value.trim();
+      const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: motionForm._abort?.signal });
-      let rendered;
+      const seconds = Math.round((Date.now() - t0) / 1000);
+      // The prompt goes into the editable box below; this box holds only the request details and the stats.
       if (resp.ok) {
         const reply = (read('chat', resp).text || '').trim().replace(/^["']|["']$/g, '');
         if (reply) motion.value = reply;
-        rendered = el('div', {},
-          el('div', { class: 'output', text: reply ? 'Motion prompt written below. Edit it if you like.' : 'The reply was empty.' }),
-          el('div', { class: 'muted small', text: usageLine(resp.data, resp.data?.choices?.[0]) }));
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
+      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), quiet: true });
+      const facts = resp.ok ? answerFacts(resp.data?.usage, seconds) : null;
+      if (facts) motionOut.append(facts);
     });
   });
 
@@ -229,8 +234,8 @@ export function renderDreamGenVideo(root) {
   async function sendClip(input, m, est) {
     clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
     const job = await startVideoJob(input, { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
-    const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-      el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
+    const rawFor = (resp) => rememberFold(el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+      el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) })), 'request_details');
     const raw = rawFor(job.resp);
     const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
     // A refusal usually means the model won't take this picture, not the wording.

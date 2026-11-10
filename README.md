@@ -63,7 +63,7 @@ A key typed in the page always wins over the one in `.env`. Only do this on your
 | Where | What |
 | --- | --- |
 | **Welcome** (the logo) | What the site is, how to start, links to every tool, and for each provider how hard it is to set up, the steps and its sign-up link (click the logo to get back here). The sun, moon or half circle at the top right switches between light, dark and your system's setting |
-| **Tools** | Draw the DreamGen Scene · Animate the DreamGen Scene · Video Generator. Click **Tools** (or **Games**) in the top bar for a menu of them; inside one, its title is a drop-down to jump to another, and **←** goes back to the list |
+| **Tools** | Draw the DreamGen Scene · Animate the DreamGen Scene · Video Generator. Click **Tools** (or **Games**) in the top bar to go to the one you used last; while you are in it, that click opens a menu of them; inside one, its title is a drop-down to jump to another, and **←** goes back to the list |
 | **Games** | AI Group Chat |
 | **API tester ▸** | Chat, Decision, Embeddings, Rerank, Image, Image edit, Video, Speech, Transcriptions |
 | **Filter models** | A model filter that narrows every model list on the page, and the full model list |

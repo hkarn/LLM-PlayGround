@@ -2,6 +2,7 @@
 import { read } from '../adapter.js';
 import { errorMessage } from '../core/api.js';
 import { el } from './dom.js';
+import { rememberFold } from './fold.js';
 import { dockDetails, fileName, pictures } from './media.js';
 
 /* ------------------------------------------------------------------ */
@@ -9,6 +10,16 @@ import { dockDetails, fileName, pictures } from './media.js';
 /* ------------------------------------------------------------------ */
 export function pre(obj) {
   return el('pre', { class: 'mono' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
+}
+
+// The line under a text answer, the same shape as a clip's: input tokens first, then the time and
+// the billed cost. Null when there is nothing to show.
+export function answerFacts(usage, seconds) {
+  const u = usage || {};
+  const input = u.prompt_tokens ?? u.input_tokens;
+  const time = [seconds != null ? `Took ${seconds} s.` : '', u.cost != null ? `Billed $${u.cost}` : ''].filter(Boolean).join(' ');
+  const parts = [input != null ? `${Number(input).toLocaleString()} input tokens` : '', time].filter(Boolean);
+  return parts.length ? el('div', { class: 'muted small', text: parts.join(' · ') }) : null;
 }
 
 // quiet (the tools): the answer, or the error, first; the status line and the raw views folded into
@@ -19,7 +30,7 @@ export function renderResult(container, { resp, request, curl, rendered, quiet =
     const raw = el('div', {});
     renderResult(raw, { resp, request, curl });
     raw.querySelector('.output.error')?.remove();
-    const details = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes);
+    const details = rememberFold(el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes), 'request_details');
     container.append(...(resp.ok ? (rendered ? [rendered] : []) : [el('div', { class: 'output error', text: errorMessage(resp) })]));
     // Under a picture or clip the fold sits on the left of its bar (ui/media.js); otherwise below.
     if (!(resp.ok && rendered && dockDetails(rendered, details))) container.append(details);
@@ -65,8 +76,7 @@ export function renderImages(resp, format = 'png', kind = 'image', { name = kind
   });
   const rendered = el('div', { class: 'output' },
     ...pictures(list.filter(Boolean), { retry }),
-    ...(list.some((x) => !x) ? [el('div', { text: '(an image came back without data)' })] : []),
-    resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
+    ...(list.some((x) => !x) ? [el('div', { text: '(an image came back without data)' })] : []));
   const shown = { ...resp, data: shortenBase64(resp.data) };
   return { rendered, shown };
 }

@@ -1,6 +1,7 @@
 /* LLM PlayGround: the welcome page (the Providers tab, the first tab). Says what the site is, links
    the tools and games, and explains each provider's setup from the `guide` in its
    providers/<id>.json file, with its sign-up link and a button that picks it in the top bar. */
+import { rememberFold } from './ui/fold.js';
 import { state } from './core/state.js';
 import { PROVIDERS } from './core/providers.js';
 import { keyReady } from './core/api.js';
@@ -87,7 +88,7 @@ export function renderProviderGuide(container, { unavailable, choose, apps = [],
     start.replaceChildren(...(loaded
       ? [el('h3', { text: 'You\'re set' }),
         el('p', {}, `Connected to ${p?.label || state.provider} with ${state.models.length.toLocaleString()} models. Pick a tool or game below, or try any model in the `, el('a', { href: '#chat', text: 'API tester' }), '.'),
-        el('details', {}, el('summary', { text: 'Getting started' }), steps), note]
+        rememberFold(el('details', {}, el('summary', { text: 'Getting started' }), steps), 'getting_started'), note]
       : [el('h3', { text: 'Getting started' }), steps, note]).filter(Boolean));
   };
   drawStart();

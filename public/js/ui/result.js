@@ -65,8 +65,7 @@ export function renderImages(resp, format = 'png', kind = 'image', { name = kind
   });
   const rendered = el('div', { class: 'output' },
     ...pictures(list.filter(Boolean), { retry }),
-    ...(list.some((x) => !x) ? [el('div', { text: '(an image came back without data)' })] : []),
-    resp.data.usage ? el('div', { class: 'muted small', text: `usage: ${JSON.stringify(resp.data.usage)}` }) : null);
+    ...(list.some((x) => !x) ? [el('div', { text: '(an image came back without data)' })] : []));
   const shown = { ...resp, data: shortenBase64(resp.data) };
   return { rendered, shown };
 }

@@ -3,7 +3,7 @@ import { read, send } from '../adapter.js';
 import { store } from '../core/state.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, parseJsonLoose, str, usageLine } from '../core/helpers.js';
+import { num, parseJsonLoose, str, usageLine, usageSummary } from '../core/helpers.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $$, el } from '../ui/dom.js';
@@ -328,12 +328,17 @@ export function renderDreamGenScene(root) {
     // Hand the first picture to Animate the DreamGen Scene (in memory, this page only).
     const img = resp.ok ? read(kind, resp).images?.[0] : undefined;
     const file = img && await imageToFile(img, 'scene');
-    if (file) {
-      setScenePicture({ file, ...handoff });
-      rendered?.append(el('div', { class: 'row' },
-        el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
-        el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })));
-    } else if (img) {
+    // The tokens and cost on the left; the Animate button on the right, with its line under it.
+    const usage = resp.ok ? usageSummary(resp.data?.usage) : '';
+    if (file) setScenePicture({ file, ...handoff });
+    if (file || usage) {
+      rendered?.append(el('div', { class: 'handoff-row' },
+        el('span', { class: 'muted small', text: usage }),
+        file ? el('div', { class: 'handoff-action' },
+          el('a', { class: 'button-link', href: '#tools/dreamgen-video', text: 'Animate this picture →' }),
+          el('span', { class: 'muted small', text: 'Opens Animate the DreamGen Scene with this picture and this session.' })) : null));
+    }
+    if (!file && img) {
       rendered?.append(el('div', { class: 'muted small', text: 'This picture can\'t be passed on directly (the provider\'s image link can\'t be read from the page). Save it and upload it in Animate the DreamGen Scene.' }));
     }
   }

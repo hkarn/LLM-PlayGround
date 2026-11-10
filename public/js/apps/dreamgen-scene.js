@@ -3,7 +3,7 @@ import { read, send } from '../adapter.js';
 import { store } from '../core/state.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, parseJsonLoose, str, usageLine, usageSummary } from '../core/helpers.js';
+import { num, parseJsonLoose, str, usageSummary } from '../core/helpers.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $$, el } from '../ui/dom.js';
@@ -12,7 +12,7 @@ import { setupModelOptions } from '../ui/model-options.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
-import { renderImages, renderResult } from '../ui/result.js';
+import { answerFacts, renderImages, renderResult } from '../ui/result.js';
 import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
@@ -234,23 +234,26 @@ export function renderDreamGenScene(root) {
       const focus = promptForm.elements.focus.value.trim();
       const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
       const system = chatForm.elements.system.value.trim();
+      const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: promptForm._abort?.signal });
-      let rendered;
+      const seconds = Math.round((Date.now() - t0) / 1000);
+      // The prompt and characters go into step 3; this box holds the request details and the stats.
+      let note;
       if (resp.ok && resp.data?.choices) {
-        const choice = resp.data.choices[0] || {};
         const reply = read('chat', resp).text || '';
         const parsed = parseJsonLoose(reply);
         applyScene(parsed?.prompt ? parsed : { prompt: reply.trim(), characters: [] });
-        rendered = el('div', {},
-          el('div', { class: 'output', text: parsed?.prompt ? 'Prompt written. Check it in step 3.' : 'The reply was not the JSON asked for; it is in step 3 as it came.' }),
-          el('div', { class: 'muted small', text: usageLine(resp.data, choice) }));
+        if (!parsed?.prompt) note = el('div', { class: 'muted small', text: 'The reply was not the JSON asked for; it is in step 3 as it came.' });
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
+      renderResult(promptOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), quiet: true });
+      if (note) promptOut.append(note);
+      const facts = resp.ok ? answerFacts(resp.data?.usage, seconds) : null;
+      if (facts) promptOut.append(facts);
     });
   });
 

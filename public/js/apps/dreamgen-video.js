@@ -4,7 +4,7 @@
 import { read, send } from '../adapter.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, usageLine } from '../core/helpers.js';
+import { num } from '../core/helpers.js';
 import { $, $$, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
@@ -13,7 +13,7 @@ import { helpTip } from '../ui/help-tip.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { rememberModel } from '../ui/remember.js';
-import { renderResult } from '../ui/result.js';
+import { answerFacts, renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
@@ -192,21 +192,22 @@ export function renderDreamGenVideo(root) {
       const seen = imagePrompt.value.trim();
       const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}Write the motion prompt for the next few seconds of the final moment of the last scene.`;
       const system = chatForm.elements.system.value.trim();
+      const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
       }, { signal: motionForm._abort?.signal });
-      let rendered;
+      const seconds = Math.round((Date.now() - t0) / 1000);
+      // The prompt goes into the editable box below; this box holds only the request details and the stats.
       if (resp.ok) {
         const reply = (read('chat', resp).text || '').trim().replace(/^["']|["']$/g, '');
         if (reply) motion.value = reply;
-        rendered = el('div', {},
-          el('div', { class: 'output', text: reply ? 'Motion prompt written below. Edit it if you like.' : 'The reply was empty.' }),
-          el('div', { class: 'muted small', text: usageLine(resp.data, resp.data?.choices?.[0]) }));
       }
       const shortBody = { ...body, messages: body.messages.map((m) => ({ ...m, content: m.content.length > 1200 ? `${m.content.slice(0, 600)}\n… ${(m.content.length - 1000).toLocaleString()} characters …\n${m.content.slice(-400)}` : m.content })) };
       const { path, base } = ep('chat');
-      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), rendered, quiet: true });
+      renderResult(motionOut, { resp, request: shortBody, curl: curlFor(path, { base, json: shortBody }), quiet: true });
+      const facts = resp.ok ? answerFacts(resp.data?.usage, seconds) : null;
+      if (facts) motionOut.append(facts);
     });
   });
 

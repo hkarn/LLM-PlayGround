@@ -11,6 +11,16 @@ export function pre(obj) {
   return el('pre', { class: 'mono' }, typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
 }
 
+// The line under a text answer, the same shape as a clip's: input tokens first, then the time and
+// the billed cost. Null when there is nothing to show.
+export function answerFacts(usage, seconds) {
+  const u = usage || {};
+  const input = u.prompt_tokens ?? u.input_tokens;
+  const time = [seconds != null ? `Took ${seconds} s.` : '', u.cost != null ? `Billed $${u.cost}` : ''].filter(Boolean).join(' ');
+  const parts = [input != null ? `${Number(input).toLocaleString()} input tokens` : '', time].filter(Boolean);
+  return parts.length ? el('div', { class: 'muted small', text: parts.join(' · ') }) : null;
+}
+
 // quiet (the tools): the answer, or the error, first; the status line and the raw views folded into
 // one "Request details". The API tester tabs show them all, as a debugger should.
 export function renderResult(container, { resp, request, curl, rendered, quiet = false }) {

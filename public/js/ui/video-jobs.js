@@ -136,8 +136,16 @@ const ago = (ms) => {
 export function videoJobsList() {
   const root = el('div', { class: 'vj-list' });
   let timer = null;
+  // Each finished clip's player is made once and moved into every redraw: the list redraws each
+  // second while a job runs, and a new <video> each time made every clip load again and again.
+  const players = new Map(); // job id → { url, node }
+  const player = (j, url) => {
+    if (players.get(j.id)?.url !== url) players.set(j.id, { url, node: clip({ src: url, name: fileName(j.tool === 'dreamgen-video' ? 'scene-clip' : 'video', 'mp4'), autoplay: false }) });
+    return players.get(j.id).node;
+  };
   const draw = () => {
     const list = load();
+    for (const id of players.keys()) if (!clips.has(id) || !list.some((j) => j.id === id)) players.delete(id);
     // Seen once the list is on screen (on a narrow screen the panel may be folded away).
     if (root.offsetParent && list.some((j) => j.status === 'completed' && !j.seen && j.provider === state.provider)) {
       store.set(KEY, JSON.stringify(list.map((j) => (j.status === 'completed' && j.provider === state.provider ? { ...j, seen: true } : j))));
@@ -182,7 +190,7 @@ export function videoJobsList() {
         el('span', { class: 'muted small', text: [TOOLS[j.tool], new Date(j.at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })].filter(Boolean).join(' · ') }),
         el('button', { type: 'button', class: 'icon-btn', title: 'Remove from the list', 'aria-label': 'Remove from the list', text: '×',
           onclick: () => { watching.get(j.id)?.ac.abort(); save(load().filter((x) => x.id !== j.id)); } })),
-      url ? clip({ src: url, name: fileName(j.tool === 'dreamgen-video' ? 'scene-clip' : 'video', 'mp4'), autoplay: false }) : null,
+      url ? player(j, url) : null,
       el('div', { class: 'small' }, el('span', { class: `vj-status${running ? ' live' : ''}`, text: status }),
         j.cost != null ? ' · ' : '', j.cost != null ? priceTag(Number(j.cost), { amount: Number(j.cost) }) : null,
         [j.duration && ` · ${j.duration} s`, j.resolution && ` · ${j.resolution}`].filter(Boolean).join('')),

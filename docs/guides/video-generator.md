@@ -33,7 +33,7 @@ The job is sent to the provider, and the button is free again straight away: sta
 Every clip from the Video Generator and from [Animate the DreamGen Scene](animate-dreamgen-scene.md) is listed under **Video jobs** in the settings panel, newest first. One list serves both tools.
 
 - **While a job runs** it shows its status (waiting in line, running) and how long it has taken. You can start the next clip at once; jobs run side by side.
-- **Jobs keep going** when you open another tool or page of the site, and **after a reload** the page picks up every unfinished job again, from the provider that made it.
+- **Jobs keep going** when you open another tool or page of the site, and **after a reload** the page picks up every unfinished job again, from the provider that made it. A clip that is playing pauses when you leave the tool, and one that finishes while you're elsewhere waits, paused, until you press play.
 - **When it's done** the clip plays in the list, with the price billed and a **download** icon. Under the clip in the step, the bar also has **Request details** and **↻ Retry** (the same settings again, as a new job). It also shows in the step you started it from, if that was your latest clip. On a phone, where the settings fold away, the line beside the **Settings** button says how many videos are running or ready.
 - **Stop watching** stops checking a job here. The provider may still finish it and charge for it; **Check again** picks it up later.
 - **Fetch the video again** downloads a finished clip after a reload, without paying again, while the provider still keeps it. The videos themselves aren't stored in your browser, only the list. A job works only with the provider that made it; elsewhere it says which provider that was.

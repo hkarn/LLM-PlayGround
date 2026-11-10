@@ -79,6 +79,14 @@ function appSwitcher(hub, current, openApp) {
   return wrap;
 }
 
+// A result can arrive after its tab was left (a speech answer, a finished video job) and start by
+// itself (autoplay) while hidden. Any video or audio that starts playing in a hidden panel is
+// paused at once ("play" doesn't bubble, so this listens in the capture phase).
+document.addEventListener('play', (e) => {
+  const media = e.target;
+  if (media instanceof HTMLMediaElement && media.closest('.panel:not(.active)')) media.pause();
+}, true);
+
 // The top bar's Tools and Games tabs open a menu of their apps instead of jumping to the hub, since
 // that is where people look to switch: each app (the open one marked) and "All tools" for the
 // launcher. The items are links (#tools/<id>), so routing opens them. In the top bar's folded
@@ -206,6 +214,9 @@ export function showTab(tab) {
   if (!btn) return false;
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
+  // A hidden panel keeps its content (a hub keeps its open app), and a hidden video or audio would
+  // go on playing, sound and all: pause them. Nothing starts again by itself on return.
+  $$('.panel:not(.active) video, .panel:not(.active) audio').forEach((m) => { if (!m.paused) m.pause(); });
   store.set('tab', tab);
   // The endpoint tabs (API tester) fold into one toggle in the top bar and show while one is open.
   const inTester = Boolean(btn.closest('#tester-tabs'));

@@ -47,7 +47,7 @@ The **picture style** from the settings panel is added to the end of the motion 
 
 Check the **Price** line, then press **Make video**. It uses the video model and options from the settings panel.
 
-The job is sent to the provider and runs in the background, so you can make the next clip while it runs. It takes about 15 seconds to a couple of minutes. When it's done, the clip plays here, with the time taken and the price billed. The bar under it has **Request details** on the left, and **↻ Retry** (a new job with the same picture and motion, paid again) and the **download** icon on the right. Every job, from this tool and the Video Generator, is also listed under **Video jobs** in the settings panel, where it carries on after a reload; see [Video jobs](video-generator.md#video-jobs) in the Video Generator guide.
+The job is sent to the provider and runs in the background, so you can make the next clip while it runs. It takes about 15 seconds to a couple of minutes. When it's done, the clip plays here, with the time taken and the price billed. The bar under it has **Request details** on the left, and **↻ Retry** (a new job with the same picture and motion, paid again) and the **download** icon on the right. Every job, from this tool and the Video Generator, is also listed under **Video jobs** in the settings panel, where it carries on after a reload; see [Video jobs](video-generator.md#video-jobs) in the Video Generator guide. The clip pause when you go to another tab or tool, and stay paused when you come back: press play to go on.
 
 ## If a model refuses
 

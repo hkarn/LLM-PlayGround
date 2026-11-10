@@ -2,7 +2,7 @@
 import { read } from './adapter.js';
 import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
 import { renderProviderGuide } from './providers-guide.js';
-import { APPS, hubPanel, route, setHash, setupHubs, showTab, svgIcon } from './hubs.js';
+import { APPS, hubPanel, route, setHash, setupHubMenus, setupHubs, showTab, svgIcon } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
 import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
@@ -138,6 +138,7 @@ export async function init() {
   $('.add-question', decisionForm).addEventListener('click', () => addQuestion(decisionForm));
   // After the tab pickers: an open app sets up its own pickers.
   setupHubs();
+  setupHubMenus(); // the Tools and Games tabs open a menu of their apps
   // A link with a hash wins over the remembered tab and app.
   route();
   window.addEventListener('hashchange', route);

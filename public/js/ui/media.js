@@ -43,8 +43,9 @@ export function pictures(list, { retry } = {}) {
     el('img', { src: p.src, alt: p.alt || `Picture ${i + 1}`, class: 'media-pic', title: 'Click to see it larger', role: 'button', tabindex: '0',
       'aria-label': `${p.alt || `Picture ${i + 1}`}: open larger`, onclick: () => open(i),
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); } } }),
-    p.caption ? el('figcaption', { class: 'muted small', text: p.caption }) : null,
-    mediaBar({ download: { href: p.src, name: p.name }, retry: i === list.length - 1 ? retry : undefined })));
+    // The bar sits right under the picture; a caption (the revised prompt, often long) comes after.
+    mediaBar({ download: { href: p.src, name: p.name }, retry: i === list.length - 1 ? retry : undefined }),
+    p.caption ? el('figcaption', { class: 'muted small', text: p.caption }) : null));
 }
 
 // A clip: { src, name }. autoplay starts it muted, as the tools do when one is done.

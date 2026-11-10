@@ -107,12 +107,13 @@ export function renderDreamGenVideo(root) {
   const layout = toolLayout(root, {
     panel: [
       panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
-      panelSection('Video model', settings.root),
-      panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),
+      // The style goes with the prompt it is added to; the video choice after it, its jobs last.
       panelSection('Picture style',
         el('label', {}, 'Style', style.select),
         el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom),
         el('p', { class: 'muted small', text: 'Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
+      panelSection('Video model', settings.root),
+      panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),
     ],
     main,
     // While folded, say so when the shared video model doesn't work here and a new pick is needed.

@@ -2,7 +2,7 @@
 
 Turn the last scene of a [DreamGen](https://dreamgen.com/) role-play into a picture. A chat model reads your session, finds where the last scene happens and who is in it, and writes an image prompt. An image model then draws it, using your character portraits if you add them.
 
-Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-scene>. Inside it, the title at the top is a drop-down to switch to another tool straight away, and **←** goes back to the list; this header stays at the top while you scroll.
+Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-PlayGround/#tools/dreamgen-scene>. Clicking **Tools** in the top bar opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
 ## Before you start
 
@@ -11,7 +11,7 @@ Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-
 
 ## Settings
 
-The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again.
+The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again. Click a heading in the panel to fold its section away (or open it again); they all start open.
 
 - **Prompt writer:** the **chat model** that reads the export and writes the image prompt. Any good general model works. **curated** shows only the models we have tested for this tool. **Max tokens** and the **System prompt** (with **Reset to default**) are there too.
 - **Image model:** the model that draws, and its size, aspect ratio, resolution and quality (the choices follow the model).

@@ -6,9 +6,12 @@
 import { store } from '../core.js';
 import { el } from './dom.js';
 
-// One block of the panel: a heading and its fields.
+// One block of the panel: a heading that folds it away, and its fields. Every block starts open.
 export function panelSection(title, ...children) {
-  return el('section', { class: 'panel-section' }, el('h3', { text: title }), ...children);
+  return el('section', { class: 'panel-section' },
+    el('details', { open: '' },
+      el('summary', {}, el('h3', { text: title })),
+      el('div', { class: 'panel-section-body' }, ...children)));
 }
 
 // A tool's "How it works" (and privacy) text, folded. It is open on the first visit to the tool and

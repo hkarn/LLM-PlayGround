@@ -87,6 +87,62 @@ document.addEventListener('play', (e) => {
   if (media instanceof HTMLMediaElement && media.closest('.panel:not(.active)')) media.pause();
 }, true);
 
+// The top bar's Tools and Games tabs open a menu of their apps instead of jumping to the hub, since
+// that is where people look to switch: each app (the open one marked) and "All tools" for the
+// launcher. The items are links (#tools/<id>), so routing opens them. In the top bar's folded
+// drop-down (ui/top-bar.js) the same list folds out under the tab. Esc or a click outside closes it.
+export function setupHubMenus() {
+  for (const tab of $$('.tabs button.hub-tab')) {
+    const hub = tab.dataset.tab;
+    if (!APPS[hub]) continue;
+    const menu = el('div', { class: 'hub-menu', role: 'menu', hidden: '', id: `hub-menu-${hub}` });
+    const fill = () => {
+      const open = hubPanel(hub)?._app;
+      menu.replaceChildren(
+        ...APPS[hub].map((a) => el('a', { href: `#${hub}/${a.id}`, role: 'menuitem', class: 'hub-menu-item', 'aria-current': a.id === open ? 'true' : undefined },
+          el('span', { class: 'app-icon' }, svgIcon(a.icon)), el('span', { text: a.title }))),
+        el('a', { href: `#${hub}`, role: 'menuitem', class: 'hub-menu-item hub-menu-all', text: `All ${HUBS[hub].title.toLowerCase()}` }));
+    };
+    const show = (yes) => {
+      if (yes) {
+        // Only one hub menu at a time: the other closes, and its tab says so too.
+        for (const m of $$('.hub-menu')) {
+          if (m === menu || m.hidden) continue;
+          m.hidden = true;
+          m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+        }
+        fill();
+        menu.style.left = `${tab.offsetLeft}px`;
+      }
+      menu.hidden = !yes;
+      tab.setAttribute('aria-expanded', String(yes));
+      if (yes) (menu.querySelector('[aria-current]') || menu.querySelector('a'))?.focus();
+    };
+    tab.setAttribute('aria-haspopup', 'menu');
+    tab.setAttribute('aria-expanded', 'false');
+    tab.after(menu);
+    // Capture at the button runs before main.js's tab handler (which would jump to the hub) and,
+    // in the folded drop-down, before ui/top-bar.js closes it.
+    tab.addEventListener('click', (e) => { e.stopImmediatePropagation(); show(menu.hidden); }, true);
+    menu.addEventListener('click', (e) => {
+      if (!e.target.closest('a')) return;
+      show(false);
+      // A pick in the folded drop-down closes that too.
+      if (document.getElementById('nav-wrap')?.classList.contains('open')) document.getElementById('nav-menu')?.click();
+    });
+    menu.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { show(false); tab.focus(); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = $$('a', menu);
+        const i = items.indexOf(document.activeElement);
+        items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus();
+      }
+    });
+    document.addEventListener('pointerdown', (e) => { if (!menu.hidden && !menu.contains(e.target) && e.target !== tab) show(false); });
+  }
+}
+
 export function setupHubs() {
   for (const panel of $$('.panel.hub')) {
     const hub = panel.dataset.hub;
@@ -122,12 +178,9 @@ export function setupHubs() {
         app.status ? el('span', { class: 'tag', text: app.status }) : null);
       disposeHead();
       panel.replaceChildren(head, body);
-      // The header stays pinned under the top bar; its height lets the tool's sticky settings panel
-      // stop below it (--apphead-h, read by .tool-panel in style.css).
-      const sizer = new ResizeObserver(() => panel.style.setProperty('--apphead-h', `${head.offsetHeight}px`));
-      sizer.observe(head);
+      // The switcher's outside-click listener goes when the panel is drawn again.
       const switcher = head.querySelector('.app-switch-wrap');
-      panel._disposeHead = () => { sizer.disconnect(); switcher?.dispose?.(); panel.style.removeProperty('--apphead-h'); };
+      panel._disposeHead = () => { switcher?.dispose?.(); };
       app.render(body);
     };
     // Route to "#hub" (launcher) or "#hub/app-id" (that app).

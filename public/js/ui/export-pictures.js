@@ -1,6 +1,6 @@
 /* LLM PlayGround: UI component: the pictures embedded in a DreamGen JSON export, as a folded
    gallery with a caption and a button on each. Loading sends nothing. Thumbnails make one object
-   URL each, only while the gallery is open, and free them when it closes or the list changes. */
+   URL each, and frees it as soon as that picture has loaded, so nothing is left behind if the page moves on. */
 import { el } from './dom.js';
 import { asJpeg } from './frame-image.js';
 
@@ -29,17 +29,16 @@ export function exportPictures({ actions = [], title = 'Pictures in the export' 
   const grid = el('div', { class: 'export-pictures' });
   const details = el('details', { hidden: '' }, el('summary', {}), grid);
   const summary = details.querySelector('summary');
-  let urls = [];
   let list = [];
-  const free = () => { for (const u of urls) URL.revokeObjectURL(u); urls = []; grid.replaceChildren(); };
+  const free = () => grid.replaceChildren();
   const draw = () => {
     free();
     if (!details.open) return;
     grid.replaceChildren(...list.map((img) => {
       const url = URL.createObjectURL(img.file);
-      urls.push(url);
+      const done = () => URL.revokeObjectURL(url);
       return el('figure', { title: [img.kind, img.file.name].filter(Boolean).join(' · ') },
-        el('img', { src: url, alt: img.name, loading: 'lazy' }),
+        el('img', { src: url, alt: img.name, onload: done, onerror: done }),
         el('figcaption', { class: 'small', text: img.name || '(no caption)' }),
         ...downloadButtons(img, (fn) => fn().catch((e) => alert(e.message))),
         ...actions.map((a) => el('button', { type: 'button', class: 'secondary small-btn', text: a.label, onclick: () => a.onclick(img) })));

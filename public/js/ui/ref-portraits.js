@@ -12,9 +12,8 @@ export function refPortraits({ max = MAX_EDIT_IMAGES, pickerLabel = 'Add portrai
   const picker = el('input', { type: 'file', accept: 'image/*', multiple: '' });
   const count = el('span', { class: 'muted small' });
   const api = { refs: [] };
-  // One object URL per picture on screen, freed when the picture leaves the list.
-  const urls = new Map();
-  const urlOf = (file) => { if (!urls.has(file)) urls.set(file, URL.createObjectURL(file)); return urls.get(file); };
+  // A picture's object URL is freed as soon as it has loaded, so nothing is held if the page moves on.
+  const thumb = (r) => { const url = URL.createObjectURL(r.file); const done = () => URL.revokeObjectURL(url); return el('img', { src: url, alt: r.name, onload: done, onerror: done }); };
 
   api.active = () => api.refs.filter((r) => r.send);
   const tally = () => {
@@ -31,7 +30,7 @@ export function refPortraits({ max = MAX_EDIT_IMAGES, pickerLabel = 'Add portrai
   const render = () => {
     grid.replaceChildren(...api.refs.map((r, i) => {
       const fig = el('figure', { title: [r.kind, r.file.name].filter(Boolean).join(' · '), class: r.send ? '' : 'off' },
-        el('img', { src: urlOf(r.file), alt: r.name }),
+        thumb(r),
         el('button', { type: 'button', class: 'secondary', title: 'Remove', text: '×', onclick: () => { api.refs.splice(i, 1); render(); } }),
         el('label', { class: 'inline small send' },
           el('input', { type: 'checkbox', checked: r.send ? '' : null, 'aria-label': `Send reference ${i + 1}`, onchange: (e) => { r.send = e.target.checked; fig.classList.toggle('off', !r.send); tally(); } }),
@@ -39,8 +38,6 @@ export function refPortraits({ max = MAX_EDIT_IMAGES, pickerLabel = 'Add portrai
         el('input', { value: r.name, placeholder: 'Who is this?', 'aria-label': `Name for reference ${i + 1}`, oninput: (e) => { r.name = e.target.value; } }));
       return fig;
     }));
-    const live = new Set(api.refs.map((r) => r.file));
-    for (const [file, url] of urls) if (!live.has(file)) { URL.revokeObjectURL(url); urls.delete(file); }
     tally();
   };
 

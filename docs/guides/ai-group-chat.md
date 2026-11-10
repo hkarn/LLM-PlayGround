@@ -14,6 +14,7 @@ You need an API key, loaded in the connection panel at the top. Any provider wit
 - **Another round** lets the characters talk again without a new message from you. Pressing it with an empty chat lets them open the conversation.
 - **Stop** cancels the answer being written and ends the round.
 - The line under the chat shows who answers in this round, in order.
+- **ⓘ Details**, at the end of that line, is off at first, so the chat reads as a chat. Turn it on to also see the technical extras: each message's model, the costs in the character list, and with the decision model each character's percentage and who was left out. Your browser remembers the choice.
 - **×** next to a message deletes it, so the characters forget it in later rounds.
 
 If a character's answer fails (a wrong model id, or a missing or refused key), it shows the reason in red, and the round goes on with the next character. **↻** next to a failed answer asks that character again, with its current model, about the chat up to that point; the new answer takes the failed one's place.
@@ -40,6 +41,7 @@ The **⚙ Chat settings** bar sits above the chat. It's open on your first visit
 | Default model | Used by every character that has no model of its own |
 | Turn order | **Random** shuffles who speaks each round; **List order** follows the character list; **Decision model** lets a decision model pick who talks next (see below) |
 | Decision model | Only with the Decision model turn order: the model that picks who talks next. Click it to see your provider's decision models. Kept per provider |
+| Who answers | Only with the Decision model turn order: **Everyone, most likely first**, or **Only those above a threshold**, which leaves out a character less likely than the **Threshold (%)** to talk next (20 % to start; the most likely one always answers) |
 | Max tokens per answer | Keeps answers short (300 by default) |
 | Temperature | Higher is more playful and surprising (0.9 by default) |
 | About you | What the characters know about you, such as "a sailor who just came home"; they see it after your name. Empty means they only know you as "a human" |
@@ -56,6 +58,7 @@ With **Turn order: Decision model**, each round starts with a quick question to 
 
 - **You are never one of the options.** You decide yourself whether to talk (**Send**) or pass (**Another round**).
 - **When you pass,** whoever spoke last is left out of the question, shown at 0 %, and answers last, so nobody answers themselves.
+- **With a threshold,** a character below it sits the round out: it shows struck through on the line under the chat, with its percentage. Even if nobody reaches the threshold, the most likely character answers.
 - **The cost** is tiny: about $0.000002–0.000006 a round with the models below. It's added to the total under the characters, as "turn order".
 - **If it fails** (no decision model chosen, a provider without decisions such as Custom, or an error), the round runs in random order, and a message from **System** in the chat says why. The characters never see System messages; delete them with **×** like any other.
 

@@ -458,12 +458,18 @@ button.danger { color: var(--err); }
 .gc-dots { letter-spacing: 2px; animation: gc-blink 1.2s infinite; }
 @keyframes gc-blink { 50% { opacity: .3; } }
 .gc-queue { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 24px; }
+/* The Details toggle (off by default): the technical extras (.gc-detail) show only with it on. */
+.gc-queue-row { display: flex; align-items: center; gap: 8px; }
+.gc-queue-row .gc-queue { flex: 1 1 auto; min-width: 0; }
+.gc-details-btn { flex: none; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; }
+.gc-details-btn[aria-pressed=true] { border-color: var(--accent); color: var(--text); background: var(--highlight); }
+.groupchat:not(.show-details) .gc-detail { display: none; }
 .gc-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); }
 .gc-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
 .gc-chip.typing { border-color: var(--accent); background: var(--highlight); font-weight: 600; }
 .gc-chip.done { color: var(--muted); }
 .gc-chip.failed { border-color: var(--err); color: var(--err); }
-.gc-chip.skipped { color: var(--muted); text-decoration: line-through; }
+.gc-chip.skipped, .gc-chip.left { color: var(--muted); text-decoration: line-through; }
 .gc-chip .gc-odds { color: var(--muted); font-variant-numeric: tabular-nums; }
 .gc-settings label[hidden] { display: none; }
 .gc-compose { display: flex; gap: 8px; align-items: stretch; }

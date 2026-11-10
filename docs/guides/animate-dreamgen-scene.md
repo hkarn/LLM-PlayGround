@@ -31,6 +31,8 @@ The models are shared between the tools: a chat, image or video model chosen in 
 The picture becomes the clip's first frame.
 A video model can only keep a face it sees in that frame, so a character with their back turned can come out as someone else. When you draw the picture for a clip, tick **Will animate** under step 4 of Draw the DreamGen Scene to ask for every face turned to the camera.
 
+- **Faces posed for the camera** is ticked by itself when the picture comes from Draw the DreamGen Scene drawn with Will animate (and cleared when you pick another picture). It puts a line at the start of the motion prompt sent to the video model, saying the characters face the camera at first and turn away into the action within the first second, and tells the chat model writing the motion prompt to describe what they do after that. Tick it yourself for an uploaded picture posed the same way.
+
 - **Use the last drawn scene** takes the latest picture from Draw the DreamGen Scene. It is passed in memory, so it is gone after a reload.
 - **Pictures in the export** appears when you load a JSON export with images (in step 2, or one loaded in Draw the DreamGen Scene before pressing **Animate this picture →**). Open it to see every picture with its DreamGen caption (characters, locations, objects, the cover) and press **Use as first frame** on one, for example a location. Each picture also has **Download** (as it is, usually WebP) and **JPEG** buttons. Loading sends nothing.
 - **or upload** takes any picture. WebP, GIF and other formats are converted to PNG automatically, since video models take only PNG or JPEG.

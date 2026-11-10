@@ -18,6 +18,11 @@ Step-by-step guides for each tool and game:
 - [Running and hosting](running.md): with or without the local server, settings, Docker, hosting it publicly, GitHub Pages, and how the server works.
 - [Code](code.md): how the code is laid out, for anyone changing it.
 
+## Project
+
+- [Contributing](../.github/CONTRIBUTING.md): how to report, propose and change things.
+- [Code of Conduct](../.github/CODE_OF_CONDUCT.md) and [Security policy](../.github/SECURITY.md).
+
 ## Specs and formats
 
 - [`requesty-inference-openapi.json`](requesty-inference-openapi.json): Requesty's API, the source of truth for its request and response formats.

@@ -153,6 +153,9 @@ export function showTab(tab) {
   if (!btn) return false;
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
+  // A hidden panel keeps its content (a hub keeps its open app), and a hidden video or audio would
+  // go on playing, sound and all: pause them. Nothing starts again by itself on return.
+  $$('.panel:not(.active) video, .panel:not(.active) audio').forEach((m) => { if (!m.paused) m.pause(); });
   store.set('tab', tab);
   // The endpoint tabs (API tester) fold into one toggle in the top bar and show while one is open.
   const inTester = Boolean(btn.closest('#tester-tabs'));

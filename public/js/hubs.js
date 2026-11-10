@@ -97,7 +97,12 @@ export function setupHubMenus() {
     };
     const show = (yes) => {
       if (yes) {
-        for (const m of $$('.hub-menu')) if (m !== menu) m.hidden = true;
+        // Only one hub menu at a time: the other closes, and its tab says so too.
+        for (const m of $$('.hub-menu')) {
+          if (m === menu || m.hidden) continue;
+          m.hidden = true;
+          m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+        }
         fill();
         menu.style.left = `${tab.offsetLeft}px`;
       }

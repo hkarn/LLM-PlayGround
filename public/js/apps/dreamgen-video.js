@@ -104,9 +104,10 @@ export function renderDreamGenVideo(root) {
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
       preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, pictures.node),
-    // The written prompt is the editable box; its request details and stats sit under it.
-    el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm,
-      el('label', {}, 'Motion prompt (sent to the video model)', motion), motionOut),
+    // As in Draw the DreamGen Scene: the details of the last run sit under its button, and the text it
+    // wrote is in the box below, which may have been edited since.
+    el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
+      el('label', {}, 'Motion prompt (sent to the video model)', motion)),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Make the clip' }),
       el('div', { class: 'muted small', text: 'With the video model and options chosen under Settings.' }), clipForm, clipOut)];
 

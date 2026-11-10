@@ -379,7 +379,7 @@ export function renderGroupChat(root) {
           s.characters.push(c); editing = c.id; save(); renderCharacters();
         },
       }),
-      ...(total ? [el('div', { class: 'muted small', text: `Total cost $${+total.toFixed(6)}${decided ? ` (turn order $${+decided.toFixed(6)})` : ''}` })] : []),
+      ...(total ? [el('div', { class: 'muted small gc-detail', text: `Total cost $${+total.toFixed(6)}${decided ? ` (turn order $${+decided.toFixed(6)})` : ''}` })] : []),
     );
   }
 
@@ -395,7 +395,7 @@ export function renderGroupChat(root) {
       el('div', { class: 'gc-person-text' },
         el('div', {}, el('strong', { text: c.name }), run.busy && status === 'typing' ? el('span', { class: 'muted small', text: ' typing…' }) : null),
         el('div', { class: 'muted small ellip', text: modelOf(c) || 'no model set', title: c.persona }),
-        n ? el('div', { class: 'muted small', text: `${n} msg${cost ? ` · $${+cost.toFixed(6)}` : ''}` }) : null),
+        n ? el('div', { class: 'muted small' }, `${n} msg`, cost ? el('span', { class: 'gc-detail', text: ` · $${+cost.toFixed(6)}` }) : null) : null),
       el('button', { type: 'button', class: 'icon-btn', title: `Edit ${c.name}`, text: '✎', onclick: () => { editing = c.id; renderCharacters(); } }));
   }
 
@@ -438,7 +438,7 @@ export function renderGroupChat(root) {
         el('div', { class: 'bubble' },
           el('div', { class: 'small muted gc-meta' },
             el('span', { text: name }),
-            m.model ? el('span', { text: ` · ${m.model}` }) : null,
+            m.model ? el('span', { class: 'gc-detail', text: ` · ${m.model}` }) : null,
             m.error && !system ? el('span', { text: ' · failed' }) : null,
             m.error && c ? el('button', {
               type: 'button', class: 'icon-btn', title: `Ask ${c.name} again`, 'aria-label': `Retry ${c.name}'s message`, text: '↻', disabled: run.busy || undefined,
@@ -461,15 +461,33 @@ export function renderGroupChat(root) {
 
   /* ---- Turn queue and controls ---- */
   const queueBar = el('div', { class: 'gc-queue' });
+  // Details: off by default, so the chat reads as a chat. On, it shows the technical extras (the
+  // decision's percentages and left-out characters, each message's model, the costs). Remembered in
+  // this browser.
+  let showDetails = store.get('gc_details') === 'on';
+  const detailsBtn = el('button', { type: 'button', class: 'gc-details-btn', 'aria-pressed': String(showDetails), title: 'Show the models, costs and turn-order percentages',
+    onclick: () => {
+      showDetails = !showDetails;
+      store.set('gc_details', showDetails ? 'on' : 'off');
+      applyDetails();
+      renderQueue();
+    } }, 'ⓘ Details');
+  const applyDetails = () => {
+    root.querySelector('.groupchat')?.classList.toggle('show-details', showDetails);
+    detailsBtn.setAttribute('aria-pressed', String(showDetails));
+  };
   function renderQueue() {
     if (run.deciding) { queueBar.replaceChildren(el('span', { class: 'muted small', text: 'The decision model is picking who talks next…' })); return; }
     if (!run.queue.length) { queueBar.replaceChildren(el('span', { class: 'muted small', text: 'Turn order is picked when a round starts.' })); return; }
     // With the decision model, each chip shows how likely that character was to talk next.
     const pctOf = (q) => `${Math.round(q.odds * 100)} %`;
     queueBar.replaceChildren(el('span', { class: 'muted small', text: run.busy ? 'This round:' : 'Last round:' }),
-      ...run.queue.map((q) => el('span', { class: `gc-chip ${q.status}`, title: q.status === 'left' ? `Left out this round: ${pctOf(q)}, below the ${q.threshold} % threshold` : q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
-        el('span', { class: 'dot', style: `background:${q.c.color}` }), q.c.name,
-        q.odds != null ? el('span', { class: 'gc-odds', text: pctOf(q) }) : null)));
+      // Percentages, left-out characters and their tooltips are details: shown only with Details on.
+      ...run.queue.map((q) => el('span', {
+        class: `gc-chip ${q.status}${q.status === 'left' ? ' gc-detail' : ''}`,
+        title: !showDetails ? undefined : q.status === 'left' ? `Left out this round: ${pctOf(q)}, below the ${q.threshold} % threshold` : q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
+      el('span', { class: 'dot', style: `background:${q.c.color}` }), q.c.name,
+      q.odds != null ? el('span', { class: 'gc-odds gc-detail', text: pctOf(q) }) : null)));
   }
 
   const input = el('textarea', { rows: 2, placeholder: 'Write a message… (Enter sends, Shift+Enter for a new line)' });
@@ -611,7 +629,8 @@ export function renderGroupChat(root) {
       el('div', { class: 'gc-main' },
         settings,
         log,
-        queueBar,
+        el('div', { class: 'gc-queue-row' }, queueBar, detailsBtn),
         el('div', { class: 'gc-compose' }, input, el('div', { class: 'gc-buttons' }, sendBtn, roundBtn, stopBtn)))));
+  applyDetails();
   renderCharacters(); renderLog(); renderQueue(); renderControls();
 }

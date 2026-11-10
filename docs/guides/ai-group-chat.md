@@ -14,6 +14,7 @@ You need an API key, loaded in the connection panel at the top. Any provider wit
 - **Another round** lets the characters talk again without a new message from you. Pressing it with an empty chat lets them open the conversation.
 - **Stop** cancels the answer being written and ends the round.
 - The line under the chat shows who answers in this round, in order.
+- **ⓘ Details**, at the end of that line, is off at first, so the chat reads as a chat. Turn it on to also see the technical extras: each message's model, the costs in the character list, and with the decision model each character's percentage and who was left out. Your browser remembers the choice.
 - **×** next to a message deletes it, so the characters forget it in later rounds.
 
 If a character's answer fails (a wrong model id, or a missing or refused key), it shows the reason in red, and the round goes on with the next character. **↻** next to a failed answer asks that character again, with its current model, about the chat up to that point; the new answer takes the failed one's place.

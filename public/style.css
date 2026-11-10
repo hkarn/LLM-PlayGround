@@ -463,7 +463,7 @@ button.danger { color: var(--err); }
 .gc-chip.typing { border-color: var(--accent); background: var(--highlight); font-weight: 600; }
 .gc-chip.done { color: var(--muted); }
 .gc-chip.failed { border-color: var(--err); color: var(--err); }
-.gc-chip.skipped { color: var(--muted); text-decoration: line-through; }
+.gc-chip.skipped, .gc-chip.left { color: var(--muted); text-decoration: line-through; }
 .gc-chip .gc-odds { color: var(--muted); font-variant-numeric: tabular-nums; }
 .gc-settings label[hidden] { display: none; }
 .gc-compose { display: flex; gap: 8px; align-items: stretch; }

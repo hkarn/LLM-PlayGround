@@ -96,6 +96,8 @@ const GC_DEFAULT = () => ({
   order: 'random',
   decisionModels: {}, // per provider: the decision model for the Decision model turn order
   decisionCost: 0, // what deciding the turn order has cost in this chat
+  decisionWho: 'all', // with the decision model: 'all' answer, most likely first, or 'threshold'
+  decisionThreshold: 20, // with 'threshold': only those at least this likely (%) answer; the top one always
   maxTokens: 300,
   temperature: 0.9,
   characters: [
@@ -158,6 +160,8 @@ export function readGroupChat(text) {
     decisionModels: Object.fromEntries(Object.entries(chat.decisionModels && typeof chat.decisionModels === 'object' ? chat.decisionModels : {}).map(([k, v]) => [str(k, 40), str(v, 200)])),
     // Kept within what the fields allow (max tokens at least 1, temperature 0 to 2), as typing would.
     decisionCost: Math.max(0, num(chat.decisionCost, 0)),
+    decisionWho: chat.decisionWho === 'threshold' ? 'threshold' : 'all',
+    decisionThreshold: Math.min(100, Math.max(1, Math.round(num(chat.decisionThreshold, d.decisionThreshold)))),
     maxTokens: Math.max(1, Math.round(num(chat.maxTokens, d.maxTokens))),
     temperature: Math.min(2, Math.max(0, num(chat.temperature, d.temperature))),
   };
@@ -265,8 +269,16 @@ export function renderGroupChat(root) {
       const odds = Array.isArray(picked) ? null : picked.odds;
       if (!Array.isArray(picked) && picked.cost) { s.decisionCost = (Number(s.decisionCost) || 0) + picked.cost; save(); }
       run.queue = (Array.isArray(picked) ? picked : picked.order).map((c) => ({ c, status: 'waiting', odds: odds?.[c.id] }));
+      // "Who answers: above a threshold": a character the decision model finds less likely than the
+      // threshold sits this round out (shown struck through, with its percentage). The most likely
+      // one always answers, so a round never passes in silence.
+      if (odds && s.order === 'decision' && s.decisionWho === 'threshold') {
+        const min = (Number(s.decisionThreshold) || 0) / 100;
+        run.queue.forEach((item, i) => { if (i > 0 && (item.odds ?? 0) < min) item.status = 'left'; });
+      }
       renderQueue(); renderCharacters();
       for (const item of run.queue) {
+        if (item.status === 'left') continue;
         if (run.stop) { item.status = 'skipped'; continue; }
         // A character switched off mid-round is skipped.
         if (!item.c.active || !charById(item.c.id)) { item.status = 'skipped'; continue; }
@@ -450,7 +462,7 @@ export function renderGroupChat(root) {
     // With the decision model, each chip shows how likely that character was to talk next.
     const pctOf = (q) => `${Math.round(q.odds * 100)} %`;
     queueBar.replaceChildren(el('span', { class: 'muted small', text: run.busy ? 'This round:' : 'Last round:' }),
-      ...run.queue.map((q) => el('span', { class: `gc-chip ${q.status}`, title: q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
+      ...run.queue.map((q) => el('span', { class: `gc-chip ${q.status}`, title: q.status === 'left' ? `Left out this round: ${pctOf(q)}, below the ${s.decisionThreshold} % threshold` : q.odds != null ? `${q.status} · ${pctOf(q)} likely to talk next` : q.status },
         el('span', { class: 'dot', style: `background:${q.c.color}` }), q.c.name,
         q.odds != null ? el('span', { class: 'gc-odds', text: pctOf(q) }) : null)));
   }
@@ -516,7 +528,27 @@ export function renderGroupChat(root) {
   });
   const decisionField = field('Decision model', decisionInput.wrap);
   decisionField.title = 'Reads the chat and ranks who should talk next. Kept per provider.';
-  const showDecision = () => { decisionField.hidden = s.order !== 'decision'; };
+  // Who answers, with the decision order: everyone (most likely first), or only those at least
+  // as likely as the threshold (editable, %); the threshold field shows only with that choice.
+  const whoSelect = el('select', { name: 'decision_who' },
+    el('option', { value: 'all', text: 'Everyone, most likely first', selected: s.decisionWho !== 'threshold' || undefined }),
+    el('option', { value: 'threshold', text: 'Only those above a threshold', selected: s.decisionWho === 'threshold' || undefined }));
+  const thresholdInput = el('input', { type: 'number', name: 'decision_threshold', min: 1, max: 100, step: 1, value: s.decisionThreshold ?? 20 });
+  const whoField = field('Who answers', whoSelect);
+  whoField.title = 'Everyone answers in the order of the decision, or only those it finds likely enough. The most likely one always answers.';
+  const thresholdField = field('Threshold (%)', thresholdInput);
+  thresholdField.title = 'A character less likely than this to talk next sits the round out.';
+  whoSelect.addEventListener('change', () => { s.decisionWho = whoSelect.value; save(); showDecision(); });
+  thresholdInput.addEventListener('change', () => {
+    s.decisionThreshold = Math.min(100, Math.max(1, Math.round(Number(thresholdInput.value) || 20)));
+    thresholdInput.value = s.decisionThreshold;
+    save();
+  });
+  const showDecision = () => {
+    decisionField.hidden = s.order !== 'decision';
+    whoField.hidden = s.order !== 'decision';
+    thresholdField.hidden = s.order !== 'decision' || s.decisionWho !== 'threshold';
+  };
   orderSelect.addEventListener('change', showDecision);
   showDecision();
   // The provider may change while the chat is open: show that provider's decision model.
@@ -525,7 +557,7 @@ export function renderGroupChat(root) {
   // main choices, so it is clear there is something to set.
   const settingsLine = el('span', { class: 'gc-settings-line muted' });
   const updateSettingsLine = () => {
-    const decision = s.order === 'decision' ? (s.decisionModels?.[state.provider] || 'no decision model') : '';
+    const decision = s.order === 'decision' ? [s.decisionModels?.[state.provider] || 'no decision model', s.decisionWho === 'threshold' ? `≥ ${s.decisionThreshold} %` : ''].filter(Boolean).join(', ') : '';
     settingsLine.textContent = [
       s.userName || 'You',
       `${(GC_ORDER[s.order] || GC_ORDER.random).label}${decision ? ` (${decision})` : ''}`,
@@ -540,6 +572,8 @@ export function renderGroupChat(root) {
       field('Default model', (() => { const f = modelField({ name: 'default_model', value: s.defaultModel, placeholder: 'used when a character has none' }); bind(f.input, 'defaultModel', (v) => v.trim()); return f.wrap; })()),
       field('Turn order', orderSelect),
       decisionField,
+      whoField,
+      thresholdField,
       field('Max tokens per answer', bind(el('input', { type: 'number', min: 1, value: s.maxTokens }), 'maxTokens', (v) => Number(v) || null)),
       field('Temperature', bind(el('input', { type: 'number', min: 0, max: 2, step: 0.1, value: s.temperature }), 'temperature', (v) => (v === '' ? null : Number(v))))),
     field('About you (what the characters know about you)', bind(el('textarea', { rows: 2, placeholder: 'a human' }, s.userBio || ''), 'userBio')),

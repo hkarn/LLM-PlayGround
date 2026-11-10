@@ -3,7 +3,9 @@
    key can use under "Other video model", marked untested. Offers each model's own durations,
    resolutions and aspect ratios, the frame images it takes, audio, and a relative price before
    sending. Used by the Video Generator and Animate the DreamGen Scene. */
-import { modelsIn, provider, state, store } from '../core.js';
+import { state, store } from '../core/state.js';
+import { provider } from '../core/providers.js';
+import { modelsIn } from '../core/models.js';
 import { $, $$, el } from './dom.js';
 import { estimateVideoCost, priceTag } from './video-job.js';
 

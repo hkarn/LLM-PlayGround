@@ -2,7 +2,7 @@
    to the end of the prompt ("Style: …"): the image prompt in Draw the DreamGen Scene, the motion
    prompt in Animate the DreamGen Scene. Both tools share one remembered choice, so a clip keeps the
    style its picture was drawn in. */
-import { store } from '../core.js';
+import { store } from '../core/state.js';
 import { el } from './dom.js';
 
 // "" leaves the style to the prompt; "custom" uses the text the user types.

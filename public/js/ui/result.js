@@ -1,6 +1,6 @@
 /* LLM PlayGround: UI component: the result panel (status, rendered answer, raw response, request, headers, cURL) and image results. */
 import { read } from '../adapter.js';
-import { errorMessage } from '../core.js';
+import { errorMessage } from '../core/api.js';
 import { el } from './dom.js';
 import { dockDetails, fileName, pictures } from './media.js';
 

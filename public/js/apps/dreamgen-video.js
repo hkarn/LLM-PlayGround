@@ -2,7 +2,9 @@
    Scene, or uploaded) into a short clip: a chat model writes the motion from the last scene of the
    same session export, and one of the tested video models in the provider's videoModels makes it. */
 import { read, send } from '../adapter.js';
-import { curlFor, ep, num, usageLine } from '../core.js';
+import { ep } from '../core/providers.js';
+import { curlFor } from '../core/api.js';
+import { num, usageLine } from '../core/helpers.js';
 import { $, $$, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';

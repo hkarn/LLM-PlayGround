@@ -1,7 +1,8 @@
 /* LLM PlayGround: UI component: the model filter (issue #33). Two lists, providers and models, that
    narrow every model dropdown and the Filter models table. Kept per endpoint in localStorage, since
-   routers name makers differently (z-ai on OpenRouter, zai elsewhere). The matching is in core.js. */
-import { renderModelsTable, splitModelId, state, store, visibleModels } from '../core.js';
+   routers name makers differently (z-ai on OpenRouter, zai elsewhere). The matching is in core/models.js. */
+import { state, store } from '../core/state.js';
+import { splitModelId, visibleModels } from '../core/models.js';
 import { comboBox } from './combo.js';
 import { $, $$, el } from './dom.js';
 
@@ -75,9 +76,8 @@ export function loadModelFilter() {
 function save(f) {
   state.modelFilter = f;
   if (f.providers.length || f.models.length) store.set(storeKey(), JSON.stringify(f)); else store.del(storeKey());
-  // Pickers and app lists refill on this event; the table is redrawn here.
+  // Pickers, app lists and the table (ui/models-table.js) redraw on this event.
   document.dispatchEvent(new Event('models-changed'));
-  renderModelsTable();
 }
 
 function render() {

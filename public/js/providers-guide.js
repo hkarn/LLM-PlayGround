@@ -1,7 +1,9 @@
 /* LLM PlayGround: the welcome page (the Providers tab, the first tab). Says what the site is, links
    the tools and games, and explains each provider's setup from the `guide` in its
    providers/<id>.json file, with its sign-up link and a button that picks it in the top bar. */
-import { keyReady, PROVIDERS, state } from './core.js';
+import { state } from './core/state.js';
+import { PROVIDERS } from './core/providers.js';
+import { keyReady } from './core/api.js';
 import { el } from './ui/dom.js';
 
 const REPO = 'https://github.com/hkarn/LLM-PlayGround';

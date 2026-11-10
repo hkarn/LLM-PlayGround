@@ -463,6 +463,13 @@ button.danger { color: var(--err); }
 .gc-queue-row .gc-queue { flex: 1 1 auto; min-width: 0; }
 .gc-details-btn { flex: none; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; }
 .gc-details-btn[aria-pressed=true] { border-color: var(--accent); color: var(--text); background: var(--highlight); }
+
+/* (?) help: a small round button after a label; its text shows on hover or focus (ui/help-tip.js). */
+.help-tip-wrap { position: relative; display: inline-block; vertical-align: middle; }
+.help-tip { width: 1.25em; height: 1.25em; padding: 0; border-radius: 50%; border: 1px solid var(--border); background: none; color: var(--muted); font: inherit; font-size: 0.8em; line-height: 1; cursor: help; }
+.help-tip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.help-tip-text { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; width: max-content; max-width: 260px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: normal; line-height: 1.4; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+.help-tip:hover + .help-tip-text, .help-tip:focus + .help-tip-text { display: block; }
 .groupchat:not(.show-details) .gc-detail { display: none; }
 .gc-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); }
 .gc-chip .dot { width: 8px; height: 8px; border-radius: 50%; }

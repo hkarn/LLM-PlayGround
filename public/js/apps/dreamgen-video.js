@@ -9,6 +9,7 @@ import { $, $$, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { exportPictures } from '../ui/export-pictures.js';
+import { helpTip } from '../ui/help-tip.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { rememberModel } from '../ui/remember.js';
@@ -114,9 +115,8 @@ export function renderDreamGenVideo(root) {
       panelSection('Prompt writer', el('p', { class: 'muted small', text: 'The chat model that reads the export and writes the motion prompt (step 2).' }), chatForm),
       // The style goes with the prompt it is added to; the video choice after it, its jobs last.
       panelSection('Picture style',
-        el('label', {}, 'Style', style.select),
-        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom),
-        el('p', { class: 'muted small', text: 'Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.' })),
+        el('label', {}, el('span', {}, 'Style ', helpTip('Added to the end of the motion prompt ("Style: …"). Shared with Draw the DreamGen Scene, so it starts as the style the picture was drawn in.')), style.select),
+        el('label', { class: 'style-custom', hidden: '' }, 'Your style', style.custom)),
       panelSection('Video model', settings.root),
       panelSection('Video jobs', el('p', { class: 'muted small', text: 'Clips from this tool and the Video Generator, kept in this browser (not the videos).' }), videoJobsList()),
     ],

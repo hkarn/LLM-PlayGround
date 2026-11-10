@@ -324,14 +324,11 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .panel.hub { max-width: 1040px; margin-inline: auto; }
 .hub-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .hub-head h2 { margin: 0; font-size: 18px; }
-/* An open app's header: pinned under the top bar while the tool scrolls, with the title as a
-   drop-down of the hub's apps (hubs.js appSwitcher). */
-.app-head {
-  position: sticky; top: var(--masthead-h, 0px); z-index: 15; background: var(--bg);
-  margin: -8px 0 16px; padding: 8px 0; border-bottom: 1px solid var(--border);
-}
-/* The list is placed against the header (sticky, so it holds absolutely placed children), so on a
-   phone it starts at the left edge rather than after the back button. */
+/* An open app's header, with the title as a drop-down of the hub's apps (hubs.js appSwitcher). It
+   scrolls away with the page; the top bar's Tools and Games tabs are the main way to switch. */
+.app-head { position: relative; margin: -8px 0 16px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+/* The list is placed against the header, so on a phone it starts at the left edge rather than after
+   the back button. */
 .app-switch-wrap { position: static; }
 .app-switch {
   display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 10px;
@@ -358,6 +355,26 @@ td.sim { text-align: center; font-variant-numeric: tabular-nums; }
 .app-switch-item:hover, .app-switch-item:focus-visible { background: var(--highlight); }
 .app-switch-item[aria-current] { border-left-color: var(--accent); background: var(--highlight); }
 .app-switch-item .tag { margin-left: auto; }
+/* The menu of the top bar's Tools and Games tabs (hubs.js setupHubMenus): under the tab, or, in the
+   folded drop-down, as a list indented under it. */
+.hub-menu {
+  position: absolute; top: calc(100% - 4px); z-index: 25; min-width: 240px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.hub-menu[hidden] { display: none; }
+.hub-menu-item {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; border-left: 3px solid transparent;
+  color: var(--text); text-decoration: none; font-size: 14px; white-space: nowrap;
+}
+.hub-menu-item:visited { color: var(--text); }
+.hub-menu-item:hover, .hub-menu-item:focus-visible { background: var(--highlight); }
+.hub-menu-item[aria-current] { border-left-color: var(--accent); background: var(--highlight); }
+.hub-menu-item .app-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; flex: none; background: var(--highlight); color: var(--accent); }
+.hub-menu-item .app-icon svg { width: 16px; height: 16px; }
+.hub-menu-all { color: var(--muted); border-top: 1px solid var(--border); border-radius: 0 0 8px 8px; margin-top: 2px; }
+.hub-menu-all:visited { color: var(--muted); }
+.topbar.menu .nav-wrap .hub-menu { position: static; min-width: 0; padding: 0 0 4px 14px; border: none; box-shadow: none; background: none; }
 /* One line on a phone: the back button shows only its arrow, the title shortens with an ellipsis. */
 .app-head { flex-wrap: nowrap; }
 .app-head h2 { min-width: 0; flex: 0 1 auto; }
@@ -519,7 +536,7 @@ button.danger { color: var(--err); }
 .tool-layout > .tool-main { grid-column: 1; grid-row: 1; }
 .tool-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tool-panel {
-  position: sticky; top: calc(var(--masthead-h, 0px) + var(--apphead-h, 0px) + 12px); max-height: calc(100vh - var(--masthead-h, 0px) - var(--apphead-h, 0px) - 24px); overflow-y: auto;
+  position: sticky; top: calc(var(--masthead-h, 0px) + 12px); max-height: calc(100vh - var(--masthead-h, 0px) - 24px); overflow-y: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
 }
 .tool-panel-head { display: none; }

@@ -527,6 +527,8 @@ button.danger { color: var(--err); }
 .tool-step h3 { margin: 0; font-size: 15px; }
 .tool-form { display: flex; flex-direction: column; gap: 10px; }
 .tool-step .result { margin: 0; }
+/* A tool's step shows its result box only once there is something in it (the request details and stats). */
+.tool-step .result:empty { display: none; }
 .scene-preview { max-height: 320px; overflow: auto; white-space: pre-wrap; }
 .scene-chars { display: flex; flex-direction: column; gap: 8px; }
 .scene-chars:empty { display: none; }

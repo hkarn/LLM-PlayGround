@@ -79,6 +79,14 @@ function appSwitcher(hub, current, openApp) {
   return wrap;
 }
 
+// A result can arrive after its tab was left (a speech answer, a finished video job) and start by
+// itself (autoplay) while hidden. Any video or audio that starts playing in a hidden panel is
+// paused at once ("play" doesn't bubble, so this listens in the capture phase).
+document.addEventListener('play', (e) => {
+  const media = e.target;
+  if (media instanceof HTMLMediaElement && media.closest('.panel:not(.active)')) media.pause();
+}, true);
+
 export function setupHubs() {
   for (const panel of $$('.panel.hub')) {
     const hub = panel.dataset.hub;

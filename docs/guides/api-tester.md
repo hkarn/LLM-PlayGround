@@ -4,7 +4,7 @@ The **API tester** tabs send one raw request each, so you can see exactly what a
 
 On a narrow screen, where the top bar folds its tabs into one drop-down button (☰), open that button and click **API tester**: the endpoint tabs fold out beside it (or under it on a phone). Pick one to open it.
 
-Tabs the chosen provider can't serve are greyed out.
+Tabs the chosen provider can't serve are greyed out. A video or audio result pause when you go to another tab or tool, and stay paused when you come back: press play to go on. One that finishes while you're elsewhere waits, paused.
 
 Pictures and clips have a **download** icon under them, with a file name from the tab and the time. Click a picture to see it larger: Esc or a click outside closes it, and the arrow keys move between pictures. Right-click works as usual.
 

@@ -1,0 +1,16 @@
+name: Idea or request
+description: A new provider, model, tool or change
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like
+      description: What you want to do and why. A provider or model name and a link to its docs help.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How it works today
+      description: What you do now, if anything, and what is missing or awkward.

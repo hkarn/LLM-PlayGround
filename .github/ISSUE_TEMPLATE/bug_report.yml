@@ -1,0 +1,36 @@
+name: Bug report
+description: Something doesn't work or looks wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Never paste an API key.** Check any request details you paste for keys and private text first.
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The tab, tool or game, and the provider you used.
+      placeholder: "Video Generator, OpenRouter"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps, and the model and options you picked.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+      description: An error message or the "Request details" text helps if it has no keys or private text.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: How you run it
+      description: The online page or your own server (Docker or Node), and your browser.
+      placeholder: "hkarn.github.io page, Firefox"

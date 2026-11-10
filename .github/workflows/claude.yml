@@ -57,5 +57,10 @@ jobs:
           # files on its own, but Grep doesn't, and the action's redaction of token patterns
           # from the reply can be dodged by encoding; Read rules cover Grep and Glob as well.
           # The action revokes the App token when the job ends.
+          # TEMPORARY (#104): every run here fails on Claude's first request and the log hides
+          # why. This prints Claude's full output in the public job log for one run, so the
+          # error shows; secrets stay out of reach through the deny rules below. Remove it
+          # once the cause is known.
+          show_full_output: true
           claude_args: >-
             --disallowedTools "Bash,Edit,MultiEdit,Write,NotebookEdit,Read(./.git/**),Read(//proc/**)"

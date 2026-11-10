@@ -41,7 +41,7 @@ The model's prompt appears in step 3. It names and describes each visible charac
 - **Edit the prompt** as you like.
 - **Copy prompt** copies the prompt with its style, for example to use in DreamGen's own image generator instead of step 4.
 - **Characters in the scene:** each character the model put in the picture is listed with an **Add portrait** button. The export's first picture of each of them is ticked to be sent automatically.
-- **Pictures from the export:** all the other embedded pictures (further pictures of a character, locations, objects, the cover) are listed with the rest, **unticked**, each with the caption it has in DreamGen. Tick **Send** on any you want the image model to see, for example a location picture, and change the name if you like. Loading an export sends nothing; only ticked pictures go, and at most 16.
+- **Pictures from the export:** all the other embedded pictures (further pictures of a character, locations, objects, the cover) are listed with the rest, **unticked**, each with the caption it has in DreamGen. Tick **Send** on any you want the image model to see, for example a location picture, and change the name if you like. Each picture from the export also has **Download** (as it is, usually WebP) and **JPEG** buttons, to save it as a file, which is a way to get your pictures out of DreamGen without the AVIF format. Loading an export sends nothing; only ticked pictures go, and at most 16.
 - **Add portraits** adds any other reference pictures. Type who each one is in **Who is this?**.
 - **Add the portrait names to the prompt** (on by default) tells the image model which reference picture is which character.
 

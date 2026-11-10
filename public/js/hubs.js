@@ -4,7 +4,7 @@ import { renderDreamGenScene } from './apps/dreamgen-scene.js';
 import { renderDreamGenVideo } from './apps/dreamgen-video.js';
 import { renderGroupChat } from './apps/group-chat.js';
 import { renderVideoGenerator } from './apps/video-generator.js';
-import { store } from './core.js';
+import { store } from './core/state.js';
 import { $, $$, el } from './ui/dom.js';
 
 /* ------------------------------------------------------------------ */

@@ -3,7 +3,7 @@
    advanced bits) sit in a panel on the right. On a narrow screen the panel folds into a Settings
    button above the steps. Used by every tool that has one model of each kind; the API tester tabs
    keep their own layout. */
-import { store } from '../core.js';
+import { store } from '../core/state.js';
 import { el } from './dom.js';
 
 // One block of the panel: a heading that folds it away, and its fields. Every block starts open.

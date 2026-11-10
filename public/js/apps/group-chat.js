@@ -1,6 +1,9 @@
 /* LLM PlayGround: Game: AI Group Chat. */
 import { read, send } from '../adapter.js';
-import { errorMessage, modelsIn, provider, PROVIDERS, state, store } from '../core.js';
+import { state, store } from '../core/state.js';
+import { provider, PROVIDERS } from '../core/providers.js';
+import { errorMessage } from '../core/api.js';
+import { modelsIn } from '../core/models.js';
 import { comboBox } from '../ui/combo.js';
 import { el } from '../ui/dom.js';
 

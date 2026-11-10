@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: running a request from a form, with busy state, elapsed time and Cancel. */
-import { provider } from '../core.js';
+import { provider } from '../core/providers.js';
 import { $, el } from './dom.js';
 import { renderException } from './result.js';
 

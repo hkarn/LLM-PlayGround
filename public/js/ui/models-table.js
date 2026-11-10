@@ -1,6 +1,7 @@
 /* LLM PlayGround: UI component: the table of loaded models on the Filter models tab (#models-table),
    narrowed by the model filter and by the search field above it (#model-filter). */
-import { state, visibleModels } from '../core.js';
+import { state } from '../core/state.js';
+import { visibleModels } from '../core/models.js';
 import { $, el } from './dom.js';
 
 export function renderModelsTable() {

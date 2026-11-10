@@ -1,6 +1,9 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
 import { read } from './adapter.js';
-import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, serverConfig, state, store } from './core.js';
+import { serverConfig, state, store } from './core/state.js';
+import { baseUrl, defaultBaseUrl, loadProviders, provider, PROVIDERS } from './core/providers.js';
+import { apiKey, keyReady } from './core/api.js';
+import { loadModels } from './core/models.js';
 import { renderProviderGuide } from './providers-guide.js';
 import { APPS, hubPanel, route, setHash, setupHubMenus, setupHubs, showTab, svgIcon } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';

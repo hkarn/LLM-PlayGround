@@ -541,9 +541,15 @@ button.danger { color: var(--err); }
 }
 .tool-panel-head { display: none; }
 .tool-panel-body { display: flex; flex-direction: column; gap: 14px; }
-.panel-section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel-section { min-width: 0; }
 .panel-section + .panel-section { border-top: 1px solid var(--border); padding-top: 14px; }
-.panel-section h3 { margin: 0; font-size: 15px; }
+.panel-section h3 { margin: 0; font-size: 15px; display: inline; }
+/* Each section folds by its heading (panelSection in ui/tool-layout.js); all start open. */
+.panel-section > details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.panel-section > details > summary::-webkit-details-marker { display: none; }
+.panel-section > details > summary::before { content: '▾'; color: var(--muted); font-size: 12px; width: 12px; }
+.panel-section > details:not([open]) > summary::before { content: '▸'; }
+.panel-section-body { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; min-width: 0; }
 .panel-section p { margin: 0; }
 .tool-panel .model-picker .row { flex-wrap: wrap; }
 .tool-panel .model-picker select { min-width: 0; flex: 1 1 100%; }

@@ -23,7 +23,7 @@ The models are shared between the tools: a chat, image or video model chosen in 
 
 ### 1. Session export
 
-Load the export file. The tool shows its title, how many turns it has, the player's character, and how many portraits are embedded in it (JSON exports can carry them).
+Load the export file. The tool shows its title, how many turns it has, the player's character, and how many pictures are embedded in it (JSON exports with images carry them: characters, personas, locations, objects, the narrator and the cover).
 
 ### 2. Write the image prompt
 
@@ -40,7 +40,8 @@ The model's prompt appears in step 3. It names and describes each visible charac
 
 - **Edit the prompt** as you like.
 - **Copy prompt** copies the prompt with its style, for example to use in DreamGen's own image generator instead of step 4.
-- **Characters in the scene:** each character the model put in the picture is listed with an **Add portrait** button. Portraits embedded in a JSON export are attached for them automatically.
+- **Characters in the scene:** each character the model put in the picture is listed with an **Add portrait** button. The export's first picture of each of them is ticked to be sent automatically.
+- **Pictures from the export:** all the other embedded pictures (further pictures of a character, locations, objects, the cover) are listed with the rest, **unticked**, each with the caption it has in DreamGen. Tick **Send** on any you want the image model to see, for example a location picture, and change the name if you like. Loading an export sends nothing; only ticked pictures go, and at most 16.
 - **Add portraits** adds any other reference pictures. Type who each one is in **Who is this?**.
 - **Add the portrait names to the prompt** (on by default) tells the image model which reference picture is which character.
 

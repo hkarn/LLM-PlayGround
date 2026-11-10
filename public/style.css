@@ -530,7 +530,9 @@ button.danger { color: var(--err); }
 .ref-portraits figure { position: relative; margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .ref-portraits img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--border); border-radius: 6px; display: block; }
 .ref-portraits button { position: absolute; top: 2px; right: 2px; padding: 0 6px; line-height: 18px; font-size: 12px; }
-.ref-portraits input { font-size: 12px; padding: 4px 6px; }
+.ref-portraits input[type=text], .ref-portraits input:not([type]) { font-size: 12px; padding: 4px 6px; }
+.ref-portraits figure.off img { opacity: .4; }
+.ref-portraits .send { display: flex; align-items: center; gap: 4px; }
 .scene-export { font-size: 12px; min-height: 220px; resize: vertical; }
 .notice { background: var(--highlight); border-radius: 8px; padding: 8px 12px; }
 

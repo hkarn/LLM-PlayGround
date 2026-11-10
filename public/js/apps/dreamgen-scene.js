@@ -154,7 +154,7 @@ export function renderDreamGenScene(root) {
         el('li', {}, 'Load a session export from ', el('a', { href: 'https://dreamgen.com/', target: '_blank', rel: 'noopener', text: 'DreamGen' }),
           ' (Markdown or JSON). Nothing leaves the browser until you press a button.'),
         el('li', { text: 'A chat model reads the export, works out where the last scene begins, and writes an image prompt with the characters in it named and described.' }),
-        el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Portraits embedded in the export are attached for the characters in the scene.' }),
+        el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Pictures embedded in the export are listed, and the ones for the characters in the scene are ticked to be sent; tick any other (a location, say) to send it too.' }),
         el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' })),
       el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
         'Run at ', el('a', { href: 'https://hkarn.github.io/LLM-PlayGround/', target: '_blank', rel: 'noopener', text: 'https://hkarn.github.io/LLM-PlayGround/' }),
@@ -212,11 +212,12 @@ export function renderDreamGenScene(root) {
       summary.replaceChildren(
         el('div', {}, el('strong', { text: s.title }), ` · ${s.format} · ${s.turns.toLocaleString()} turns`,
           s.persona ? ` · player: ${s.persona}` : '',
-          s.images.length ? ` · ${s.images.length} portraits embedded` : ''));
+          s.images.length ? ` · ${s.images.length} pictures embedded` : ''));
       undo.length = 0;
       setExport(s.text, { keepUndo: true });
-      // Embedded portraits are attached in step 3, for the characters the model puts in the scene.
-      portraits.set([]);
+      // Every embedded picture is listed in step 3, unticked; the ones for the characters the
+      // model puts in the scene are ticked when the prompt is written. Nothing is sent by loading.
+      portraits.set(s.images.map((i) => ({ name: i.name, file: i.file, kind: i.kind, send: false, fromExport: true, index: i.index, caption: i.name })));
     } catch (err) {
       st.session = null;
       summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
@@ -269,24 +270,26 @@ export function renderDreamGenScene(root) {
           el('div', {}, el('strong', { text: c.name }), c.description ? el('div', { class: 'muted small', text: c.description }) : null),
           el('button', { type: 'button', class: 'secondary', text: 'Add portrait', onclick: () => pick.click() }), pick);
       }));
-    // Attach the export's own portrait for each character in the scene, replacing earlier ones.
-    const embedded = new Set((st.session?.images || []).map((i) => i.file));
-    const refs = portraits.refs.filter((r) => !embedded.has(r.file));
+    // Tick the export's first picture of each character in the scene (named as the model named
+    // them); the rest of the export's pictures go back to unticked, with their own captions.
+    const fromExport = portraits.refs.filter((r) => r.fromExport);
     const norm = (n) => n.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
+    for (const r of fromExport) { r.send = false; r.name = r.caption; }
+    const firsts = fromExport.filter((r) => r.index === 0 && r.kind !== 'location' && r.kind !== 'item');
+    const ticked = new Set();
     for (const c of chars) {
       const n = norm(c.name);
-      const img = (st.session?.images || []).find((i) => norm(i.name) === n)
-        || (st.session?.images || []).find((i) => norm(i.name).split(' ')[0] === n.split(' ')[0]);
-      if (img && !refs.some((r) => r.file === img.file)) refs.push({ name: c.name, file: img.file });
+      const img = firsts.find((r) => norm(r.caption) === n) || firsts.find((r) => norm(r.caption).split(' ')[0] === n.split(' ')[0]);
+      if (img && !ticked.has(img)) { ticked.add(img); img.send = true; img.name = c.name; }
     }
-    portraits.set(refs);
+    portraits.refresh();
   }
 
   // With references, "Reference image 1 shows …" lines tell the model who is who.
   function finalPrompt() {
     if (!promptBox.value.trim()) return '';
     const base = withStyle(promptBox.value.trim());
-    const named = portraits.refs.map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
+    const named = portraits.active().map((r, i) => (r.name.trim() ? `reference image ${i + 1} is ${r.name.trim()}` : '')).filter(Boolean);
     if (!addNames.checked || !named.length) return base;
     return `${base}\n\nUse the reference images for the characters' faces and looks: ${named.join('; ')}.`;
   }
@@ -304,10 +307,12 @@ export function renderDreamGenScene(root) {
         resolution: str(imageSet, 'resolution'), quality: str(imageSet, 'quality'),
       };
       // With portraits it is an image edit; the provider's template decides how they travel.
-      const kind = portraits.refs.length ? 'imageEdit' : 'image';
+      portraits.check();
+      const sent = portraits.active();
+      const kind = sent.length ? 'imageEdit' : 'image';
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
-      const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(portraits.refs.map((r) => asJpeg(r.file))) } : fields;
+      const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
       await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title });
     });
   });

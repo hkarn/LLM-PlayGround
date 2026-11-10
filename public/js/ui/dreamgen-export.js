@@ -49,11 +49,19 @@ export function dreamGenJsonToMarkdown(doc) {
     section('Session', turns.join('\n\n')),
   ].filter((x) => String(x).trim()).join('\n\n');
   // Exports with images carry them as raw base64 in display.images[], sometimes without a mimeType.
+  // Every picture is listed: { name (its caption), kind, index (within its entity), nsfw, file }.
+  // DreamGen requires a caption on characters, locations and objects (display.name); the narrator's
+  // is "narrator" and the scenario's own pictures are "cover". The caption stays blank if the file has none.
   const images = [];
+  const addImages = (list, name, kind, base) => (list || []).forEach((img, index) => {
+    if (!img?.dataBase64) return;
+    images.push({ name, kind, index, nsfw: !!img.nsfw, file: base64ToFile(img.dataBase64, img.mimeType, `${base}${index ? `_${index + 1}` : ''}`) });
+  });
   for (const e of entities) {
-    const img = (e.display?.images || []).find((i) => i?.dataBase64);
-    if (img && nameOf(e) && e.kind !== 'narrator') images.push({ name: nameOf(e), file: base64ToFile(img.dataBase64, img.mimeType, e.label || nameOf(e)) });
+    const kind = e.kind === 'character_user' ? 'persona' : e.kind;
+    addImages(e.display?.images, e.kind === 'narrator' ? 'narrator' : nameOf(e), kind, e.label || nameOf(e) || kind);
   }
+  addImages(scenario?.display?.images, 'cover', 'cover', 'cover');
   const personas = entities.filter((e) => e.kind === 'character_user');
   const persona = nameOf(personas.find((e) => turns.some((t) => t.startsWith(`[${nameOf(e)}]:`))) || personas[0]);
   return { title, persona, turns: turns.length, text, images, format: 'JSON, written out as Markdown' };

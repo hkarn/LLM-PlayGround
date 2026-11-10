@@ -8,6 +8,7 @@ import { num, usageLine } from '../core/helpers.js';
 import { $, $$, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
+import { exportPictures } from '../ui/export-pictures.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { rememberModel } from '../ui/remember.js';
@@ -37,6 +38,8 @@ export function renderDreamGenVideo(root) {
   const upload = el('input', { type: 'file', accept: 'image/*' });
   const useLast = el('button', { type: 'button', class: 'secondary', text: 'Use the last drawn scene' });
   const pictureNote = el('div', { class: 'muted small' });
+  // Pictures embedded in a JSON export (a location, a character): any can be the first frame.
+  const pictures = exportPictures({ actions: [{ label: 'Use as first frame', onclick: (i) => setFrame(i.file, `From the export: ${i.name || i.kind}.`) }] });
   function setFrame(file, note = '') {
     if (st.frameUrl) URL.revokeObjectURL(st.frameUrl);
     st.frame = file;
@@ -99,7 +102,7 @@ export function renderDreamGenVideo(root) {
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
-      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote),
+      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, pictures.node),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
       el('label', {}, 'Motion prompt (sent to the video model)', motion)),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Make the clip' }),
@@ -145,6 +148,7 @@ export function renderDreamGenVideo(root) {
     setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`);
     if (s.exportText) { exportBox.value = s.exportText; countExport(); sessionNote.textContent = 'The session as it was sent for that picture.'; }
     if (s.prompt) imagePrompt.value = s.prompt;
+    if (s.pictures?.length) pictures.set(s.pictures);
   };
   useLast.addEventListener('click', () => { const s = scenePicture(); if (s) setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`); });
   useSession.addEventListener('click', () => {
@@ -153,6 +157,7 @@ export function renderDreamGenVideo(root) {
     exportBox.value = s.exportText;
     countExport();
     if (s.prompt) imagePrompt.value = s.prompt;
+    if (s.pictures?.length) pictures.set(s.pictures);
     sessionNote.textContent = 'The session as it was sent for the last drawn picture.';
   });
   document.addEventListener('scene-picture', syncHandoff);
@@ -170,6 +175,7 @@ export function renderDreamGenVideo(root) {
       exportBox.value = s.text;
       countExport();
       sessionNote.textContent = `${s.title} · ${s.format} · ${s.turns.toLocaleString()} turns.`;
+      pictures.set(s.images);
     } catch (err) {
       sessionNote.textContent = `Could not read ${f.name}: ${err.message}`;
     }

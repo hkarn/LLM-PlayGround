@@ -314,7 +314,7 @@ export function renderDreamGenScene(root) {
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
-      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title });
+      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images });
     });
   });
 

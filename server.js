@@ -146,15 +146,16 @@ async function proxy(req, res) {
     const buf = Buffer.from(await upstream.arrayBuffer());
     res.writeHead(upstream.status, outHeaders);
     res.end(buf);
-    console.log(`${req.method} ${target} -> ${upstream.status} (${Date.now() - started} ms)`);
+    // The target holds text from the page: logged through '%s', so a % in it is never read as formatting.
+    console.log('%s', `${req.method} ${target} -> ${upstream.status} (${Date.now() - started} ms)`);
   } catch (err) {
     if (err.status === 413) {
-      console.warn(`${req.method} ${target} rejected: ${err.message}`);
+      console.warn('%s', `${req.method} ${target} rejected: ${err.message}`);
       res.writeHead(413, { 'content-type': 'application/json', connection: 'close' });
       res.end(JSON.stringify({ error: { message: `Request body is larger than ${MAX_BODY_BYTES / 1024 / 1024} MB` } }));
       return;
     }
-    console.error(`${req.method} ${target} failed:`, err);
+    console.error('%s failed:', `${req.method} ${target}`, err);
     sendError(res, 502, `Proxy could not reach ${target}: ${err.message}`);
   }
 }

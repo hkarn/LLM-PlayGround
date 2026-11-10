@@ -2,6 +2,7 @@
    provider file's videoModels, offering only that model's options and showing the price before
    sending. A job is watched in the background (ui/video-jobs.js), so the next clip can be started at
    once; the jobs list is in the settings panel. The Video tab stays the raw tester for every model. */
+import { rememberFold } from '../ui/fold.js';
 import { $, el } from '../ui/dom.js';
 import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
@@ -43,8 +44,8 @@ export function renderVideoGenerator(root) {
 
   keepDrafts(form, 'videogen');
 
-  const details = (job) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-    el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) }));
+  const details = (job) => rememberFold(el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+    el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: job.resp?.data }, null, 2) })), 'request_details');
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();

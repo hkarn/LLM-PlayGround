@@ -10,6 +10,7 @@ import { clip, fileName } from '../ui/media.js';
 import { keepDrafts } from '../ui/drafts.js';
 import { exportPictures } from '../ui/export-pictures.js';
 import { helpTip } from '../ui/help-tip.js';
+import { rememberFold } from '../ui/fold.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { rememberModel } from '../ui/remember.js';
@@ -61,9 +62,9 @@ export function renderDreamGenVideo(root) {
   const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
     el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
-    el('details', {}, el('summary', { text: 'System prompt' }),
+    rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
-      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })));
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })), 'system_prompt'));
   const motionForm = el('form', { class: 'tool-form' },
     el('div', { class: 'row' }, useSession, el('label', { class: 'inline' }, 'or load an export ', exportFile)),
     sessionNote,
@@ -232,8 +233,8 @@ export function renderDreamGenVideo(root) {
   async function sendClip(input, m, est) {
     clipOut.replaceChildren(el('div', { class: 'muted', text: 'Sending the job…' }));
     const job = await startVideoJob(input, { tool: 'dreamgen-video', label: m.label || m.id, est, signal: clipForm._abort?.signal });
-    const rawFor = (resp) => el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
-      el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) }));
+    const rawFor = (resp) => rememberFold(el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }),
+      el('pre', { class: 'mono', text: JSON.stringify({ request: job.request, response: resp?.data }, null, 2) })), 'request_details');
     const raw = rawFor(job.resp);
     const notes = job.notes.map((n) => el('div', { class: 'muted small', text: n }));
     // A refusal usually means the model won't take this picture, not the wording.

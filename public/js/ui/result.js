@@ -2,6 +2,7 @@
 import { read } from '../adapter.js';
 import { errorMessage } from '../core/api.js';
 import { el } from './dom.js';
+import { rememberFold } from './fold.js';
 import { dockDetails, fileName, pictures } from './media.js';
 
 /* ------------------------------------------------------------------ */
@@ -29,7 +30,7 @@ export function renderResult(container, { resp, request, curl, rendered, quiet =
     const raw = el('div', {});
     renderResult(raw, { resp, request, curl });
     raw.querySelector('.output.error')?.remove();
-    const details = el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes);
+    const details = rememberFold(el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), ...raw.childNodes), 'request_details');
     container.append(...(resp.ok ? (rendered ? [rendered] : []) : [el('div', { class: 'output error', text: errorMessage(resp) })]));
     // Under a picture or clip the fold sits on the left of its bar (ui/media.js); otherwise below.
     if (!(resp.ok && rendered && dockDetails(rendered, details))) container.append(details);

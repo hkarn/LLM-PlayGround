@@ -13,6 +13,7 @@ import { chosenModel, setupPicker } from '../ui/model-picker.js';
 import { refPortraits } from '../ui/ref-portraits.js';
 import { rememberModel } from '../ui/remember.js';
 import { answerFacts, renderImages, renderResult } from '../ui/result.js';
+import { rememberFold } from '../ui/fold.js';
 import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
@@ -76,9 +77,9 @@ export function renderDreamGenScene(root) {
   const chatForm = el('form', { class: 'tool-form', 'data-kind': 'chat', onsubmit: (e) => e.preventDefault() },
     el('div', { class: 'model-picker', 'data-category': 'chat', 'data-curated': 'on' }),
     el('label', {}, 'Max tokens', el('input', { name: 'max_tokens', type: 'number', min: 1, placeholder: 'default' })),
-    el('details', {}, el('summary', { text: 'System prompt' }),
+    rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
-      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })));
+      el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })), 'system_prompt'));
   const promptForm = el('form', { class: 'tool-form' },
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },

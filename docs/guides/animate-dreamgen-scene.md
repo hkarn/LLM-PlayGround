@@ -31,7 +31,7 @@ The models are shared between the tools: a chat, image or video model chosen in 
 The picture becomes the clip's first frame.
 
 - **Use the last drawn scene** takes the latest picture from Draw the DreamGen Scene. It is passed in memory, so it is gone after a reload.
-- **Pictures in the export** appears when you load a JSON export with images (in step 2, or one loaded in Draw the DreamGen Scene before pressing **Animate this picture →**). Open it to see every picture with its DreamGen caption (characters, locations, objects, the cover) and press **Use as first frame** on one, for example a location. Loading sends nothing.
+- **Pictures in the export** appears when you load a JSON export with images (in step 2, or one loaded in Draw the DreamGen Scene before pressing **Animate this picture →**). Open it to see every picture with its DreamGen caption (characters, locations, objects, the cover) and press **Use as first frame** on one, for example a location. Each picture also has **Download** (as it is, usually WebP) and **JPEG** buttons. Loading sends nothing.
 - **or upload** takes any picture. WebP, GIF and other formats are converted to PNG automatically, since video models take only PNG or JPEG.
 
 ### 2. Motion prompt

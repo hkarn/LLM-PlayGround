@@ -1,6 +1,7 @@
 /* LLM PlayGround: UI component: reference portraits with a name each, for image (and later video) models. */
 import { MAX_EDIT_IMAGES } from '../core/helpers.js';
 import { el } from './dom.js';
+import { downloadButtons } from './export-pictures.js';
 
 // Returns { node, refs, active(), add(name, file, opts), set(list) }. `refs` is the live list of
 // { name, file, send, kind? }; the names can be edited on each portrait, and `send` (a checkbox on
@@ -31,10 +32,11 @@ export function refPortraits({ max = MAX_EDIT_IMAGES, pickerLabel = 'Add portrai
     grid.replaceChildren(...api.refs.map((r, i) => {
       const fig = el('figure', { title: [r.kind, r.file.name].filter(Boolean).join(' · '), class: r.send ? '' : 'off' },
         thumb(r),
-        el('button', { type: 'button', class: 'secondary', title: 'Remove', text: '×', onclick: () => { api.refs.splice(i, 1); render(); } }),
+        el('button', { type: 'button', class: 'secondary remove', title: 'Remove', text: '×', onclick: () => { api.refs.splice(i, 1); render(); } }),
         el('label', { class: 'inline small send' },
           el('input', { type: 'checkbox', checked: r.send ? '' : null, 'aria-label': `Send reference ${i + 1}`, onchange: (e) => { r.send = e.target.checked; fig.classList.toggle('off', !r.send); tally(); } }),
           'Send'),
+        ...(r.fromExport ? [el('div', { class: 'row small-row' }, ...downloadButtons(r, (fn) => fn().catch((e) => alert(e.message))))] : []),
         el('input', { value: r.name, placeholder: 'Who is this?', 'aria-label': `Name for reference ${i + 1}`, oninput: (e) => { r.name = e.target.value; } }));
       return fig;
     }));

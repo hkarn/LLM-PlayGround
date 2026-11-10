@@ -1,6 +1,6 @@
 /* LLM PlayGround: Start-up: wires the tabs, endpoint picker, forms and hubs. Loaded by index.html. */
 import { read } from './adapter.js';
-import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, renderModelsTable, serverConfig, state, store } from './core.js';
+import { apiKey, baseUrl, defaultBaseUrl, keyReady, loadModels, loadProviders, provider, PROVIDERS, serverConfig, state, store } from './core.js';
 import { renderProviderGuide } from './providers-guide.js';
 import { APPS, hubPanel, route, setHash, setupHubMenus, setupHubs, showTab, svgIcon } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
@@ -8,6 +8,7 @@ import { $, $$, el } from './ui/dom.js';
 import { keepDrafts, keepRows } from './ui/drafts.js';
 import { loadModelFilter, setupModelFilter } from './ui/model-filter.js';
 import { setupModelOptions } from './ui/model-options.js';
+import { renderModelsTable } from './ui/models-table.js';
 import { setupTheme } from './ui/theme.js';
 import { setupTopBar } from './ui/top-bar.js';
 import { startWatchingVideoJobs } from './ui/video-jobs.js';

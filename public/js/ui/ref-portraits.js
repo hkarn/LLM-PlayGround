@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: reference portraits with a name each, for image (and later video) models. */
-import { MAX_EDIT_IMAGES } from '../core.js';
+import { MAX_EDIT_IMAGES } from '../core/helpers.js';
 import { el } from './dom.js';
 
 // Returns { node, refs, add(name, file), set(list) }. `refs` is the live list of { name, file };

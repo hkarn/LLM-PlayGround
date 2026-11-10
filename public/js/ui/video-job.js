@@ -2,7 +2,7 @@
    watches it (poll, download) from its id (ui/video-jobs.js keeps the list), and estimates its price from the model's pricing_skus (OpenRouter /videos/models).
    Used by the Video Generator and Animate the DreamGen Scene; the Video tab keeps its own raw handler. */
 import { follow, read, send } from '../adapter.js';
-import { errorMessage } from '../core.js';
+import { errorMessage } from '../core/api.js';
 import { el } from './dom.js';
 import { framePngOrJpeg } from './frame-image.js';
 import { wait } from './run-step.js';

@@ -1,5 +1,7 @@
 /* LLM PlayGround: The provider adapter: fills the provider's request template, sends it, and reads answers through its response map. */
-import { callApi, curlFor, ep, fileToDataUrl, provider, TEMPLATES } from './core.js';
+import { ep, provider, TEMPLATES } from './core/providers.js';
+import { callApi, curlFor } from './core/api.js';
+import { fileToDataUrl } from './core/helpers.js';
 
 // An endpoint's settings: the shared OpenAI-standard template (providers/openai-standard.json)
 // with the provider file's own endpoints[kind] laid over it, plus where to send it.

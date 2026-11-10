@@ -4,7 +4,9 @@
    next clip, a job keeps going while you use another page, and a reload picks it up again from its
    id. The list sits in each video tool's settings panel. The Video tab, the raw tester, doesn't use
    this. Kept only in this browser (localStorage "tools:videojobs"). */
-import { keyReady, PROVIDERS, state, store } from '../core.js';
+import { state, store } from '../core/state.js';
+import { PROVIDERS } from '../core/providers.js';
+import { keyReady } from '../core/api.js';
 import { el } from './dom.js';
 import { clip, fileName } from './media.js';
 import { downloadVideo, JOB_DONE, priceTag, submitVideoJob, watchVideoJob } from './video-job.js';

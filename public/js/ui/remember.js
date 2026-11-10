@@ -1,5 +1,5 @@
 /* LLM PlayGround: UI component: remembers a form's model and options per provider (localStorage). */
-import { state, store } from '../core.js';
+import { state, store } from '../core/state.js';
 import { $ } from './dom.js';
 
 // Remembers the model chosen in a tool form, and the step's other `fields`, per provider, and

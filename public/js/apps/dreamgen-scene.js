@@ -1,6 +1,9 @@
 /* LLM PlayGround: Tool: Draw the DreamGen Scene. */
 import { read, send } from '../adapter.js';
-import { curlFor, ep, num, parseJsonLoose, store, str, usageLine } from '../core.js';
+import { store } from '../core/state.js';
+import { ep } from '../core/providers.js';
+import { curlFor } from '../core/api.js';
+import { num, parseJsonLoose, str, usageLine } from '../core/helpers.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $$, el } from '../ui/dom.js';

@@ -1,5 +1,6 @@
 /* LLM PlayGround: UI component: option dropdowns that follow the chosen model (size, aspect ratio, duration, ...). */
-import { provider, state } from '../core.js';
+import { state } from '../core/state.js';
+import { provider } from '../core/providers.js';
 import { $$, el } from './dom.js';
 import { chosenModel } from './model-picker.js';
 

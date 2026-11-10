@@ -1,5 +1,7 @@
 /* LLM PlayGround: UI component: the model picker (dropdown of the provider's models, typed id, metadata). */
-import { CATEGORY_LABEL, CURATED, modelFilterOn, modelsIn, state, store, visibleModels } from '../core.js';
+import { state, store } from '../core/state.js';
+import { CURATED } from '../core/providers.js';
+import { CATEGORY_LABEL, modelFilterOn, modelsIn, visibleModels } from '../core/models.js';
 import { $, $$, el } from './dom.js';
 import { pre } from './result.js';
 
@@ -126,5 +128,5 @@ export function chosenModel(form) {
 
 export function refreshPickers() { $$('.model-picker').forEach((p) => p._fill && p._fill()); }
 
-// core.js announces a new or cleared model list with this event; every picker refills.
+// core/models.js announces a new or cleared model list with this event; every picker refills.
 document.addEventListener('models-changed', refreshPickers);

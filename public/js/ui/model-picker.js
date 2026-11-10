@@ -109,7 +109,8 @@ export function setupPicker(picker) {
     const entry = curatedList()?.[m.id];
     const tested = entry?.note && !entry.draft;
     const summary = tested ? 'Test results' : 'Model details';
-    info.replaceChildren(el('details', { class: 'model-facts' },
+    // Our tests cost money, so a tested model's results open by default; the reader can fold them away.
+    info.replaceChildren(el('details', { class: 'model-facts', ...(tested ? { open: '' } : {}) },
       el('summary', { class: 'small', text: summary }),
       entry?.note ? el('p', { class: 'small', text: entry.draft ? `Draft: ${entry.note}` : entry.note }) : null,
       bits.length ? el('p', { class: 'small muted', text: bits.join(' · ') }) : null,

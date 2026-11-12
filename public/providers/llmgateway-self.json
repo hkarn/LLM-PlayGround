@@ -6,6 +6,7 @@
     "No server key: server.js only sends server keys to a provider's own domain, and a self-hosted gateway can be anywhere. Through server.js, a non-local base URL needs ALLOW_ANY_UPSTREAM.",
     "On GitHub Pages no base URL is filled in: it is wherever you run your gateway (baseUrlHint is shown in the empty field). Through server.js the field starts at serverBaseUrl, the gateway's local development address (port 4001); edit it if yours runs elsewhere. A gateway on another machine needs https when the page itself is https (GitHub Pages), or the browser blocks it as mixed content.",
     "LLM Gateway at llmgateway.io runs the same open-source gateway, so this file uses the same endpoints, options and templates through extends.",
+    "Found by running the unified Docker image locally (2026-11-12; no provider key added, no request sent through it): its dashboard lists models whether or not you hold a key for them, and testing one without a key led to its subscription page. Its schema makes new projects hybrid (your own provider key where you have one, credits otherwise); credits lead to payment pages that cannot take a payment without Stripe keys set on the gateway (the container had none). Custom providers are an enterprise feature (its custom-providers docs).",
     "guide replaces the hosted one completely (extends is a shallow merge)."
   ],
   "extends": "llmgateway.json",
@@ -27,17 +28,23 @@
     "ease": "Advanced: run it yourself",
     "summary": "The open-source LLM Gateway on your own machine or server, with your own provider keys. The same gateway as the hosted one.",
     "steps": [
-      "Run LLM Gateway from its GitHub repository (Docker) and add your provider keys to it.",
-      "Create a gateway API key in its dashboard.",
+      "Run LLM Gateway from its GitHub repository (Docker, one container) and open its dashboard (port 3002).",
+      "Sign up there: the account lives on your own instance and has nothing to do with llmgateway.io.",
+      "Add your own provider keys (OpenAI, Anthropic and so on) in the dashboard, or as LLM_… environment variables such as LLM_OPENAI_API_KEY. It has no models you can use until you do.",
+      "Set the project to API keys mode. The default, hybrid, falls back to credits for a model you have no key for, and credits lead to its payment pages.",
+      "Create a gateway API key in the dashboard.",
       "Allow this page's origin in its CORS settings (GATEWAY_CORS_ORIGINS, e.g. https://hkarn.github.io).",
       "Enter your gateway's URL and key at the top of this page."
     ],
     "good": [
-      "Your own keys and your own logs; nothing goes through a third-party router."
+      "Your own keys and your own logs; nothing goes through a third-party router.",
+      "One gateway key here for every provider whose key you added to it."
     ],
     "watch": [
       "A gateway on another machine needs https when this page is https.",
-      "Not tested here against a real self-hosted gateway yet."
+      "Its model list also shows models you have no key for; they fail, or point to its payment pages, which cannot take a payment without Stripe keys of your own on the gateway.",
+      "Custom providers (your own endpoints) are an enterprise feature in the gateway.",
+      "Tested here only as far as running it and reading its docs: no request has gone through it yet."
     ]
   }
 }

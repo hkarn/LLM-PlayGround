@@ -9,7 +9,7 @@
 //
 // The API key is entered in the UI and sent per request in the
 // Authorization header. The server never stores it. You can also set a key
-// per provider (REQUESTY_API_KEY, OPENROUTER_API_KEY, LLMGATEWAY_API_KEY), in the
+// per provider (REQUESTY_API_KEY, OPENROUTER_API_KEY, LLMGATEWAY_API_KEY, ANTHROPIC_API_KEY), in the
 // environment or in a .env file next to this one. It is used when the browser
 // sends no key, and only for that provider's own domain.
 

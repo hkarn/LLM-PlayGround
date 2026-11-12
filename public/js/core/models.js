@@ -127,6 +127,10 @@ const KEY_HELP = 'check that it is copied whole and still active in its dashboar
 // The last result is kept in localStorage (conn_<id>), so a page reload counts too.
 export const CHECK_TTL = 2 * 60 * 1000;
 const loadingNow = {};
+// A successful list (without the raw answer) is kept for the tab's lifetime, so a reload within the
+// 2 minutes needs no new request. Too big or blocked storage just means a fresh request.
+const readKept = (id) => { try { return JSON.parse(sessionStorage.getItem(`list_${id}`) || 'null'); } catch { return null; } };
+const keep = (id, { models, skipped, at, sig }) => { try { sessionStorage.setItem(`list_${id}`, JSON.stringify({ status: 'ok', models, skipped, at, sig })); } catch { /* ignore */ } };
 const readConn = (id) => { try { return JSON.parse(store.get(`conn_${id}`) || 'null'); } catch { return null; } };
 // What a result was made with: another URL or key is a new question. Only a short hash is kept in
 // localStorage, never the key.
@@ -203,6 +207,14 @@ export function loadProviderModels(id, { recheck = false } = {}) {
     state.lists[id] = { status: last.status, models: [], skipped: [], error: last.error, keyOk: last.keyOk ?? null, at: last.at, sig, cached: true };
     return Promise.resolve(state.lists[id]);
   }
+  // A list that loaded fine less than 2 minutes ago, before a reload, is reused (kept in sessionStorage).
+  if (!recheck && last?.status === 'ok' && last.sig === sig && Date.now() - last.at < CHECK_TTL) {
+    const kept = readKept(id);
+    if (kept && kept.sig === sig && kept.at === last.at) {
+      state.lists[id] = { ...kept, skipped: kept.skipped || [], keyOk: last.keyOk ?? null, cached: true };
+      return Promise.resolve(state.lists[id]);
+    }
+  }
   loadingNow[id] ??= (async () => {
     state.lists[id] = { models: [], ...have, status: 'loading', sig };
     let entry;
@@ -214,6 +226,7 @@ export function loadProviderModels(id, { recheck = false } = {}) {
     entry = { ...entry, at: Date.now(), sig };
     state.lists[id] = entry;
     store.set(`conn_${id}`, JSON.stringify({ at: entry.at, sig, status: entry.status, keyOk: entry.keyOk, error: entry.error || (entry.keyOk === false ? `${provider(id).label} refused the key: ${KEY_HELP}` : undefined) }));
+    if (entry.status === 'ok') keep(id, entry);
     delete loadingNow[id];
     return entry;
   })();

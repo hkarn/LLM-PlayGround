@@ -59,5 +59,11 @@ jobs:
           # files on its own, but Grep doesn't, and the action's redaction of token patterns
           # from the reply can be dodged by encoding; Read rules cover Grep and Glob as well.
           # The action revokes the App token when the job ends.
+          # Model: pinned, so a run does not follow the account's default (Opus on a subscription
+          # token). WebSearch is the one web tool allowed: the action's mention mode leaves web tools
+          # off unless they are named in --allowedTools. WebFetch stays off, since a fetched URL could
+          # carry repository text out.
           claude_args: >-
+            --model claude-sonnet-5-5
+            --allowedTools "WebSearch"
             --disallowedTools "Bash,Edit,MultiEdit,Write,NotebookEdit,Read(./.git/**),Read(//proc/**)"

@@ -39,7 +39,7 @@ Each provider is `public/providers/<id>.json`, and `index.json` lists them in or
 | `videoModels` | The tested video models, with their notes, defaults, audio and face behaviour, and every test run |
 | `guide` | The provider's box on the Welcome page: setup level 1–4, summary, steps, what's good and what to watch |
 | `needsServer`, `extends`, `attributionHeaders` | Works only through the server; starts from another file; whether direct calls send `HTTP-Referer`/`X-Title` |
-| `headers` | Extra request headers on direct calls from the page (not through the server), e.g. Anthropic's `anthropic-dangerous-direct-browser-access`, without which its CORS pre-check fails |
+| `headers` | Extra request headers, sent on direct calls from the page and by `server.js` to that provider's own domain, e.g. Anthropic's `anthropic-version` (its model list refuses requests without it) and `anthropic-dangerous-direct-browser-access` (without which its CORS pre-check fails) |
 
 `openai-standard.json` holds the standard OpenAI-style request and response templates every provider starts from. A provider's `endpoints.<kind>` replaces keys of them. The template rules are in that file's `_notes`.
 

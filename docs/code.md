@@ -19,7 +19,7 @@ Plain JavaScript modules with no build step and no dependencies. `public/index.h
 | `public/style.css` | All styles, with the light and dark colours as variables at the top |
 | `server.js` | The optional local server: serves `public/` and forwards `/api/*` (see [Running and hosting](running.md#how-the-server-works)) |
 
-Imports run one way: `dom` ← `core` ← `adapter` ← `ui/*` ← `testers` and `apps` ← `hubs` ← `main`. `core` tells the pickers and the models table about a new model list with a `models-changed` event instead of importing them. Inside `core/` the order is `version`, `state` ← `providers` ← `api` ← `models`.
+Imports run one way: `dom` ← `core` ← `adapter` ← `ui/*` ← `testers` and `apps` ← `hubs` ← `main`. `core` tells the pickers and the models table about a new model list with a `models-changed` event instead of importing them. `provider()`, `baseUrl()`, `ep()`, `apiKey()`, `keyReady()`, `callApi()` and the adapter's `send`, `read` and `follow` take an optional provider id and mean the selected provider without one, so a request can go to another connected provider (a video job always goes to the provider that made it). Inside `core/` the order is `version`, `state` ← `providers` ← `api` ← `models`.
 
 ## Provider files
 

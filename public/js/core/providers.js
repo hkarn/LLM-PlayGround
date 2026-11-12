@@ -1,7 +1,7 @@
 /* LLM PlayGround: the provider files: loading them, the current provider, its base URL and where each tab sends its request (ep). */
 import { $ } from '../ui/dom.js';
 import { ASSET_VERSION } from './version.js';
-import { state } from './state.js';
+import { state, store } from './state.js';
 
 // Default paths, relative to the base URL. A provider file can override them under endpoints.
 export const ENDPOINT = {
@@ -60,12 +60,19 @@ export async function loadProviders() {
 // The URL a provider starts with: serverBaseUrl through server.js (e.g. a gateway on localhost), else baseUrl.
 export const defaultBaseUrl = (p = provider()) => (state.viaServer && p.serverBaseUrl) || p.baseUrl;
 
-export const provider = () => PROVIDERS[state.provider];
-export const baseUrl = () => $('#base-url').value.trim().replace(/\/+$/, '');
-// Where a tab sends its request on the current provider: { path, base }. How the request and the
+// Every function below takes an optional provider id and means the selected provider without one.
+// A call that names another provider (a saved choice on a provider that is connected but not
+// selected, a video job started on another provider) uses that provider's own file, base URL and key.
+export const provider = (id = state.provider) => PROVIDERS[id];
+// The selected provider's URL is the field in the connection panel; another provider's is the one
+// saved for it (see main.js), else its default.
+export const baseUrl = (id = state.provider) => (id === state.provider
+  ? $('#base-url').value.trim()
+  : (store.get(`base_${id}`) || defaultBaseUrl(PROVIDERS[id]) || '').trim()).replace(/\/+$/, '');
+// Where a tab sends its request on a provider: { path, base }. How the request and the
 // answer look is in the templates, read by adapter.js.
-export function ep(kind) {
-  const o = provider().endpoints?.[kind] || {};
-  const base = o.base?.replace ? baseUrl().replace(new RegExp(o.base.replace[0]), o.base.replace[1]) : baseUrl();
+export function ep(kind, id = state.provider) {
+  const o = provider(id).endpoints?.[kind] || {};
+  const base = o.base?.replace ? baseUrl(id).replace(new RegExp(o.base.replace[0]), o.base.replace[1]) : baseUrl(id);
   return { path: o.path || ENDPOINT[kind], base };
 }

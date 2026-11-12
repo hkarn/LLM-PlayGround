@@ -60,7 +60,7 @@ export function videoJobsLine() {
 // that wants to show it in its own step.
 export async function startVideoJob(input, { tool, label, est, signal } = {}) {
   const provider = state.provider; // the job belongs to the provider it was sent to, even if the user switches meanwhile
-  const sent = await submitVideoJob(input, { signal });
+  const sent = await submitVideoJob(input, { signal, provider });
   if (!sent.ok) return sent;
   const entry = {
     id: sent.id, provider, tool, model: input.model, label, prompt: input.prompt,
@@ -80,7 +80,7 @@ function watch(id) {
   const ac = new AbortController();
   const done = (async () => {
     update(id, { error: undefined, status: JOB_DONE.includes(j.status) ? 'submitted' : j.status });
-    const r = await watchVideoJob(id, { signal: ac.signal, since: j.at, onStatus: (job) => update(id, { status: job.status || 'submitted' }) })
+    const r = await watchVideoJob(id, { signal: ac.signal, since: j.at, provider: j.provider, onStatus: (job) => update(id, { status: job.status || 'submitted' }) })
       .catch((err) => ({ ok: false, id, error: err.message, aborted: err?.name === 'AbortError' }));
     watching.delete(id);
     if (r.aborted) return r; // stopped watching, or the provider changed: the job keeps its state
@@ -179,7 +179,7 @@ export function videoJobsList() {
         title: 'The provider keeps a finished video for a while, so this costs nothing.',
         onclick: async () => {
           again.disabled = true;
-          const v = await downloadVideo(j.id).catch((err) => ({ ok: false, error: err.message }));
+          const v = await downloadVideo(j.id, { provider: j.provider }).catch((err) => ({ ok: false, error: err.message }));
           if (v.ok) { clips.set(j.id, URL.createObjectURL(v.blob)); draw(); } else again.replaceWith(el('span', { class: 'error small', text: v.error }));
         } });
       buttons.push(again);

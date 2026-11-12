@@ -15,6 +15,7 @@
   ],
   "keyEnv": "OPENROUTER_API_KEY",
   "keyHint": "sk-or-…",
+  "keyCheck": { "path": "/key" },
   "signup": {
     "href": "https://openrouter.ai/keys",
     "text": "No key? Get one at OpenRouter"

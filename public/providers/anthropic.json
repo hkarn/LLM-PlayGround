@@ -1,0 +1,56 @@
+{
+  "_notes": [
+    "Anthropic's OpenAI-compatible endpoint (https://api.anthropic.com/v1/): chat completions and the model list only. Everything else (embeddings, rerank, images, video, speech, transcription, decisions) has no compatible endpoint, so those tabs are greyed out.",
+    "headers: Anthropic's CORS pre-check answers 400 unless the request names anthropic-dangerous-direct-browser-access, so direct calls from the page send it (checked 2026-11-12 with a real key: the preflight is 200 with it and 400 without). Through server.js the server makes the call, so the page does not send it. The name is Anthropic's warning that a key used from a browser is visible to that page, which is how this playground works (your own key, your own browser, sent only to the provider).",
+    "attributionHeaders is false: HTTP-Referer and X-Title mean nothing to Anthropic and are one more thing its CORS could stop allowing.",
+    "modelsPaths: GET /models answers {data: [{id, display_name, created_at, max_input_tokens, max_tokens, capabilities, ...}], has_more, first_id, last_id}; the default page is 20 models, so limit=1000 keeps the list whole. It has no prices. Every model is a chat model, so categorize needs nothing here.",
+    "Anthropic's own compatibility notes (platform.claude.com/docs/en/api/openai-sdk): thinking is not returned, strict tool schemas are ignored, prompt caching and audio/file inputs are not supported, system and developer messages are merged into one, and most unsupported fields are ignored without an error.",
+    "A new API account may get a small starter credit (the amount is not published; check the console). Not tested here: a real chat completion through the page.",
+    "guide is the text of the Welcome page's box: how hard the setup is (level 1-4 and ease), a summary, the steps, and what is good or to watch. Shown with the signup link."
+  ],
+  "label": "Anthropic (Claude)",
+  "baseUrl": "https://api.anthropic.com/v1",
+  "modelsPaths": ["/models?limit=1000"],
+  "keyEnv": "ANTHROPIC_API_KEY",
+  "keyHint": "sk-ant-…",
+  "signup": {
+    "href": "https://console.anthropic.com/settings/keys",
+    "text": "No key? Get one at Anthropic"
+  },
+  "server": {
+    "domain": "api.anthropic.com"
+  },
+  "headers": {
+    "anthropic-dangerous-direct-browser-access": "true"
+  },
+  "attributionHeaders": false,
+  "unsupported": [
+    "decision",
+    "embeddings",
+    "rerank",
+    "image",
+    "image-edit",
+    "video",
+    "speech",
+    "transcription"
+  ],
+  "guide": {
+    "level": 2,
+    "ease": "Easy, chat only",
+    "summary": "Claude models straight from Anthropic. Make an account, create a key, paste it. Only the Chat tab and the chat steps in the tools work; there is no image, video or speech here.",
+    "steps": [
+      "Make an account at console.anthropic.com (the API console, separate from the Claude chat app).",
+      "Add a payment method or credit if the console asks. New accounts may get a small starter credit; check the console for what you have.",
+      "Create a key under API keys and paste it at the top of this page."
+    ],
+    "good": [
+      "Works straight from this page (GitHub Pages), no server needed.",
+      "One key and one bill with Anthropic, with no router in between."
+    ],
+    "watch": [
+      "Chat only: the image and video tools need another provider. Thinking is not shown, and some chat options are ignored (Anthropic's OpenAI-compatible endpoint is a subset).",
+      "Your key is used straight from your browser. Anthropic calls that \"dangerous\" in the name of the header it requires. Make a key just for this, with a spend limit.",
+      "Pay as you go: the key spends your credit."
+    ]
+  }
+}

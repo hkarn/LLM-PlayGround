@@ -1,43 +1,49 @@
 /* LLM PlayGround: sending requests: the key rule (keyReady), callApi, error text and cURL. */
 import { $ } from '../ui/dom.js';
-import { state, serverConfig } from './state.js';
+import { state, serverConfig, store } from './state.js';
 import { provider, baseUrl } from './providers.js';
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
 /* ------------------------------------------------------------------ */
-export function apiKey() { return $('#api-key').value.trim(); }
+// Every function here takes an optional provider id (the selected provider without one). The selected
+// provider's key is the field in the connection panel; another provider's is the one typed this
+// session or saved for it (see main.js).
+export function apiKey(id = state.provider) {
+  if (id === state.provider) return $('#api-key').value.trim();
+  return String(state.keys[id] ?? store.get(`key_${id}`) ?? '').trim();
+}
 // A key is needed before anything is sent: one typed here, or a server key (server.js, from .env).
 // Model lists are often public, so without this rule a list loads and the page looks connected
 // although every request will be refused. A provider file's keyOptional lets it go without one
 // (Custom: local servers such as Ollama take no key).
-export const hasKey = () => Boolean(apiKey() || state.config?.providers?.[state.provider]?.hasEnvKey);
-export const keyReady = () => hasKey() || Boolean(provider()?.keyOptional);
+export const hasKey = (id = state.provider) => Boolean(apiKey(id) || state.config?.providers?.[id]?.hasEnvKey);
+export const keyReady = (id = state.provider) => hasKey(id) || Boolean(provider(id)?.keyOptional);
 
 // `signal` lets the page stop waiting (the Cancel button). There is no timeout: slow or silent
 // providers are part of what this page tests.
-export async function callApi(path, { method = 'POST', json, formData, base = baseUrl(), signal } = {}) {
+export async function callApi(path, { method = 'POST', json, formData, provider: id = state.provider, base = baseUrl(id), signal } = {}) {
   await serverConfig;
   // Every request needs a key (typed or on the server), unless the provider takes none (Custom).
-  if (!keyReady()) throw new Error(`Add an API key first (the connection chip at the top). ${provider().label} refuses requests without one.`);
+  if (!keyReady(id)) throw new Error(`Add an API key first (the connection chip at the top). ${provider(id).label} refuses requests without one.`);
   if (!/^https?:\/\/./.test(base)) throw new Error('Enter a base URL that starts with http:// or https://.');
   const headers = {};
-  const key = apiKey();
+  const key = apiKey(id);
   if (key) headers.Authorization = `Bearer ${key}`;
   if (state.viaServer) {
     // server.js forwards to this URL, and picks a server-side key by provider when no key is typed.
-    Object.assign(headers, { 'X-Upstream-Base': base, 'X-Upstream-Provider': state.provider });
+    Object.assign(headers, { 'X-Upstream-Base': base, 'X-Upstream-Provider': id });
   } else {
     // server.js adds these itself; direct calls send them so routers can attribute the app.
     // A provider file can turn this off ("attributionHeaders": false) when its CORS allows only its own
     // headers, as LLM Gateway's does; extra headers would make the browser's preflight fail.
-    if (provider()?.attributionHeaders !== false) {
+    if (provider(id)?.attributionHeaders !== false) {
       Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
     }
     // Headers a provider needs on direct calls: Anthropic's CORS pre-check is refused (400) unless
     // the request names anthropic-dangerous-direct-browser-access. Through server.js the server
     // makes the call, so they are not sent there.
-    Object.assign(headers, provider()?.headers);
+    Object.assign(headers, provider(id)?.headers);
   }
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }
@@ -75,8 +81,8 @@ export function errorMessage(resp) {
 /* cURL rendering                                                      */
 /* ------------------------------------------------------------------ */
 export const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
-export function curlFor(path, { json, formFields, base = baseUrl() }) {
-  const lines = [`curl ${base}${path}`,`  -H "Authorization: Bearer $${provider().keyEnv}"`];
+export function curlFor(path, { json, formFields, provider: id = state.provider, base = baseUrl(id) }) {
+  const lines = [`curl ${base}${path}`,`  -H "Authorization: Bearer $${provider(id).keyEnv}"`];
   if (json !== undefined) {
     lines.push(`  -H "Content-Type: application/json"`, `  -d ${shq(JSON.stringify(json, null, 2))}`);
   }

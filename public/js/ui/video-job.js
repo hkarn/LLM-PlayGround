@@ -14,7 +14,7 @@ export const JOB_DONE = ['completed', 'failed', 'cancelled', 'expired'];
 // Sends a job and returns as soon as the provider has taken it: { ok, id, job, notes, resp, request,
 // curl, error }. The video tools then watch it in the background (ui/video-jobs.js), so the form is
 // free for the next clip.
-export async function submitVideoJob(input, { signal } = {}) {
+export async function submitVideoJob(input, { signal, provider } = {}) {
   const notes = [];
   const frames = {};
   for (const key of ['first_frame', 'last_frame']) {
@@ -23,8 +23,8 @@ export async function submitVideoJob(input, { signal } = {}) {
     frames[key] = [file];
     if (note) notes.push(note);
   }
-  const { resp, request, curl } = await send('video', { ...input, ...frames }, { signal });
-  const job = read('video', resp);
+  const { resp, request, curl } = await send('video', { ...input, ...frames }, { signal, provider });
+  const job = read('video', resp, provider);
   if (!resp.ok || !job.id) return { ok: false, notes, request, curl, resp, error: errorMessage(resp) };
   return { ok: true, id: job.id, job, notes, request, curl, resp };
 }
@@ -32,29 +32,29 @@ export async function submitVideoJob(input, { signal } = {}) {
 // Checks a job every 5 s until it ends, then downloads the video. Works from the id alone, so it can
 // pick a job up again after a reload (on the provider that made it). since: when the job started (ms).
 // Returns { ok, id, status, blob, cost, seconds, error, resp }.
-export async function watchVideoJob(id, { signal, since = Date.now(), onStatus } = {}) {
+export async function watchVideoJob(id, { signal, since = Date.now(), onStatus, provider } = {}) {
   const seconds = () => Math.round((Date.now() - since) / 1000);
   let job = { id, status: '' };
   let resp;
   while (!JOB_DONE.includes(job.status)) {
     if (resp) await wait(5000, signal); // the first check goes at once (a job picked up after a reload)
-    resp = await follow('video', 'poll', { id }, { signal });
+    resp = await follow('video', 'poll', { id }, { signal, provider });
     if (!resp.ok) return { ok: false, id, resp, seconds: seconds(), error: errorMessage(resp) };
-    job = read('video', resp);
+    job = read('video', resp, provider);
     onStatus?.(job, seconds());
   }
   if (job.status !== 'completed') {
     const why = job.error ? (typeof job.error === 'string' ? job.error : job.error.message || JSON.stringify(job.error)) : '';
     return { ok: false, id, status: job.status, cost: job.cost, resp, seconds: seconds(), error: `Job ${job.status}${why ? `: ${why}` : ''}` };
   }
-  const video = await downloadVideo(id, { signal });
+  const video = await downloadVideo(id, { signal, provider });
   return { ...video, id, status: job.status, cost: job.cost, resp, seconds: seconds() };
 }
 
 // The finished video of a job. A provider keeps it for a while after the job, so a download can be
 // repeated without paying again.
-export async function downloadVideo(id, { signal } = {}) {
-  const video = await follow('video', 'content', { id }, { signal });
+export async function downloadVideo(id, { signal, provider } = {}) {
+  const video = await follow('video', 'content', { id }, { signal, provider });
   if (video.ok && video.blob) return { ok: true, blob: video.blob };
   return { ok: false, error: `The job finished but the video download failed: ${errorMessage(video)}` };
 }

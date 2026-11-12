@@ -5,10 +5,10 @@ import { fileToDataUrl } from './core/helpers.js';
 
 // An endpoint's settings: the shared OpenAI-standard template (providers/openai-standard.json)
 // with the provider file's own endpoints[kind] laid over it, plus where to send it.
-export function spec(kind) {
+export function spec(kind, id) {
   const std = TEMPLATES.endpoints?.[kind] || {};
-  const own = provider().endpoints?.[kind] || {};
-  const { path, base } = ep(kind);
+  const own = provider(id).endpoints?.[kind] || {};
+  const { path, base } = ep(kind, id);
   return { body: 'json', files: [], drops: [], ...std, ...own, path, base };
 }
 
@@ -75,9 +75,9 @@ export function pick(data, path) {
 
 // The answer in the app's own terms, e.g. { text, model, usage } for chat or { images: [{ b64, url,
 // mime, revised }], usage } for images, whatever shape the provider sends.
-export function read(kind, resp) {
+export function read(kind, resp, id) {
   const out = {};
-  for (const [key, rule] of Object.entries(spec(kind).response || {})) {
+  for (const [key, rule] of Object.entries(spec(kind, id).response || {})) {
     if (typeof rule === 'string') out[key] = pick(resp?.data, rule);
     else if (rule?.path) {
       const items = pick(resp?.data, rule.path);
@@ -101,9 +101,10 @@ const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 102
 
 // Sends one request of `kind` built from `input` (field values, plus lists of Files such as images).
 // Returns { resp, request, curl, dropped }: request and curl are what was sent, with file contents
-// shortened for display; dropped lists inputs this endpoint cannot take.
-export async function send(kind, input, { signal } = {}) {
-  const s = spec(kind);
+// shortened for display; dropped lists inputs this endpoint cannot take. `provider` (an id) sends it
+// to that provider instead of the selected one; read() and follow() take it the same way.
+export async function send(kind, input, { signal, provider: id } = {}) {
+  const s = spec(kind, id);
   const dropped = s.drops.filter((k) => !empty(input[k]));
   if (s.body === 'multipart') {
     const fields = fill(s.request, input) || {};
@@ -117,7 +118,7 @@ export async function send(kind, input, { signal } = {}) {
     if (!s.filesFirst) addFields();
     for (const { f, file } of parts) fd.append(f.field, file, file.name);
     if (s.filesFirst) addFields();
-    const resp = await callApi(s.path, { base: s.base, formData: fd, signal });
+    const resp = await callApi(s.path, { provider: id, base: s.base, formData: fd, signal });
     const shownFiles = {};
     for (const f of s.files) {
       const shown = parts.filter((p) => p.f === f).map((p) => describe(p.file));
@@ -125,7 +126,7 @@ export async function send(kind, input, { signal } = {}) {
     }
     const request = s.filesFirst ? { ...shownFiles, ...fields } : { ...fields, ...shownFiles };
     const fileFields = parts.map((p) => [p.f.field, `@${p.file.name}`]);
-    const curl = curlFor(s.path, { base: s.base, formFields: s.filesFirst ? [...fileFields, ...Object.entries(fields)] : [...Object.entries(fields), ...fileFields] });
+    const curl = curlFor(s.path, { provider: id, base: s.base, formFields: s.filesFirst ? [...fileFields, ...Object.entries(fields)] : [...Object.entries(fields), ...fileFields] });
     return { resp, request, curl, dropped };
   }
   // JSON: lists of Files become items with a name and, when the template uses it, a data URL. A
@@ -148,14 +149,14 @@ export async function send(kind, input, { signal } = {}) {
   }
   const body = fill(s.request, real) || {};
   const request = fill(s.request, shown) || {};
-  const resp = await callApi(s.path, { base: s.base, json: body, signal });
-  return { resp, request, curl: curlFor(s.path, { base: s.base, json: request }), dropped };
+  const resp = await callApi(s.path, { provider: id, base: s.base, json: body, signal });
+  return { resp, request, curl: curlFor(s.path, { provider: id, base: s.base, json: request }), dropped };
 }
 
 // A follow-up GET of an async job, e.g. follow('video', 'poll', { id }): the path is the endpoint's
 // own path plus its `poll` or `content` template, with the values URL-encoded.
-export function follow(kind, step, vars, { signal } = {}) {
-  const s = spec(kind);
+export function follow(kind, step, vars, { signal, provider: id } = {}) {
+  const s = spec(kind, id);
   const enc = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, encodeURIComponent(v)]));
-  return callApi(`${s.path}${fill(s[step], enc)}`, { base: s.base, method: 'GET', signal });
+  return callApi(`${s.path}${fill(s[step], enc)}`, { provider: id, base: s.base, method: 'GET', signal });
 }

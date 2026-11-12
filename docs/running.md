@@ -8,7 +8,7 @@ The same page works with or without its small server (`server.js`), and picks th
 | --- | --- | --- |
 | Where requests go | Browser → your server → provider | Browser → provider |
 | Your API key | Typed into the page and sent with each request to your server, which passes it on. The server doesn't store or log it | Typed into the page and sent only to the provider |
-| Server-side keys | Optional: `REQUESTY_API_KEY`, `OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY` in `.env` or the environment, so nobody has to type a key. Only on a private setup | Not possible |
+| Server-side keys | Optional: `REQUESTY_API_KEY`, `OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `ANTHROPIC_API_KEY` in `.env` or the environment, so nobody has to type a key. Only on a private setup | Not possible |
 | Providers that block browser calls (LLM Gateway) | Work | Greyed out |
 | Custom endpoints | Allowed when the server listens on `127.0.0.1` (and in the compose setup); elsewhere set `ALLOW_ANY_UPSTREAM=1` | Only if the endpoint allows CORS |
 | Extras | Full response headers and upstream timing | Browsers show only a few response headers |
@@ -64,6 +64,7 @@ Set these in `.env` (copy `.env.example`) or in the environment.
 | `REQUESTY_API_KEY` | – | Requesty key used when the browser sends none. Only ever sent to `*.requesty.ai` |
 | `OPENROUTER_API_KEY` | – | OpenRouter key used when the browser sends none. Only ever sent to `*.openrouter.ai` |
 | `LLMGATEWAY_API_KEY` | – | LLM Gateway key used when the browser sends none. Only ever sent to `*.llmgateway.io` |
+| `ANTHROPIC_API_KEY` | – | Anthropic key used when the browser sends none. Only ever sent to `*.anthropic.com` |
 | `ALLOW_ANY_UPSTREAM` | on when `HOST` is a loopback address, else off (on in `docker-compose.yml`) | Let the server forward to any URL typed in the page, not only the known providers |
 | `PORT` | `3000` | Listen port, or a pipe/socket path on hosts such as iisnode or Passenger |
 | `HOST` | `127.0.0.1` (`0.0.0.0` in Docker) | Listen address. Use `0.0.0.0` to accept connections from other machines |

@@ -34,6 +34,10 @@ export async function callApi(path, { method = 'POST', json, formData, base = ba
     if (provider()?.attributionHeaders !== false) {
       Object.assign(headers, { 'HTTP-Referer': location.origin + location.pathname, 'X-Title': 'LLM PlayGround' });
     }
+    // Headers a provider needs on direct calls: Anthropic's CORS pre-check is refused (400) unless
+    // the request names anthropic-dangerous-direct-browser-access. Through server.js the server
+    // makes the call, so they are not sent there.
+    Object.assign(headers, provider()?.headers);
   }
   let body;
   if (json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(json); }

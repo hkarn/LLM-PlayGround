@@ -21,7 +21,8 @@
     "domain": "api.anthropic.com"
   },
   "headers": {
-    "anthropic-dangerous-direct-browser-access": "true"
+    "anthropic-dangerous-direct-browser-access": "true",
+    "anthropic-version": "2023-06-01"
   },
   "attributionHeaders": false,
   "unsupported": [

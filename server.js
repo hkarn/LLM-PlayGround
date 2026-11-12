@@ -46,7 +46,7 @@ const PROVIDERS = {};
   const { providers: ids } = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
   for (const id of ids) {
     const p = JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), 'utf8'));
-    if (p.server?.domain && p.keyEnv) PROVIDERS[id] = { domain: p.server.domain, envVar: p.keyEnv };
+    if (p.server?.domain && p.keyEnv) PROVIDERS[id] = { domain: p.server.domain, envVar: p.keyEnv, headers: p.headers || {} };
   }
 }
 for (const p of Object.values(PROVIDERS)) p.key = process.env[p.envVar] || '';
@@ -124,6 +124,10 @@ async function proxy(req, res) {
   const provider = Object.hasOwn(PROVIDERS, req.headers['x-upstream-provider']) ? PROVIDERS[req.headers['x-upstream-provider']] : null;
   if (!headers.authorization && provider?.key && base.protocol === 'https:' && onDomain(base.hostname, provider.domain)) {
     headers.authorization = `Bearer ${provider.key}`;
+  }
+  // A provider file's `headers` (e.g. Anthropic's anthropic-version) are sent to that provider's own domain.
+  if (provider && onDomain(base.hostname, provider.domain)) {
+    for (const [k, v] of Object.entries(provider.headers)) headers[k.toLowerCase()] ||= String(v);
   }
   const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0];
   headers['http-referer'] ||= `${proto}://${req.headers.host || `${HOST}:${PORT}`}`;

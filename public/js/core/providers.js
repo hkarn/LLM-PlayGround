@@ -18,8 +18,8 @@ export const ENDPOINT = {
 // request/response template keys described in openai-standard.json), suggest (hardcoded option lists, false = not supported)
 // speechVoices (a voice list file in providers/), categorize (which model field decides its tab) and
 // needsServer (no browser access: usable only through server.js), attributionHeaders (false: no
-// HTTP-Referer / X-Title on direct calls), headers (extra request headers on direct calls, e.g.
-// Anthropic's anthropic-dangerous-direct-browser-access) and extends (another provider file to start from).
+// HTTP-Referer / X-Title on direct calls), headers (extra request headers, e.g. Anthropic's
+// anthropic-version and anthropic-dangerous-direct-browser-access; server.js sends them to the provider's domain too) and extends (another provider file to start from).
 // "_notes" hold the comments.
 export const PROVIDERS = {};
 // The shared request/response templates (providers/openai-standard.json), read by adapter.js.

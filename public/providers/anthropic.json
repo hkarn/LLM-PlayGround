@@ -13,6 +13,7 @@
   "modelsPaths": ["/models?limit=1000"],
   "keyEnv": "ANTHROPIC_API_KEY",
   "keyHint": "sk-ant-…",
+  "keyCheck": { "models": true },
   "signup": {
     "href": "https://console.anthropic.com/settings/keys",
     "text": "No key? Get one at Anthropic"

@@ -18,6 +18,7 @@ The base URL can be edited, for example for a regional endpoint; **↺** puts th
 ## Keys
 
 - A key is needed before the page loads models or sends anything: one typed in the panel, or a server key (see [Running and hosting](running.md)). OpenRouter's and Requesty's model lists are public, so without this rule the page would look connected while every request failed. **Custom** is the exception, since local servers often take no key.
+- Where the provider can tell, the page also checks that the key itself is accepted (OpenRouter's model list loads even with a wrong key, so its `/key` is asked too); a refused key shows as "Not connected". Providers other than the selected one that have a saved key (or a server key) are loaded and checked at start-up too. Nothing is checked more often than every 2 minutes (a reload counts), except when you press **Load models**.
 - The connection chip turns green only with a key *and* a loaded model list. It shows the provider, the host and how many models were loaded.
 - When a provider refuses the key (401 or 403), the status says so, and suggests checking that the key was copied whole and is still active in the provider's dashboard.
 - **Remember** saves the key in this browser's local storage, on this device. Without it, the key is kept only until the tab closes.

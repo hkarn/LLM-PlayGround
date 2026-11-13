@@ -1,2 +1,5 @@
 node_modules
 .env
+# Claude Code: only the shared preview config is kept in git
+.claude/*
+!.claude/launch.json

@@ -46,9 +46,6 @@ export async function init() {
     return;
   }
   const keyName = () => `key_${state.provider}`;
-  const legacyKey = store.get('requesty_key');
-  if (legacyKey && !store.get('key_requesty')) store.set('key_requesty', legacyKey);
-  store.del('requesty_key');
   // A provider marked needsServer (no CORS, e.g. LLM Gateway) works only through server.js. On a
   // static page it is greyed out, and its sign-up link is shown next to the others instead.
   await serverConfig;

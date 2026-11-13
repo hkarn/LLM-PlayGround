@@ -1,7 +1,7 @@
 {
   "name": "llm-playground",
   "version": "1.0.0",
-  "description": "Zero-dependency web playground for LLM providers and routers (starting with Requesty), plus small LLM experiments and games.",
+  "description": "Zero-dependency web playground for LLM providers and routers (OpenRouter, Requesty, Anthropic, LLM Gateway or any OpenAI-compatible URL), plus small LLM experiments and games.",
   "private": true,
   "license": "MIT",
   "main": "server.js",

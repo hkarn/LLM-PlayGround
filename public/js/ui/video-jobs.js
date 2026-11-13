@@ -12,7 +12,6 @@ import { clip, fileName } from './media.js';
 import { downloadVideo, JOB_DONE, priceTag, submitVideoJob, watchVideoJob } from './video-job.js';
 
 const KEY = 'tools:videojobs';
-const OLD_KEY = 'videogen:jobs'; // the Video Generator's clip list before this list
 const MAX = 30;
 const TOOLS = { 'video-generator': 'Video Generator', 'dreamgen-video': 'Animate the DreamGen Scene' };
 
@@ -25,14 +24,8 @@ function load() {
   try {
     const list = JSON.parse(store.get(KEY) || 'null');
     if (Array.isArray(list)) return list;
-  } catch { /* fall through */ }
-  // First run: bring the Video Generator's finished clips over, so none are lost.
-  let old = [];
-  try { old = JSON.parse(store.get(OLD_KEY) || '[]'); } catch { /* none */ }
-  const moved = (Array.isArray(old) ? old : []).map((e) => ({ ...e, tool: 'video-generator', status: 'completed', seen: true }));
-  store.set(KEY, JSON.stringify(moved));
-  store.del(OLD_KEY);
-  return moved;
+  } catch { /* a broken entry counts as none */ }
+  return [];
 }
 function save(list) {
   const kept = list.slice(0, MAX);

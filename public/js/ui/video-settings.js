@@ -43,7 +43,6 @@ const MARK = {
   mute: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 10l4 4M21 10l-4 4"/>',
   face: '<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".8"/><circle cx="15" cy="10" r=".8"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/>',
 };
-const OLD_KEY = 'videogen:settings';
 
 // opts: { firstFrameOnly: offer only models that take a first frame and leave out the frame inputs
 // (the tool supplies the frame) }.
@@ -59,7 +58,7 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   let saved = {};
   let chosen;
   const loadSaved = () => {
-    try { saved = JSON.parse(store.get(storeKey()) || store.get(`${OLD_KEY}_${state.provider}`) || '{}') || {}; } catch { saved = {}; }
+    try { saved = JSON.parse(store.get(storeKey()) || '{}') || {}; } catch { saved = {}; }
     chosen = saved.model;
     savedFor = state.provider;
   };

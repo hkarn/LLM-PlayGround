@@ -68,8 +68,10 @@ export function setupPicker(picker) {
     if (onlyTested) list = Object.keys(tested).map((id) => list.find((m) => m.id === id) || visibleModels().find((m) => m.id === id)).filter(Boolean);
     filterNote.hidden = !modelFilterOn() || !state.models.length;
     // A provider whose file marks this kind unsupported (Anthropic: chat only) has none to list at all.
+    // The embeddings picker's category is 'embedding'; provider files name the tab 'embeddings'.
     const p = provider();
-    const empty = p?.unsupported?.includes(category) ? `${p.label} has no ${(CATEGORY_LABEL[category] || category).toLowerCase()} models – pick another provider for this`
+    const tab = category === 'embedding' ? 'embeddings' : category;
+    const empty = p?.unsupported?.includes(tab) ? `${p.label} has no ${(CATEGORY_LABEL[category] || category).toLowerCase()} models – pick another provider for this`
       : !state.models.length ? 'Load models first'
       // Curated models on the key, but all hidden by the model filter, is not the same as none on the key.
       : onlyTested && Object.keys(tested).length ? 'The model filter hides every curated model – edit it or untick "curated"'

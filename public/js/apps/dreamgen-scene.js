@@ -172,7 +172,7 @@ export function renderDreamGenScene(root) {
         'Run at ', el('a', { href: 'https://hkarn.github.io/LLM-PlayGround/', target: '_blank', rel: 'noopener', text: 'https://hkarn.github.io/LLM-PlayGround/' }),
         ' or in your own Docker or node server.js, this tool sends nothing to us or to any third party and saves nothing anywhere but your browser. ',
         'GitHub Pages only serves the page files; your export, prompts and pictures stay in this browser. Your own server only forwards your requests and logs no content. ',
-        'What reaches a third party is what you send with your own key to the provider you chose (Requesty, OpenRouter or your custom endpoint), and what that provider and its models do with it is between you and them. ',
+        'What reaches a third party is what you send with your own key to the provider you chose, and what that provider and its models do with it is between you and them. ',
         'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage, and what you type in session storage (this tab only) so a reload does not clear it.'),
       el('p', { class: 'small' }, el('strong', { text: 'Feedback. ' }), 'Send ideas and problems with this tool to Zorander on the DreamGen Discord.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),

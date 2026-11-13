@@ -1,6 +1,7 @@
 /* LLM PlayGround: what the page knows right now (state), whether server.js serves it (serverConfig) and localStorage (store). Imports nothing. */
 export const state = {
-  models: [],         // raw model objects from the provider's model list
+  models: [],         // raw model objects from the selected provider's model list
+  lists: {},          // per provider: its list, whether its key was accepted and when (see core/models.js)
   provider: null,     // set at start-up: the saved choice, else the first provider in providers/index.json that works here
   keys: {},           // keys typed this session, per provider, so switching back keeps them
   viaServer: false,   // true when server.js serves the page and proxies /api/*

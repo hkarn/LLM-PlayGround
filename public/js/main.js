@@ -3,7 +3,7 @@ import { read } from './adapter.js';
 import { serverConfig, state, store } from './core/state.js';
 import { baseUrl, defaultBaseUrl, loadProviders, provider, PROVIDERS } from './core/providers.js';
 import { apiKey, keyReady } from './core/api.js';
-import { loadModels } from './core/models.js';
+import { loadModels, refreshConnections } from './core/models.js';
 import { renderProviderGuide } from './providers-guide.js';
 import { APPS, hubPanel, route, setHash, setupHubMenus, setupHubs, showTab, svgIcon } from './hubs.js';
 import { addMessage, addQuestion, handlers, setupRecorder, setupRefImages, setupVoicePicker } from './testers.js';
@@ -115,7 +115,7 @@ export async function init() {
   $('#key-form').addEventListener('submit', (e) => {
     e.preventDefault();
     if ($('#remember-key').checked && apiKey()) store.set(keyName(), apiKey()); else store.del(keyName());
-    loadModels();
+    loadModels({ recheck: true }); // the user asked: the 2-minute rule does not apply
   });
   $('#remember-key').addEventListener('change', (e) => { if (!e.target.checked) store.del(keyName()); });
   setupConnectionChip();
@@ -212,6 +212,7 @@ export function applyProvider() {
     if (!cfg) $('#models-status').textContent = `No models loaded. Calling ${p.label} directly from the browser.`;
     updateChip(); // the server key, if any, is known now
     if (apiKey() || hasEnvKey()) loadModels();
+    refreshConnections(); // the other providers that have a key: their lists and key checks
   });
 }
 

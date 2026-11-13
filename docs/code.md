@@ -30,6 +30,7 @@ Each provider is `public/providers/<id>.json`, and `index.json` lists them in or
 | `label`, `baseUrl` | Name and default base URL (`serverBaseUrl` when the server is used, `baseUrlHint` as the placeholder when there is none) |
 | `modelsPaths` | Where the model list comes from; later paths add detail to the first (OpenRouter's `/images/models`, `/videos/models`) |
 | `keyEnv`, `keyHint`, `keyOptional` | The server's env var, the key's look, and whether the page may go without a key (Custom) |
+| `keyCheck` | How to tell the key itself works, as a model list can load with any key: `{ "path": "/key" }` is a cheap authenticated GET that refuses a bad key (OpenRouter), `{ "models": true }` says the model list itself refuses one (Requesty, Anthropic). Without it the key stays "not verified" |
 | `signup` | The sign-up link (`referral: true` when it is a referral link) |
 | `server.domain` | The only domain a server key is ever sent to |
 | `unsupported` | Tabs this provider can't serve (greyed out) |

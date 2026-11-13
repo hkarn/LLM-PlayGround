@@ -14,7 +14,7 @@ Open it: **Tools → Draw the DreamGen Scene**, or <https://hkarn.github.io/LLM-
 The **settings panel** on the right holds what you choose once and then leave alone. On a phone it folds into a **Settings** button above the steps, which shows the chosen models while it is closed. **How it works · Privacy** at the top of the tool is open on your first visit and folded after that; click it to read it again. Click a heading in the panel to fold its section away (or open it again); they all start open.
 
 - **Prompt writer:** the **chat model** that reads the export and writes the image prompt. Any good general model works. **curated** shows only the models we have tested for this tool. **Max tokens** and the **System prompt** (with **Reset to default**) are there too.
-- **Image model:** the model that draws, and its size, aspect ratio, resolution and quality (the choices follow the model).
+- **Image model:** the model that draws, and its size, aspect ratio, resolution and quality (the choices follow the model). A chat-only provider such as Anthropic has no image models: the list says so, and you need another provider (OpenRouter, Requesty or LLM Gateway) to draw.
 - **Picture style** adds a style to the end of the prompt: Photoreal, Cinematic still, Digital painting, Oil painting, Watercolour, Anime, Comic, Pencil sketch, or your own with **Custom…**. Animate the DreamGen Scene uses the same one.
 
 The models are shared between the tools: a chat, image or video model chosen in one tool is the one the next tool opens with, together with its options. Each provider keeps its own choices.

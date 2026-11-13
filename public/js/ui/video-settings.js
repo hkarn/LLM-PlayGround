@@ -30,8 +30,7 @@ function untestedVideoModel(meta) {
 }
 
 // The tools share one video choice (model, duration, resolution, aspect ratio, audio), as they
-// share one chat and one image model (ui/remember.js). Before 2026-11 the Video Generator kept it
-// under its own key, which is read once as a fallback.
+// share one chat and one image model (ui/remember.js).
 const SHARED_KEY = 'tools:video';
 
 // The marks on a model's row (lucide-style paths, drawn in the text colour).

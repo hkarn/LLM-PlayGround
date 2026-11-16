@@ -174,7 +174,7 @@ jobs:
           %s
           </request>""" % (
               os.environ["ISSUE"], os.environ["GITHUB_REPOSITORY"], os.environ["ACTOR"],
-              issue["title"].replace('"', "'"), login(issue), body,
+              event["issue"]["title"].replace('"', "'"), login(issue), body,
               "\n\n".join(thread) or "(none)", os.environ["ACTOR"], request))
           EOF
 

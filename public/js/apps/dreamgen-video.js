@@ -290,7 +290,7 @@ export function renderDreamGenVideo(root) {
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
-      }, { signal: motionForm._abort?.signal });
+      }, { signal: motionForm._abort?.signal, stream: true }); // streamed, so a slow model is never cut off as idle
       const seconds = Math.round((Date.now() - t0) / 1000);
       // The prompt goes into the editable box below; this box holds only the request details and the stats.
       if (resp.ok) {

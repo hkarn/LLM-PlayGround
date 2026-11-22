@@ -257,7 +257,7 @@ export function renderDreamGenScene(root) {
       const { resp, request: body } = await send('chat', {
         model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
         max_tokens: num(chatForm, 'max_tokens'),
-      }, { signal: promptForm._abort?.signal });
+      }, { signal: promptForm._abort?.signal, stream: true }); // streamed: a long export can take minutes
       const seconds = Math.round((Date.now() - t0) / 1000);
       // The prompt and characters go into step 3; this box holds the request details and the stats.
       let note;

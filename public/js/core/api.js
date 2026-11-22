@@ -22,7 +22,7 @@ export const keyReady = (id = state.provider) => hasKey(id) || Boolean(provider(
 
 // `signal` lets the page stop waiting (the Cancel button). There is no timeout: slow or silent
 // providers are part of what this page tests.
-export async function callApi(path, { method = 'POST', json, formData, provider: id = state.provider, base = baseUrl(id), signal } = {}) {
+export async function callApi(path, { method = 'POST', json, formData, provider: id = state.provider, base = baseUrl(id), signal, onEvent } = {}) {
   await serverConfig;
   // Every request needs a key (typed or on the server), unless the provider takes none (Custom).
   if (!keyReady(id)) throw new Error(`Add an API key first (the connection chip at the top). ${provider(id).label} refuses requests without one.`);
@@ -57,8 +57,14 @@ export async function callApi(path, { method = 'POST', json, formData, provider:
   const contentType = res.headers.get('content-type') || '';
   const respHeaders = Object.fromEntries(res.headers.entries());
 
-  let data; let blob;
-  if (contentType.includes('application/json')) {
+  let data; let blob; let events;
+  if (contentType.includes('text/event-stream') && res.body) {
+    // A streamed answer (server-sent events): read as it arrives, each "data:" line parsed as JSON,
+    // comments (": keep-alive") and "[DONE]" skipped. `onEvent` sees each event as it comes; the
+    // caller (adapter.js) puts the answer together from the list.
+    events = await readEvents(res.body, onEvent);
+    data = { events };
+  } else if (contentType.includes('application/json')) {
     const text = await res.text();
     try { data = JSON.parse(text); } catch { data = text; }
   } else if (/^(text\/|application\/(x-)?subrip)/.test(contentType) || !contentType) {
@@ -67,7 +73,35 @@ export async function callApi(path, { method = 'POST', json, formData, provider:
   } else {
     blob = await res.blob();
   }
-  return { ok: res.ok, status: res.status, statusText: res.statusText, ms, contentType, headers: respHeaders, data, blob };
+  return { ok: res.ok, status: res.status, statusText: res.statusText, ms, contentType, headers: respHeaders, data, blob, streamed: Boolean(events) };
+}
+
+// Reads a text/event-stream body into its events: the JSON of each event's "data:" lines (joined),
+// or { text } when it isn't JSON. Comment lines and the closing "[DONE]" are left out.
+async function readEvents(body, onEvent) {
+  const events = [];
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  const flush = (block) => {
+    const data = block.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).replace(/^ /, '')).join('\n');
+    if (!data || data === '[DONE]') return;
+    let evt;
+    try { evt = JSON.parse(data); } catch { evt = { text: data }; }
+    events.push(evt);
+    onEvent?.(evt);
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += value;
+    let at;
+    while ((at = buf.search(/\r?\n\r?\n/)) >= 0) {
+      flush(buf.slice(0, at));
+      buf = buf.slice(at).replace(/^\r?\n\r?\n/, '');
+    }
+  }
+  if (buf.trim()) flush(buf);
+  return events;
 }
 
 export function errorMessage(resp) {

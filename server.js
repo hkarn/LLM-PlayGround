@@ -147,12 +147,27 @@ async function proxy(req, res) {
     });
     outHeaders['x-tester-upstream-url'] = target;
     outHeaders['x-tester-upstream-ms'] = String(Date.now() - started);
-    const buf = Buffer.from(await upstream.arrayBuffer());
+    // Passed on as it arrives, not buffered: a streamed answer (text/event-stream) then keeps the
+    // page's connection busy too, so a VPN or proxy that drops silent connections (NordVPN: after
+    // about 60 s) never sees one. If the page goes away first, the upstream request is cancelled.
     res.writeHead(upstream.status, outHeaders);
-    res.end(buf);
+    res.on('close', () => { if (!res.writableFinished) upstream.body?.cancel().catch(() => {}); });
+    if (upstream.body) {
+      for await (const chunk of upstream.body) {
+        if (res.destroyed) break;
+        res.write(chunk);
+      }
+    }
+    res.end();
     // The target holds text from the page: logged through '%s', so a % in it is never read as formatting.
     console.log('%s', `${req.method} ${target} -> ${upstream.status} (${Date.now() - started} ms)`);
   } catch (err) {
+    // Failed partway through a body already being sent: the status is out, so end the connection.
+    if (res.headersSent) {
+      console.error('%s failed while streaming:', `${req.method} ${target}`, err?.cause?.message || err?.message || err);
+      res.destroy();
+      return;
+    }
     if (err.status === 413) {
       console.warn('%s', `${req.method} ${target} rejected: ${err.message}`);
       res.writeHead(413, { 'content-type': 'application/json', connection: 'close' });

@@ -203,7 +203,7 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
       const { resp } = await send('chat', {
         model, messages: [{ role: 'system', content: SPLIT_SYSTEM_PROMPT }, { role: 'user', content: user }],
         max_tokens: num(chatForm, 'max_tokens'),
-      }, { signal: form._abort?.signal });
+      }, { signal: form._abort?.signal, stream: true }); // streamed: a long game's split can take minutes
       if (!resp.ok) throw new Error(`The split failed: ${resp.status} ${typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data?.error || resp.data).slice(0, 300)}`);
       const found = readScenes(parseJsonLoose(read('chat', resp).text || '')?.scenes, parts.paras.length);
       if (!found.length) throw new Error('The reply had no scene list. Try again, or another chat model.');

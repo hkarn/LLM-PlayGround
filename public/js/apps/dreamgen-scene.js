@@ -169,7 +169,7 @@ export function renderDreamGenScene(root) {
         el('li', { text: 'Optionally add a reference portrait for each character, with the name it shows. Pictures embedded in the export are listed, and the ones for the characters in the scene are ticked to be sent; tick any other (a location, say) to send it too.' }),
         el('li', { text: 'Draw it with an image model on the selected endpoint. With references, the names are added to the prompt so the model knows who is who.' })),
       el('p', { class: 'small' }, el('strong', { text: 'Privacy. ' }),
-        'Run at ', el('a', { href: 'https://hkarn.github.io/LLM-PlayGround/', target: '_blank', rel: 'noopener', text: 'https://hkarn.github.io/LLM-PlayGround/' }),
+        'Run at ', el('a', { href: 'https://arnoldson.dev/LLM-PlayGround/', target: '_blank', rel: 'noopener', text: 'https://arnoldson.dev/LLM-PlayGround/' }),
         ' or in your own Docker or node server.js, this tool sends nothing to us or to any third party and saves nothing anywhere but your browser. ',
         'GitHub Pages only serves the page files; your export, prompts and pictures stay in this browser. Your own server only forwards your requests and logs no content. ',
         'What reaches a third party is what you send with your own key to the provider you chose, and what that provider and its models do with it is between you and them. ',

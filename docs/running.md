@@ -96,7 +96,7 @@ Compared with running `server.js`: there are no server-side keys, LLM Gateway is
 
 ## Privacy
 
-Run at <https://hkarn.github.io/LLM-PlayGround/> or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser.
+Run at <https://arnoldson.dev/LLM-PlayGround/> or in your own Docker container or `node server.js`, the playground sends nothing to us or to any third party and saves nothing outside your browser.
 
 - **GitHub Pages** only serves the page files.
 - **Your own server** forwards your requests to the provider you chose and logs no content.

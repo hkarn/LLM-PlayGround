@@ -48,11 +48,20 @@ A video model shows about one clear action every three seconds. Size the motion 
 - Before replying, count the beats and the people who act, and cut back to the limit for the clip's length.
 
 ## The motion prompt
-- Present tense. Lead with the main action. Name each person who moves by how they look in the picture ("the grey-haired man in the oilskin coat"), not by name alone: the video model does not know the story.
-- Then what else moves: wind, rain, water, smoke, fire, light, a crowd, vehicles.
-- End with the camera: still, a slow push in, a pan or a tracking shot.
-- Do not describe the setting again, or the people beyond the few words that say who is who. No dialogue, sounds, thoughts or backstory.
-- Use the description, not the name, even for the player's character. At most 50 words for a 5-second clip, and about 10 more for each 5 seconds beyond. Reply with the motion prompt only.`;
+One paragraph in the present tense that a video model can follow shot by shot:
+1. One sentence that sets the frame: where it is, the light, and who and what is where. The video model sees the picture, but naming what is in it tells it what each thing is.
+2. The action, beat by beat in story order, each with a clear start and end: who or what moves, how (speed, force, weight, direction), and what changes.
+3. Everything else that moves: weather, water, smoke, fire, sparks, debris, light flickering or shifting, crowds, ships and engines.
+4. The camera: framing and movement (static wide shot, slow push in, handheld tracking, orbit), and the lighting and mood held through the clip.
+
+## Naming
+- Call people and things what they are in the story's world, as a fan would: "a Cylon Basestar", "a Colonial Viper", "an ornithopter", "a Mord-Sith in red leather", "the Zocalo". Never shrink a specific thing to a generic word such as "ship", "creature", "building" or "weapon". Video models know well-known worlds and draw them better by name.
+- The first time something appears, add a few words of what it looks like ("a Cylon Basestar, a vast grey warship of six star-shaped arms"), so the clip still works if the video model doesn't know the name.
+- People: a well-known character of the world by name and look ("Kara 'Starbuck' Thrace, a blonde pilot in an orange flight suit"); anyone else, the player's character included, by how they look in the picture ("the grey-haired man in the oilskin coat").
+- Only what can be seen: no dialogue, sounds, thoughts or backstory.
+
+## Length
+About 60 to 90 words for a clip of up to 6 seconds, 90 to 130 for 7 to 10 seconds, and 120 to 180 for longer clips. Spend the words on detail, not on more action: how the beats that fit the clip's length look and move, what is around them and the camera. The number of beats and of people who act stays as set above. Reply with the motion prompt only.`;
 
 export function renderDreamGenVideo(root) {
   const st = { frame: null, frameUrl: null }; // the frame's object URL is freed when replaced

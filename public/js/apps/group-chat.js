@@ -240,7 +240,7 @@ export function renderGroupChat(root) {
   async function askCharacter(c, signal, history) {
     const model = modelOf(c);
     if (!model) throw new Error(`No model for ${c.name}. Set a default model or one for the character.`);
-    const { resp } = await send('chat', { model, messages: buildMessages(c, history), max_tokens: s.maxTokens || undefined, temperature: s.temperature ?? undefined }, { signal });
+    const { resp } = await send('chat', { model, messages: buildMessages(c, history), max_tokens: s.maxTokens || undefined, temperature: s.temperature ?? undefined }, { signal, stream: true });
     if (!resp.ok) throw new Error(errorMessage(resp));
     const answer = read('chat', resp);
     const text = cleanReply(c, answer.text || '');

@@ -103,8 +103,55 @@ const describe = (f) => `${f.name} (${f.type || 'unknown type'}, ${(f.size / 102
 // Returns { resp, request, curl, dropped }: request and curl are what was sent, with file contents
 // shortened for display; dropped lists inputs this endpoint cannot take. `provider` (an id) sends it
 // to that provider instead of the selected one; read() and follow() take it the same way.
-export async function send(kind, input, { signal, provider: id } = {}) {
+// A streamed chat answer (server-sent events, OpenAI style: chunks with choices[].delta) put back
+// together as the chat.completion the app reads: the text, the reasoning text (delta.reasoning or
+// delta.reasoning_content), tool calls joined by index, the finish reason, and the usage from the
+// last chunk that has it. An error event is kept as `error`. `events` counts the chunks.
+export function assembleChat(events) {
+  const msg = { role: 'assistant', content: '' };
+  const out = { object: 'chat.completion' };
+  let reasoning = '';
+  const tools = [];
+  let finish = null;
+  for (const e of events) {
+    if (!e || typeof e !== 'object') continue;
+    if (e.error) out.error = e.error;
+    if (e.id && !out.id) out.id = e.id;
+    if (e.model) out.model = e.model;
+    if (e.created && !out.created) out.created = e.created;
+    if (e.usage) out.usage = e.usage;
+    for (const c of e.choices || []) {
+      const d = c.delta || c.message || {};
+      if (typeof d.content === 'string') msg.content += d.content;
+      const r = d.reasoning ?? d.reasoning_content;
+      if (typeof r === 'string') reasoning += r;
+      for (const t of d.tool_calls || []) {
+        const i = Number.isInteger(t.index) ? t.index : tools.length;
+        const cur = tools[i] ||= { id: t.id, type: t.type || 'function', function: { name: '', arguments: '' } };
+        if (t.id) cur.id = t.id;
+        if (t.function?.name) cur.function.name += t.function.name;
+        if (t.function?.arguments) cur.function.arguments += t.function.arguments;
+      }
+      if (c.finish_reason) finish = c.finish_reason;
+    }
+  }
+  if (reasoning) msg.reasoning = reasoning;
+  if (tools.length) msg.tool_calls = tools.filter(Boolean);
+  out.choices = [{ index: 0, message: msg, finish_reason: finish }];
+  out.streamed = { events: events.length };
+  return out;
+}
+
+// stream: ask for the answer as a stream (chat only), so the connection is never silent while the
+// model works: a VPN or proxy that drops silent connections (NordVPN: about 60 s) then can't cut a
+// long answer. The answer comes back assembled, as a normal one would. onEvent sees each chunk.
+export async function send(kind, input, { signal, provider: id, stream = false, onEvent } = {}) {
   const s = spec(kind, id);
+  if (stream && kind === 'chat') {
+    // The template has stream and stream_options; a provider that refuses stream_options sets
+    // chat.streamOptions to false in its file.
+    input = { ...input, stream: true, stream_options: s.streamOptions === false ? undefined : (s.streamOptions || { include_usage: true }) };
+  }
   const dropped = s.drops.filter((k) => !empty(input[k]));
   if (s.body === 'multipart') {
     const fields = fill(s.request, input) || {};
@@ -149,7 +196,12 @@ export async function send(kind, input, { signal, provider: id } = {}) {
   }
   const body = fill(s.request, real) || {};
   const request = fill(s.request, shown) || {};
-  const resp = await callApi(s.path, { provider: id, base: s.base, json: body, signal });
+  const resp = await callApi(s.path, { provider: id, base: s.base, json: body, signal, onEvent });
+  if (resp.streamed) {
+    resp.data = assembleChat(resp.data.events);
+    // A stream can start with 200 and still end in an error event, with no answer.
+    if (resp.data.error && !resp.data.choices[0].message.content) resp.ok = false;
+  }
   return { resp, request, curl: curlFor(s.path, { provider: id, base: s.base, json: request }), dropped };
 }
 

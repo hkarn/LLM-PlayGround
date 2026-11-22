@@ -232,7 +232,7 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
       const ask = (extra) => send('chat', {
         model, messages: [{ role: 'system', content: SPLIT_SYSTEM_PROMPT }, { role: 'user', content: user }],
         max_tokens: num(chatForm, 'max_tokens'), extra,
-      }, { signal: form._abort?.signal });
+      }, { signal: form._abort?.signal, stream: true }); // streamed: a long game's split can take minutes
       let resp;
       // Only a refusal of the setting itself moves on to the next one: a 400 or 422 whose message
       // says so ("does not support reasoning"; LLM Gateway's "No available provider could be found"

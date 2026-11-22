@@ -18,7 +18,7 @@ import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
-import { scenePicker } from '../ui/scene-picker.js';
+import { SCENE_MARK, scenePicker } from '../ui/scene-picker.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
@@ -104,6 +104,7 @@ export function renderDreamGenScene(root) {
     exportBox.value = text;
     trimNote.textContent = '';
     countExport();
+    picker.sync(text); // a restore, trim or undo that drops the scene's marker un-picks it
   }
   function trimSession() {
     const { text, cut, error } = trimSessionTo(exportBox.value, Number(promptForm.elements.trim_tokens.value));
@@ -112,12 +113,21 @@ export function renderDreamGenScene(root) {
     setExport(text);
     trimNote.textContent = `Cut ${cut.toLocaleString()} paragraphs from the start of the Session. Check where it now begins; Undo puts them back.`;
   }
-  exportBox.addEventListener('input', countExport);
+  exportBox.addEventListener('input', () => { countExport(); picker.sync(exportBox.value); pastedChanged(); });
+  // An export pasted into the box (no file loaded) is what the scenes are found in. Checked after a
+  // pause in typing, and at start-up for a box restored after a reload.
+  let pasteTimer;
+  const pastedChanged = () => {
+    if (st.session || exportBox.value.includes(SCENE_MARK)) return;
+    clearTimeout(pasteTimer);
+    pasteTimer = setTimeout(() => { st.pasted = exportBox.value; picker.reset(); }, 600);
+  };
+  const sourceText = () => st.session?.text || st.pasted || '';
   // Pick the scene: a suggested split of the Session; the pick becomes the text above (cut after the
   // scene's end, marked where it starts). "Whole session" puts the export back as loaded.
   const picker = scenePicker({
-    chatForm, getText: () => st.session?.text || '', budget: () => Number(promptForm.elements.trim_tokens.value),
-    onPick: (text) => { if (st.session) setExport(text ?? st.session.text); },
+    chatForm, getText: sourceText, budget: () => Number(promptForm.elements.trim_tokens.value),
+    onPick: (text) => { if (sourceText()) setExport(text ?? sourceText()); },
   });
 
   // 3. Prompt, characters and reference portraits
@@ -202,6 +212,7 @@ export function renderDreamGenScene(root) {
   rememberModel(chatForm, 'chat', ['max_tokens']);
   rememberModel(imageSet, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
   layout.refresh();
+  st.pasted = exportBox.value.includes(SCENE_MARK) ? '' : exportBox.value; // restored after a reload
   picker.reset();
   const trimSelect = promptForm.elements.trim_tokens;
   if ([...trimSelect.options].some((o) => o.value === store.get('dgscene_trim'))) trimSelect.value = store.get('dgscene_trim');

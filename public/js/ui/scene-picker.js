@@ -72,7 +72,16 @@ export function readScenes(list, count) {
 }
 
 const short = (p, n) => { const t = p.replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
-const sigOf = (paras) => `${paras.length}:${paras[0]?.length}:${short(paras.at(-1) || '', 60)}`;
+// The kept split belongs to one Session: a 53-bit hash of all of its text (cyrb53), with the paragraph
+// count, so another export (even a copy of the same game played on) never restores it.
+const hash = (str) => {
+  let h1 = 0xdeadbeef; let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i += 1) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+};
+const sigOf = (paras) => `${paras.length}:${hash(paras.join('\n\n'))}`;
 
 // chatForm: the tool's chat model form (model, max_tokens). getText(): the full export, before any
 // trimming. budget(): the trim size in tokens. onPick(text | null, range): the export text for the
@@ -227,5 +236,15 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
     },
     // The trim size changed: the pick is composed again.
     refresh() { if (pick) apply(); },
+    // The text being sent was changed some other way (restored, trimmed, edited by hand): if it no
+    // longer has the scene's marker, the pick no longer applies, so the list shows Whole session.
+    // It does not change the text.
+    sync(text) {
+      if (!pick || text.includes(SCENE_MARK)) return;
+      pick = null;
+      picked.textContent = '';
+      save();
+      draw();
+    },
   };
 }

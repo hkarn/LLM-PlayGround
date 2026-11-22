@@ -17,7 +17,7 @@ import { rememberModel } from '../ui/remember.js';
 import { answerFacts, renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
-import { scenePicker } from '../ui/scene-picker.js';
+import { SCENE_MARK, scenePicker } from '../ui/scene-picker.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 import { priceTag } from '../ui/video-job.js';
@@ -123,7 +123,7 @@ export function renderDreamGenVideo(root) {
       el('button', { type: 'button', class: 'secondary', text: 'Keep only the last 10k tokens of the Session', onclick: () => {
         const { text, cut, error } = trimSessionTo(exportBox.value, 10000);
         sessionNote.textContent = error || (cut ? `Cut ${cut.toLocaleString()} paragraphs from the start of the Session.` : 'The Session is already within 10k tokens.');
-        if (cut) { exportBox.value = text; countExport(); }
+        if (cut) { exportBox.value = text; countExport(); picker.sync(text); }
       } })),
     el('label', {}, 'What the picture shows (optional)', imagePrompt),
     el('div', { class: 'row' },
@@ -136,7 +136,16 @@ export function renderDreamGenVideo(root) {
   const countExport = () => {
     exportCount.textContent = exportBox.value ? `(about ${tokensFor(exportBox.value).toLocaleString()} tokens)` : '';
   };
-  exportBox.addEventListener('input', countExport);
+  // Typing or pasting: a marker that is gone un-picks the scene, and an export pasted in by hand
+  // (no file or handoff) becomes what the scenes are found in, after a pause in typing.
+  let pasteTimer;
+  exportBox.addEventListener('input', () => {
+    countExport();
+    picker.sync(exportBox.value);
+    if (st.loaded || exportBox.value.includes(SCENE_MARK)) return;
+    clearTimeout(pasteTimer);
+    pasteTimer = setTimeout(() => { st.full = exportBox.value; picker.reset(); }, 600);
+  });
 
   // 3. The clip. The video model and its options are in the settings panel (shared with the Video
   // Generator); the price stays here, by the button that spends it.
@@ -190,6 +199,8 @@ export function renderDreamGenVideo(root) {
   style.sync();
   keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'video-model', 'style_custom', 'max_tokens'] });
   countExport();
+  // A box restored after a reload (keepDrafts) is the source until a file or the handoff replaces it.
+  if (!exportBox.value.includes(SCENE_MARK)) st.full = exportBox.value;
   picker.reset();
 
   // The handoff from Draw the DreamGen Scene: offered when there is one, and taken at once when
@@ -222,6 +233,7 @@ export function renderDreamGenVideo(root) {
   function takeSession(s) {
     if (!s.exportText) return;
     st.full = s.fullText || s.exportText;
+    st.loaded = true;
     picker.reset();
     exportBox.value = s.exportText;
     countExport();
@@ -240,6 +252,7 @@ export function renderDreamGenVideo(root) {
       const isJson = /\.json$/i.test(f.name) || /^\s*[{[]/.test(text);
       const s = isJson ? dreamGenJsonToMarkdown(JSON.parse(text)) : readDreamGenMarkdown(text, f.name);
       st.full = s.text;
+      st.loaded = true;
       exportBox.value = s.text;
       picker.reset();
       countExport();

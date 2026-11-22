@@ -25,6 +25,7 @@
   },
   "speechVoices": "speech-voices.json",
   "endpoints": {
+    "chat": { "lowReasoning": [{ "reasoning": { "enabled": false } }, { "reasoning": { "effort": "low" } }] },
     "decision": {
       "base": {
         "replace": [

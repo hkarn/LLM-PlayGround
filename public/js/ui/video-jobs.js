@@ -192,17 +192,15 @@ export function videoJobsList() {
       el('div', { class: 'muted small vj-prompt', text: j.prompt || '' }),
       buttons.length ? el('div', { class: 'row' }, ...buttons) : null);
   };
-  // A tool drawn again leaves its old list behind: that one stops listening once it is off the page.
-  let shown = false;
-  const onChange = () => {
-    if (root.isConnected) { shown = true; draw(); } else if (shown) document.removeEventListener('video-jobs', onChange);
-  };
-  document.addEventListener('video-jobs', onChange);
+  // A tool's view is kept while another is open (hubs.js): the list draws only while on the page,
+  // and again when its tool is shown.
+  document.addEventListener('video-jobs', () => { if (root.isConnected) draw(); });
+  document.addEventListener('app-shown', (e) => { if (e.detail?.contains(root)) draw(); });
   // Opening the folded settings panel (narrow screen) shows the list: draw it then, which also marks
   // finished clips as seen.
   new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) draw(); }).observe(root);
   draw();
   // Drawn into the panel after this returns: draw again once it is on the page.
-  setTimeout(() => { shown = root.isConnected; draw(); });
+  setTimeout(draw);
   return root;
 }

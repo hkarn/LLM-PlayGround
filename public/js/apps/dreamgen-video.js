@@ -79,6 +79,7 @@ export function renderDreamGenVideo(root) {
   // otherwise { what } (an upload, an export picture). Only a scene picture belongs to the scene; for
   // the others the motion writer is told what it is.
   function setFrame(file, note = '', facesPosed = false, source = null) {
+    st.frameAt = Date.now();
     posed.checked = !!facesPosed;
     opening.checked = !!source?.opening;
     st.source = source;
@@ -242,6 +243,13 @@ export function renderDreamGenVideo(root) {
   document.addEventListener('scene-picture', syncHandoff);
   syncHandoff();
   if (scenePicture() && !st.frame) takeHandoff();
+  // This view is kept while another tool is open (hubs.js). Back on it, a picture drawn since in
+  // Draw the DreamGen Scene is taken, as when the tool first opens, unless a frame was chosen here
+  // after that picture was drawn.
+  document.addEventListener('app-shown', (e) => {
+    const s = scenePicture();
+    if (e.detail?.contains(root) && s && s.at > (st.frameAt || 0)) takeHandoff();
+  });
 
   upload.addEventListener('change', () => { if (upload.files[0]) setFrame(upload.files[0], `Uploaded: ${upload.files[0].name}.`, false, { what: `a picture the user uploaded (${upload.files[0].name})` }); upload.value = ''; });
   exportFile.addEventListener('change', async () => {

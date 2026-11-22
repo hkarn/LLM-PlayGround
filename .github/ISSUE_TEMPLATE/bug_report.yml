@@ -33,4 +33,4 @@ body:
     attributes:
       label: How you run it
       description: The online page or your own server (Docker or Node), and your browser.
-      placeholder: "hkarn.github.io page, Firefox"
+      placeholder: "arnoldson.dev page, Firefox"

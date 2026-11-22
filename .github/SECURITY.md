@@ -21,4 +21,4 @@ The most relevant problems are those that could expose a user's API key or conte
 
 ## Supported versions
 
-Only the latest version on `main`, which is what <https://hkarn.github.io/LLM-PlayGround/> and the `ghcr.io/hkarn/llm-playground` image are built from.
+Only the latest version on `main`, which is what <https://arnoldson.dev/LLM-PlayGround/> and the `ghcr.io/hkarn/llm-playground` image are built from.

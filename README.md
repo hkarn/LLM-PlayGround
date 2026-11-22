@@ -6,7 +6,7 @@ A playground for AI models from providers and routers such as OpenRouter and Req
 - **Games:** AI Group Chat, where several AI characters, each on its own model, talk with you and with each other.
 - **API tester:** one tab per kind of request (chat, images, video, speech, transcription, embeddings and more), showing the answer, the raw response and a ready-to-run `curl` command.
 
-**Try it now at <https://hkarn.github.io/LLM-PlayGround/>.** Nothing to install.
+**Try it now at <https://arnoldson.dev/LLM-PlayGround/>.** Nothing to install.
 
 ## 1. Get an API key
 

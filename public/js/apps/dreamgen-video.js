@@ -28,22 +28,31 @@ import { videoSettings } from '../ui/video-settings.js';
 // Scene), this opens the motion prompt, so the clip turns the characters back into the scene at once.
 export const POSED_MOTION_NOTE = 'The clip opens with the characters facing the camera, as in the picture. Within the first second they turn naturally away from the camera and into the action below, keeping their faces and looks.';
 
-export const MOTION_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write a motion prompt for an image-to-video model. The clip starts from a still picture of the final moment of the last scene and lasts about five seconds. The image prompt the picture was drawn from may follow the export: it says who is in the frame and how they look.
+export const MOTION_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write a motion prompt for an image-to-video model. The clip starts from a still picture of the final moment of the last scene and lasts a few seconds: the user message says how many. The image prompt the picture was drawn from may follow the export: it says who is in the frame and how they look.
 
 ${EXPORT_GUIDE}
 
 ## What the clip shows
-The picture is the end of the Session. The clip carries that moment on for five seconds: the action each person is in the middle of plays through, and the next beat the last turns set up begins, such as a knock landing and the man outside leaning in, or a head turning towards whoever just spoke. Go no further than that beat: no answers, decisions or events the Session has not reached, no new characters, no cuts or scene changes.
+The picture is the end of the Session. The clip carries that moment on for its length: the action each person is in the middle of plays through, and the next beat the last turns set up begins, such as a knock landing and the man outside leaning in, or a head turning towards whoever just spoke. Go no further than that beat: no answers, decisions or events the Session has not reached, no new characters, no cuts or scene changes.
 - If the last turn is the player's and nobody has answered it, the clip shows that action happening.
 - If the user message says the picture shows the first moment of the last scene, the clip plays that scene out instead: its main physical action, in story order, condensed into the clip, and ending where the Session ends.
 - The people must visibly move. Never write that someone stays still, holds their position or remains motionless: even a quiet moment has a breath, a shift of weight, a turn of the head, a hand that moves.
+
+## Fitting the clip's length
+A video model shows about one clear action every three seconds. Size the motion to the clip:
+- Up to 6 seconds: one beat. One main action by one person, or one person acting and one reacting, plus background motion.
+- 7 to 10 seconds: two beats, one after the other ("then").
+- 11 to 15 seconds: three or four beats in story order, as a short sequence.
+- More than 15 seconds: one beat for every three or four seconds.
+- When the scene has more than fits, keep its main physical action, the moment a viewer would remember, and leave the rest out. Everyone else in frame only reacts: a glance, a turn of the head, a breath.
+- Before replying, count the beats and the people who act, and cut back to the limit for the clip's length.
 
 ## The motion prompt
 - Present tense. Lead with the main action. Name each person who moves by how they look in the picture ("the grey-haired man in the oilskin coat"), not by name alone: the video model does not know the story.
 - Then what else moves: wind, rain, water, smoke, fire, light, a crowd, vehicles.
 - End with the camera: still, a slow push in, a pan or a tracking shot.
 - Do not describe the setting again, or the people beyond the few words that say who is who. No dialogue, sounds, thoughts or backstory.
-- Use the description, not the name, even for the player's character. One to three sentences, at most 60 words. Reply with the motion prompt only.`;
+- Use the description, not the name, even for the player's character. At most 50 words for a 5-second clip, and about 10 more for each 5 seconds beyond. Reply with the motion prompt only.`;
 
 export function renderDreamGenVideo(root) {
   const st = { frame: null, frameUrl: null }; // the frame's object URL is freed when replaced
@@ -96,6 +105,8 @@ export function renderDreamGenVideo(root) {
     chatForm, getText: () => st.full || '', budget: () => 10000,
     onPick: (text) => { if (st.full) { exportBox.value = text ?? st.full; countExport(); } },
   });
+  // The clip's length beside the button: a copy of Duration from the video settings (made below).
+  const lengthSlot = el('span');
   const motionForm = el('form', { class: 'tool-form' },
     el('div', { class: 'row' }, useSession, el('label', { class: 'inline' }, 'or load an export ', exportFile)),
     sessionNote,
@@ -108,7 +119,9 @@ export function renderDreamGenVideo(root) {
         if (cut) { exportBox.value = text; countExport(); }
       } })),
     el('label', {}, 'What the picture shows (optional)', imagePrompt),
-    el('button', { type: 'submit', class: 'primary', text: 'Write motion prompt' }));
+    el('div', { class: 'row' },
+      el('button', { type: 'submit', class: 'primary', text: 'Write motion prompt' }),
+      el('label', { class: 'inline', title: 'The length of the clip: the same choice as Duration under Video model in the settings. The motion prompt is written to fit it.' }, 'for a clip of ', lengthSlot, ' seconds')));
   const motionOut = el('div', { class: 'result' });
   const motion = el('textarea', { name: 'motion', rows: 3, placeholder: 'e.g. The man on the wall turns his head toward the empty space beside him; the streetlight flickers; the river runs on.' });
   const style = sceneStylePicker();
@@ -121,6 +134,7 @@ export function renderDreamGenVideo(root) {
   // 3. The clip. The video model and its options are in the settings panel (shared with the Video
   // Generator); the price stays here, by the button that spends it.
   const settings = videoSettings({ firstFrameOnly: true });
+  lengthSlot.append(settings.durationMirror());
   const clipForm = el('form', { class: 'tool-form' },
     settings.price,
     el('button', { type: 'submit', class: 'primary', text: 'Make video' }));
@@ -238,7 +252,9 @@ export function renderDreamGenVideo(root) {
       const model = chosenModel(chatForm);
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const seen = imagePrompt.value.trim();
-      const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}${posed.checked ? 'The picture was posed with every face turned to the camera, so the video model can keep the faces. A line before your prompt already has them turn away from the camera at the start; describe what they do once they have turned.\n\n' : ''}${opening.checked ? 'The picture shows the first moment of the last scene. Write the motion prompt that plays the scene out from there.' : 'Write the motion prompt for the moment the picture holds: the final moment of the last scene.'}`;
+      const secs = settings.read().duration;
+      const length = secs ? `The clip is ${secs} seconds long.` : 'The clip is about 5 seconds long (the video model’s default length).';
+      const text = `${exported}\n\n---\n\n${length}\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}${posed.checked ? 'The picture was posed with every face turned to the camera, so the video model can keep the faces. A line before your prompt already has them turn away from the camera at the start; describe what they do once they have turned.\n\n' : ''}${opening.checked ? 'The picture shows the first moment of the last scene. Write the motion prompt that plays the scene out from there.' : 'Write the motion prompt for the moment the picture holds: the final moment of the last scene.'}`;
       const system = chatForm.elements.system.value.trim();
       const t0 = Date.now();
       const { resp, request: body } = await send('chat', {

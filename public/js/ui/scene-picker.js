@@ -109,10 +109,12 @@ const sigOf = (paras) => `${paras.length}:${hash(paras.join('\n\n'))}`;
 // chatForm: the tool's chat model form (model, max_tokens). getText(): the full export, before any
 // trimming. budget(): the trim size in tokens. onPick(text | null, range): the export text for the
 // pick, or null for "no scene picked" (the whole export as loaded).
-export function scenePicker({ chatForm, getText, budget, onPick }) {
+// onMarks(n): the number of scenes marked for a series changed (the tool shows its series button).
+export function scenePicker({ chatForm, getText, budget, onPick, onMarks = () => {} }) {
   let parts = null; // { head, paras } of the loaded export
   let scenes = [];
   let pick = null; // { start, end } or null
+  let marks = new Set(); // starts of the scenes marked for a series
   const key = 'dgscene:scenes';
 
   const out = el('div', { class: 'result' });
@@ -121,11 +123,17 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
   const form = el('form', { class: 'tool-form scene-find' }, el('div', { class: 'row' }, findBtn, cost));
   const list = el('div', { class: 'scene-list', role: 'radiogroup', 'aria-label': 'Scenes' });
   const picked = el('div', { class: 'small scene-picked' });
+  // Marking for a series: a box on each scene, and these two for all of them at once.
+  const markBar = el('div', { class: 'row small scene-mark-bar', hidden: '' },
+    el('span', { class: 'muted', text: 'Series: tick scenes to draw them one after another (step 4).' }),
+    el('button', { type: 'button', class: 'secondary small-btn', text: 'Tick all', onclick: () => { marks = new Set(scenes.map((x) => x.start)); markChanged(); } }),
+    el('button', { type: 'button', class: 'secondary small-btn', text: 'Clear', onclick: () => { marks = new Set(); markChanged(); } }));
   const node = el('div', { class: 'scene-picker' },
     el('p', { class: 'muted small', text: 'A chat model suggests where the scenes start, so you can draw or animate an earlier one. The suggestion is rough: adjust the start and end of the scene you pick.' }),
-    form, out, list, picked);
+    form, out, markBar, list, picked);
 
-  const save = () => { if (parts) drafts.set(key, JSON.stringify({ sig: sigOf(parts.paras), scenes, pick })); };
+  const save = () => { if (parts) drafts.set(key, JSON.stringify({ sig: sigOf(parts.paras), scenes, pick, marks: [...marks] })); };
+  const markChanged = () => { save(); draw(); onMarks(marks.size); };
   const apply = () => {
     save();
     if (!parts || !pick) { picked.textContent = ''; onPick(null); return; }
@@ -138,6 +146,7 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
 
   function draw() {
     list.replaceChildren();
+    markBar.hidden = !scenes.length;
     if (!scenes.length) return;
     const row = (value, title, meta, summary, range) => {
       const radio = el('input', { type: 'radio', name: 'scene-pick', value });
@@ -145,9 +154,15 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
       radio.checked = !!on;
       radio.addEventListener('change', () => { pick = range ? { ...range } : null; apply(); draw(); });
       const adjust = range ? el('button', { type: 'button', class: 'secondary small-btn', text: 'Adjust start and end', onclick: () => editRange(range) }) : null;
-      return el('label', { class: `scene-row${on ? ' on' : ''}` }, radio,
+      const label = el('label', { class: 'scene-row-main' }, radio,
         el('span', { class: 'scene-row-body' }, el('strong', { text: title }), meta ? el('span', { class: 'muted small', text: meta }) : null,
           summary ? el('span', { class: 'small', text: summary }) : null, on && adjust ? adjust : null));
+      // A suggested scene can be ticked for a series (not "Whole session" or a moved range).
+      const markable = range && value !== 'custom';
+      const mark = markable ? el('label', { class: 'inline small scene-mark', title: 'Draw this scene as part of a series (step 4)' },
+        el('input', { type: 'checkbox', checked: marks.has(range.start) ? '' : null, onchange: (e) => { if (e.target.checked) marks.add(range.start); else marks.delete(range.start); markChanged(); } }),
+        'Series') : null;
+      return el('div', { class: `scene-row${on ? ' on' : ''}${markable && marks.has(range.start) ? ' marked' : ''}` }, label, mark);
     };
     // The picked range may have been moved off the suggested scenes: it is shown as its own row.
     const custom = pick && !scenes.some((s) => s.start === pick.start && s.end === pick.end);
@@ -155,7 +170,7 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
     if (custom) list.append(row('custom', 'Your range', `¶${pick.start}–¶${pick.end}`, short(parts.paras[pick.start], 120), pick));
     for (const s of [...scenes].reverse()) {
       const meta = [`¶${s.start}–¶${s.end}`, s.place, s.time, s.who.join(', ')].filter(Boolean).join(' · ');
-      list.append(row(String(s.start), s.title, meta, s.summary, { start: s.start, end: s.end }));
+      list.append(row(String(s.start), s.title, meta, s.summary, { start: s.start, end: s.end, from: s.start }));
     }
   }
 
@@ -174,7 +189,7 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
     const starts = new Map(scenes.map((s) => [s.start, s]));
     parts.paras.forEach((p, i) => {
       const s = starts.get(i);
-      if (s) body.append(el('button', { type: 'button', class: 'scene-divider', title: 'Pick this suggested scene', text: `${s.title}${s.place ? ` · ${s.place}` : ''}`, onclick: () => set({ start: s.start, end: s.end }) }));
+      if (s) body.append(el('button', { type: 'button', class: 'scene-divider', title: 'Pick this suggested scene', text: `${s.title}${s.place ? ` · ${s.place}` : ''}`, onclick: () => set({ start: s.start, end: s.end, from: s.start }) }));
       const text = el('span', { class: 'scene-para-text', text: short(p, 280), title: 'Click to show it all' });
       text.addEventListener('click', () => { text.textContent = text.textContent.endsWith('…') ? p : short(p, 280); });
       const line = el('div', { class: 'scene-para' },
@@ -256,6 +271,8 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
       const found = readScenes(parseSceneReply(read('chat', resp).text), parts.paras.length);
       if (!found.length) throw new Error('The reply had no scene list. Try again, or another chat model.');
       scenes = found;
+      marks = new Set();
+      onMarks(0); // the old ticks are gone with the old split
       const last = scenes.at(-1);
       pick = { start: last.start, end: last.end };
       apply();
@@ -272,15 +289,28 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
     reset() {
       const text = getText();
       parts = text ? sessionParts(text) : null;
-      scenes = []; pick = null;
+      scenes = []; pick = null; marks = new Set();
       out.replaceChildren(); picked.textContent = '';
       findBtn.disabled = !parts;
       cost.textContent = parts ? `Sends the whole Session, about ${tokensFor(parts.paras.join('\n\n')).toLocaleString()} tokens.` : '';
       try {
         const kept = parts && JSON.parse(drafts.get(key) || 'null');
-        if (kept?.sig === sigOf(parts.paras)) { scenes = kept.scenes || []; pick = kept.pick || null; if (pick) apply(); }
+        if (kept?.sig === sigOf(parts.paras)) { scenes = kept.scenes || []; pick = kept.pick || null; marks = new Set(kept.marks || []); if (pick) apply(); }
       } catch { /* none kept */ }
       draw();
+      onMarks(marks.size);
+    },
+    // The scenes ticked for a series, in story order: { start, end, title, place, time, summary,
+    // text } where `text` is the export composed for that scene (as a pick would make it). A ticked
+    // scene whose pick was moved with Adjust uses the moved range.
+    marked() {
+      if (!parts) return [];
+      return scenes.filter((x) => marks.has(x.start)).map((x) => {
+        // The pick says which suggested scene it was moved from (`from`), wherever its new ends are.
+        const moved = pick && pick.from === x.start && !(pick.start === x.start && pick.end === x.end) ? pick : null;
+        const range = moved || { start: x.start, end: x.end };
+        return { ...x, ...range, text: composeScene(getText(), range, budget()) };
+      });
     },
     // The trim size changed: the pick is composed again.
     refresh() { if (pick) apply(); },

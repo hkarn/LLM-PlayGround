@@ -33,6 +33,7 @@ Load the export file. The tool shows its title, how many turns it has, the playe
 - The split is a suggestion and often rough. **Adjust start and end** opens the transcript with the picked scene highlighted: press **Start** or **End** on any paragraph to move the scene's first or last paragraph, click a paragraph's text to read all of it, or click a scene heading to pick that suggested scene. **Use this scene** keeps your range.
 - The pick changes the session text in step 2: it ends with the picked scene, a line `=== THE PICKED SCENE STARTS HERE ===` marks where it starts, and earlier paragraphs fill up to the **Keep the last** size. The prompt writer then treats the picked scene as the last one.
 - The suggested scenes and your pick are kept in this tab, so loading the same export again after a reload brings them back without a new request.
+- **Series:** tick the **Series** box on any number of scenes (or **Tick all**) to draw them one after another in step 4; see **Draw a series** below.
 
 ### 2. Write the image prompt
 
@@ -63,6 +64,16 @@ Press **Draw the scene**. It uses the image model and options from the settings 
 - Without portraits, it is a plain image generation.
 
 When the picture is done, **Animate this picture →** opens [Animate the DreamGen Scene](animate-dreamgen-scene.md) with this picture and this session.
+
+### Draw a series
+
+Once scenes are ticked under **Pick the scene**, step 4 shows **Series**:
+
+- **Pictures per scene:** 1 (its last moment), 2 (first and last moment) or 3 (first, main action, last). Each picture is one request to the prompt writer and one to the image model, so the line under the button says how many pictures a run makes. At most 10 scenes are drawn in one run.
+- Each picture gets its own references: the export's pictures of the characters and of the named things (ships, vehicles, creatures, objects, places) the prompt writer finds in that moment, so a ship that only arrives later in a scene still gets its picture there.
+- **Use the previous picture as a reference** (on by default) sends the last picture too, for looks only: people, clothes and places stay consistent, while the framing and poses follow each picture's own prompt.
+- The pictures fill in as cards, numbered in story order, each with its image prompt, **Download**, **↻ Retry** and Request details. A failed picture shows why and the series goes on. **Cancel** stops after the current picture.
+- **Download all (.zip)** saves every picture, numbered (`01-arrival-at-the-ford-first-moment.png`, …), with a `prompts.txt` of all image prompts, ready for a video or editing tool.
 
 ## Tips
 

@@ -3,7 +3,7 @@ import { read, send } from '../adapter.js';
 import { store } from '../core/state.js';
 import { ep } from '../core/providers.js';
 import { curlFor } from '../core/api.js';
-import { num, parseJsonLoose, str, usageSummary } from '../core/helpers.js';
+import { MAX_EDIT_IMAGES, num, parseJsonLoose, str, usageSummary } from '../core/helpers.js';
 import { copyButton } from '../ui/copy-button.js';
 import { dreamGenJsonToMarkdown, EXPORT_GUIDE, readDreamGenMarkdown, tokensFor, trimSessionTo } from '../ui/dreamgen-export.js';
 import { $$, el } from '../ui/dom.js';
@@ -19,6 +19,7 @@ import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
 import { SCENE_MARK, scenePicker } from '../ui/scene-picker.js';
+import { seriesView } from '../ui/scene-series.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
@@ -32,9 +33,9 @@ ${EXPORT_GUIDE}
 
 ## Reply
 Reply with JSON only, in this shape:
-{"scene": "one line: place, time of day and what is happening", "characters": [{"name": "the character's name exactly as in the Session", "description": "how they look right now: apparent age, build, face, hair, clothing and its state, pose and action"}], "prompt": "the image prompt"}
+{"scene": "one line: place, time of day and what is happening", "characters": [{"name": "the character's name exactly as in the Session", "description": "how they look right now: apparent age, build, face, hair, clothing and its state, pose and action"}], "things": [{"name": "a named ship, vehicle, creature, object or place in the picture, exactly as the story or its card names it", "description": "how it looks"}], "prompt": "the image prompt"}
 
-List every character visible in the picture, the player's character included when in frame. The user may attach a reference portrait for some of them, and the image model will be told which portrait shows which name, so use each name exactly as the Session does.
+List every character visible in the picture, the player's character included when in frame. Under "things", list every named ship, vehicle, creature, object or place that is visible (a card under "## Locations" or "## Objects", or one the Session names): the user's pictures of them are sent to the image model as references too. The user may attach a reference portrait for some of them, and the image model will be told which portrait shows which name, so use each name exactly as the Session does.
 
 ## The image prompt
 - Name each visible character and describe them where they first appear, for example "Mara Ellison, a wiry woman in her forties with cropped grey hair and a patched oilskin coat, leans over the chart table". The description must work on its own when no portrait is attached, and must not fight a portrait when one is.
@@ -42,6 +43,7 @@ List every character visible in the picture, the player's character included whe
 - Say where each character is and what they are doing, then the setting, light and time of day, weather, mood and camera framing. Show the player's character in the frame, in the third person, unless the user's note asks for their point of view.
 - Real places and landmarks: describe what they look like (shape, size, material, what surrounds them) instead of relying on the name, because image models rarely know local places and draw a generic stand-in. Say what is not there when a guess is likely to be wrong, for example "a low pair of stone arches in an old town wall, not a bridge". Keep to what the story says can and cannot be seen from there.
 - Someone who has just left or vanished: make the absence visible and specific, such as the empty place where they were, a dent in a cushion, a cup still steaming, the other characters' eyes on that spot. Never draw the absent person.
+- Name ships, vehicles, creatures, objects and places as the story does ("a Cylon Basestar", "an ornithopter"), never a generic word such as "ship", and describe each in full where it first appears: shape, size, colour, material, parts. Take the look from its card or the Session; the image model may not know the name.
 - Visual details only: no dialogue, sounds, smells, thoughts, backstory or game mechanics. Keep the period, technology and clothing of the story's world.
 - At most 180 words.`;
 
@@ -128,6 +130,7 @@ export function renderDreamGenScene(root) {
   const picker = scenePicker({
     chatForm, getText: sourceText, budget: () => Number(promptForm.elements.trim_tokens.value),
     onPick: (text) => { if (sourceText()) setExport(text ?? sourceText()); },
+    onMarks: (n) => seriesMarks(n),
   });
 
   // 3. Prompt, characters and reference portraits
@@ -162,6 +165,37 @@ export function renderDreamGenScene(root) {
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
+  // A series: the scenes ticked in the scene picker (step 1), drawn one after another, each with one
+  // to three pictures (moments in it). Each picture's references are the characters and named things
+  // in that moment, and the previous picture if wanted, so the series stays consistent.
+  const seriesCount = el('span', { class: 'muted small' });
+  const seriesForm = el('form', { class: 'tool-form series-form' },
+    el('h4', { text: 'Series' }),
+    el('p', { class: 'muted small', text: 'Draws every scene ticked under Pick the scene, in story order, with the image model and options above. Each picture is one request to the chat model and one to the image model.' }),
+    el('div', { class: 'grid3' },
+      el('label', {}, 'Pictures per scene', el('select', { name: 'per_scene' },
+        el('option', { value: '1', text: '1: its last moment' }),
+        el('option', { value: '2', text: '2: first and last moment' }),
+        el('option', { value: '3', text: '3: first, main action, last' })))),
+    el('label', { class: 'inline' }, el('input', { type: 'checkbox', name: 'use_previous', checked: '' }), 'Use the previous picture as a reference, to keep people and places consistent'),
+    el('div', { class: 'row' }, el('button', { type: 'submit', class: 'primary', text: 'Draw the series' }), seriesCount));
+  const seriesOut = el('div', { class: 'result' });
+  const series = seriesView();
+  const seriesBox = el('div', { class: 'series-box', hidden: '' }, seriesForm, seriesOut, series.node);
+  const MOMENTS = {
+    first: { label: 'first moment', ask: 'Write the prompt for the first moment of the last scene: everyone where they are as it opens.' },
+    main: { label: 'main action', ask: 'Write the prompt for the main moment of the last scene: its most important action, the moment a viewer would remember, as it happens.' },
+    last: { label: 'last moment', ask: 'Write the prompt for the final moment of the last scene.' },
+  };
+  const PLAN = { 1: ['last'], 2: ['first', 'last'], 3: ['first', 'main', 'last'] };
+  const SERIES_MAX = 10;
+  function seriesMarks(n) {
+    seriesBox.hidden = !n && !series.shots().length;
+    const per = Number(seriesForm.elements.per_scene.value);
+    seriesCount.textContent = n ? `${n} scene${n > 1 ? 's' : ''} ticked: ${n * per} picture${n * per > 1 ? 's' : ''}${n > SERIES_MAX ? ` (at most ${SERIES_MAX} scenes a run)` : ''}` : 'No scenes ticked: tick them under Pick the scene (step 1).';
+  }
+  seriesForm.elements.per_scene.addEventListener('change', () => seriesMarks(picker.marked().length));
+
   const main = [
     aboutBox('dreamgen-scene',
       el('ol', {},
@@ -186,7 +220,7 @@ export function renderDreamGenScene(root) {
       copyRow,
       charList,
       portraits.node),
-    el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut),
+    el('section', { class: 'tool-step' }, el('h3', { text: '4. Draw' }), imageForm, imageOut, seriesBox),
     el('p', { class: 'muted small' }, 'Next: ', el('a', { href: '#tools/dreamgen-video', text: 'Animate the DreamGen Scene' }),
       ' turns the picture into a short clip. It takes the picture and this session straight from here.')];
 
@@ -277,7 +311,7 @@ export function renderDreamGenScene(root) {
   });
 
   // The characters the model named, each with a button to attach a portrait for them.
-  function applyScene({ scene, prompt, characters = [] }) {
+  function applyScene({ scene, prompt, characters = [], things = [] }) {
     sceneLine.textContent = scene ? `Scene: ${scene}` : '';
     promptBox.value = prompt || '';
     const chars = Array.isArray(characters) ? characters.filter((c) => c?.name) : [];
@@ -292,20 +326,35 @@ export function renderDreamGenScene(root) {
           el('div', {}, el('strong', { text: c.name }), c.description ? el('div', { class: 'muted small', text: c.description }) : null),
           el('button', { type: 'button', class: 'secondary', text: 'Add portrait', onclick: () => pick.click() }), pick);
       }));
-    // Tick the export's first picture of each character in the scene (named as the model named
-    // them); the rest of the export's pictures go back to unticked, with their own captions.
-    const fromExport = portraits.refs.filter((r) => r.fromExport);
-    const norm = (n) => n.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
-    for (const r of fromExport) { r.send = false; r.name = r.caption; }
-    const firsts = fromExport.filter((r) => r.index === 0 && r.kind !== 'location' && r.kind !== 'item');
-    const ticked = new Set();
-    for (const c of chars) {
-      const n = norm(c.name);
-      const img = firsts.find((r) => [r.caption, r.alias].some((x) => norm(x || '') === n))
-        || firsts.find((r) => [r.caption, r.alias].some((x) => norm(x || '').split(' ')[0] === n.split(' ')[0]));
-      if (img && !ticked.has(img)) { ticked.add(img); img.send = true; img.name = c.name; }
-    }
+    // Tick the export's first picture of each character and named thing in the scene (named as the
+    // model named them); the rest of the export's pictures go back to unticked, with their own captions.
+    for (const r of portraits.refs.filter((x) => x.fromExport)) { r.send = false; r.name = r.caption; }
+    for (const { ref, name } of matchRefs({ characters, things })) { ref.send = true; ref.name = name; }
     portraits.refresh();
+  }
+
+  // The reference pictures for a scene's characters and named things: the export's first picture of
+  // each (a character's among people's pictures, a thing's among locations and objects), and any
+  // picture the user added under the same name. Returns [{ ref, name }], characters first.
+  function matchRefs({ characters = [], things = [] }) {
+    const norm = (n) => String(n || '').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
+    const names = (r) => [r.caption, r.alias, r.name].map(norm).filter(Boolean);
+    const firsts = portraits.refs.filter((r) => r.fromExport && r.index === 0);
+    // The user's own pictures count only while ticked to send; the export's are matched by name.
+    const own = portraits.refs.filter((r) => !r.fromExport && r.send);
+    const out = [];
+    const take = (list, wanted, ofKind) => {
+      for (const w of (Array.isArray(list) ? list : []).filter((x) => x?.name)) {
+        const n = norm(w.name);
+        const pool = [...own, ...firsts.filter(ofKind)];
+        const ref = pool.find((r) => names(r).includes(n))
+          || pool.find((r) => names(r).some((x) => x.split(' ')[0] === n.split(' ')[0]));
+        if (ref && !out.some((o) => o.ref === ref)) out.push({ ref, name: w.name });
+      }
+    };
+    take(characters, 'character', (r) => r.kind !== 'location' && r.kind !== 'item');
+    take(things, 'thing', (r) => r.kind === 'location' || r.kind === 'item');
+    return out;
   }
 
   // With references, "Reference image 1 shows …" lines tell the model who is who.
@@ -342,6 +391,85 @@ export function renderDreamGenScene(root) {
 
   // Sends one picture request and shows it. Retry (in the picture's bar) sends this same request
   // again, as it was, whatever has been edited in the form since.
+  seriesForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    runStep(seriesForm, seriesOut, async () => {
+      const scenes = picker.marked();
+      if (!scenes.length) throw new Error('Tick some scenes under Pick the scene (step 1) first.');
+      if (scenes.length > SERIES_MAX) throw new Error(`${scenes.length} scenes are ticked; at most ${SERIES_MAX} are drawn in one run. Untick some.`);
+      const chatModel = chosenModel(chatForm);
+      if (!chatModel) throw new Error('Pick or type a chat model first (Settings).');
+      const imageModel = chosenModel(imageSet);
+      if (!imageModel) throw new Error('Pick or type an image model first (Settings).');
+      const plan = PLAN[seriesForm.elements.per_scene.value] || PLAN[1];
+      const usePrevious = seriesForm.elements.use_previous.checked;
+      const system = chatForm.elements.system.value.trim();
+      const focus = promptForm.elements.focus.value.trim();
+      const signal = seriesForm._abort?.signal;
+      const shots = scenes.flatMap((sc) => plan.map((m) => ({ title: sc.title, moment: MOMENTS[m].label, range: { start: sc.start, end: sc.end }, sceneText: sc.text, ask: MOMENTS[m].ask })));
+      series.start(shots);
+      seriesBox.hidden = false;
+      // One shot: its prompt, then its picture. `previous` is the last good picture before it. Every
+      // card gets a Retry, also when the prompt or the picture failed: it runs the whole shot again
+      // (a new prompt and picture), with the picture before it as it is then.
+      const previousFor = (i) => { for (let n = i - 1; n >= 0; n -= 1) { const f = series.shots()[n]?.file; if (f) return f; } return null; };
+      const runShot = async (i, shot, previous, sig) => {
+        series.update(i, { busy: true, status: 'Writing the prompt…', error: '' });
+        const text = `${shot.sceneText}\n\n---\n\n${shot.ask}${willAnimate.checked ? ' This picture may become the first frame of a video clip.' : ''}${focus ? `\n\nNote from the user about the pictures: ${focus}` : ''}`;
+        const { resp } = await send('chat', {
+          model: chatModel, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
+          max_tokens: num(chatForm, 'max_tokens'),
+        }, { signal: sig });
+        if (!resp.ok) throw new Error(`The prompt writer failed: ${resp.status} ${JSON.stringify(resp.data?.error || resp.data).slice(0, 200)}`);
+        const reply = read('chat', resp).text || '';
+        const parsed = parseJsonLoose(reply) || { prompt: reply.trim() };
+        if (!parsed.prompt) throw new Error('The prompt writer gave no prompt.');
+        // References: this moment's characters and named things, then the previous picture; at most
+        // the image model's limit, the previous picture left out first.
+        const refs = matchRefs(parsed).map(({ ref, name }) => ({ file: ref.file, name }));
+        if (usePrevious && previous) refs.push({ file: previous, name: 'the previous picture in this series, for looks only: keep the people, their clothes and the places consistent with it, but take the framing, camera angle and poses from this prompt, as this is a later moment' });
+        const sent = refs.slice(0, MAX_EDIT_IMAGES);
+        let prompt = withStyle(parsed.prompt.trim()) + (willAnimate.checked ? `\n\n${ANIMATE_NOTE}` : '');
+        if (sent.length) prompt += `\n\nUse the reference images for the looks of the people and things in the picture: ${sent.map((r, n) => `reference image ${n + 1} is ${r.name}`).join('; ')}.`;
+        const fields = {
+          model: imageModel, prompt,
+          size: str(imageSet, 'size'), aspect_ratio: str(imageSet, 'aspect_ratio'),
+          resolution: str(imageSet, 'resolution'), quality: str(imageSet, 'quality'),
+        };
+        const kind = sent.length ? 'imageEdit' : 'image';
+        const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
+        series.update(i, { busy: true, status: 'Drawing…', prompt: parsed.prompt });
+        const { resp: img, request } = await send(kind, input, { signal: sig });
+        const details = JSON.stringify({ references: sent.map((r) => r.name), request, response: img.ok ? undefined : img.data }, null, 2);
+        const first = img.ok ? read(kind, img).images?.[0] : undefined;
+        const file = first && await imageToFile(first, 'scene');
+        if (!file) throw Object.assign(new Error(img.ok ? 'No picture came back that the page can read.' : `The image model failed: ${img.status} ${JSON.stringify(img.data?.error || img.data).slice(0, 200)}`), { details });
+        series.update(i, { busy: false, file, details, error: '' });
+        return file;
+      };
+      const retryFor = (i, shot) => () => runStep(seriesForm, seriesOut, async () => {
+        try { await runShot(i, shot, previousFor(i), seriesForm._abort?.signal); } catch (err) {
+          series.update(i, { busy: false, error: err?.name === 'AbortError' ? 'Cancelled.' : err.message, details: err.details });
+        }
+      });
+      shots.forEach((shot, i) => series.update(i, { retry: retryFor(i, shot) }));
+      let previous = null;
+      let done = 0;
+      for (const [i, shot] of shots.entries()) {
+        if (signal?.aborted) break;
+        try {
+          previous = await runShot(i, shot, previous, signal);
+          done += 1;
+        } catch (err) {
+          if (err?.name === 'AbortError') { series.update(i, { busy: false, error: 'Cancelled.' }); break; }
+          // A failed picture doesn't stop the series; the next one uses the last good picture.
+          series.update(i, { busy: false, error: err.message, details: err.details });
+        }
+      }
+      seriesOut.replaceChildren(el('div', { class: 'muted small', text: `${done} of ${shots.length} pictures drawn. Download all saves them as a .zip with the prompts.` }));
+    });
+  });
+
   async function draw(kind, input, handoff) {
     const { resp, request, curl } = await send(kind, input, { signal: imageForm._abort?.signal });
     const retry = () => runStep(imageForm, imageOut, () => draw(kind, input, handoff));

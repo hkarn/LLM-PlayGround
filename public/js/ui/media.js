@@ -67,7 +67,8 @@ export function dockDetails(root, details) {
 }
 
 /* ---- The pop-out ---- */
-function openPictures(list, start) {
+// The pop-out for a list of pictures ([{ src, alt?, name }]), opened at `start`; also used by the scene series.
+export function openPictures(list, start) {
   let i = start;
   const back = document.activeElement;
   const img = el('img', { class: 'lightbox-img', alt: '' });

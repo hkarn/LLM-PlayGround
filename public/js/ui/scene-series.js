@@ -27,7 +27,8 @@ export function seriesView() {
       pic.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     }
     const save = s.file ? el('button', { type: 'button', class: 'secondary small-btn', text: 'Download', onclick: () => saveBlob(s.file, s.fileName) }) : null;
-    const retry = s.retry && !s.busy ? el('button', { type: 'button', class: 'secondary small-btn', text: '↻ Retry', title: 'Draw this picture again, with the same prompt and references', onclick: s.retry }) : null;
+    // Retry on a finished or failed card (not one still waiting): a new prompt and picture for this shot.
+    const retry = s.retry && !s.busy && (s.file || s.error) ? el('button', { type: 'button', class: 'secondary small-btn', text: '↻ Retry', title: 'Write and draw this picture again', onclick: s.retry }) : null;
     const details = s.details ? el('details', { class: 'request-details' }, el('summary', { text: 'Request details' }), el('pre', { class: 'mono', text: s.details })) : null;
     const card = el('figure', { class: `series-card${s.error ? ' failed' : ''}${s.busy ? ' busy' : ''}` },
       el('figcaption', {}, el('strong', { text: `${pad(i + 1)} · ${s.title}` }), el('span', { class: 'muted small', text: s.moment })),

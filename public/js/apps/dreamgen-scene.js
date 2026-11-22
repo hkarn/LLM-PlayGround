@@ -340,7 +340,8 @@ export function renderDreamGenScene(root) {
     const norm = (n) => String(n || '').toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').trim();
     const names = (r) => [r.caption, r.alias, r.name].map(norm).filter(Boolean);
     const firsts = portraits.refs.filter((r) => r.fromExport && r.index === 0);
-    const own = portraits.refs.filter((r) => !r.fromExport);
+    // The user's own pictures count only while ticked to send; the export's are matched by name.
+    const own = portraits.refs.filter((r) => !r.fromExport && r.send);
     const out = [];
     const take = (list, wanted, ofKind) => {
       for (const w of (Array.isArray(list) ? list : []).filter((x) => x?.name)) {
@@ -408,46 +409,56 @@ export function renderDreamGenScene(root) {
       const shots = scenes.flatMap((sc) => plan.map((m) => ({ title: sc.title, moment: MOMENTS[m].label, range: { start: sc.start, end: sc.end }, sceneText: sc.text, ask: MOMENTS[m].ask })));
       series.start(shots);
       seriesBox.hidden = false;
+      // One shot: its prompt, then its picture. `previous` is the last good picture before it. Every
+      // card gets a Retry, also when the prompt or the picture failed: it runs the whole shot again
+      // (a new prompt and picture), with the picture before it as it is then.
+      const previousFor = (i) => { for (let n = i - 1; n >= 0; n -= 1) { const f = series.shots()[n]?.file; if (f) return f; } return null; };
+      const runShot = async (i, shot, previous, sig) => {
+        series.update(i, { busy: true, status: 'Writing the prompt…', error: '' });
+        const text = `${shot.sceneText}\n\n---\n\n${shot.ask}${willAnimate.checked ? ' This picture may become the first frame of a video clip.' : ''}${focus ? `\n\nNote from the user about the pictures: ${focus}` : ''}`;
+        const { resp } = await send('chat', {
+          model: chatModel, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
+          max_tokens: num(chatForm, 'max_tokens'),
+        }, { signal: sig });
+        if (!resp.ok) throw new Error(`The prompt writer failed: ${resp.status} ${JSON.stringify(resp.data?.error || resp.data).slice(0, 200)}`);
+        const reply = read('chat', resp).text || '';
+        const parsed = parseJsonLoose(reply) || { prompt: reply.trim() };
+        if (!parsed.prompt) throw new Error('The prompt writer gave no prompt.');
+        // References: this moment's characters and named things, then the previous picture; at most
+        // the image model's limit, the previous picture left out first.
+        const refs = matchRefs(parsed).map(({ ref, name }) => ({ file: ref.file, name }));
+        if (usePrevious && previous) refs.push({ file: previous, name: 'the previous picture in this series, for looks only: keep the people, their clothes and the places consistent with it, but take the framing, camera angle and poses from this prompt, as this is a later moment' });
+        const sent = refs.slice(0, MAX_EDIT_IMAGES);
+        let prompt = withStyle(parsed.prompt.trim()) + (willAnimate.checked ? `\n\n${ANIMATE_NOTE}` : '');
+        if (sent.length) prompt += `\n\nUse the reference images for the looks of the people and things in the picture: ${sent.map((r, n) => `reference image ${n + 1} is ${r.name}`).join('; ')}.`;
+        const fields = {
+          model: imageModel, prompt,
+          size: str(imageSet, 'size'), aspect_ratio: str(imageSet, 'aspect_ratio'),
+          resolution: str(imageSet, 'resolution'), quality: str(imageSet, 'quality'),
+        };
+        const kind = sent.length ? 'imageEdit' : 'image';
+        const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
+        series.update(i, { busy: true, status: 'Drawing…', prompt: parsed.prompt });
+        const { resp: img, request } = await send(kind, input, { signal: sig });
+        const details = JSON.stringify({ references: sent.map((r) => r.name), request, response: img.ok ? undefined : img.data }, null, 2);
+        const first = img.ok ? read(kind, img).images?.[0] : undefined;
+        const file = first && await imageToFile(first, 'scene');
+        if (!file) throw Object.assign(new Error(img.ok ? 'No picture came back that the page can read.' : `The image model failed: ${img.status} ${JSON.stringify(img.data?.error || img.data).slice(0, 200)}`), { details });
+        series.update(i, { busy: false, file, details, error: '' });
+        return file;
+      };
+      const retryFor = (i, shot) => () => runStep(seriesForm, seriesOut, async () => {
+        try { await runShot(i, shot, previousFor(i), seriesForm._abort?.signal); } catch (err) {
+          series.update(i, { busy: false, error: err?.name === 'AbortError' ? 'Cancelled.' : err.message, details: err.details });
+        }
+      });
+      shots.forEach((shot, i) => series.update(i, { retry: retryFor(i, shot) }));
       let previous = null;
       let done = 0;
       for (const [i, shot] of shots.entries()) {
         if (signal?.aborted) break;
-        series.update(i, { busy: true, status: 'Writing the prompt…' });
         try {
-          const text = `${shot.sceneText}\n\n---\n\n${shot.ask}${willAnimate.checked ? ' This picture may become the first frame of a video clip.' : ''}${focus ? `\n\nNote from the user about the pictures: ${focus}` : ''}`;
-          const { resp } = await send('chat', {
-            model: chatModel, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: text }],
-            max_tokens: num(chatForm, 'max_tokens'),
-          }, { signal });
-          if (!resp.ok) throw new Error(`The prompt writer failed: ${resp.status} ${JSON.stringify(resp.data?.error || resp.data).slice(0, 200)}`);
-          const reply = read('chat', resp).text || '';
-          const parsed = parseJsonLoose(reply) || { prompt: reply.trim() };
-          if (!parsed.prompt) throw new Error('The prompt writer gave no prompt.');
-          // References: this moment's characters and named things, then the previous picture; at most
-          // the image model's limit, the previous picture left out first.
-          const refs = matchRefs(parsed).map(({ ref, name }) => ({ file: ref.file, name }));
-          if (usePrevious && previous) refs.push({ file: previous, name: 'the previous picture in this series, for looks only: keep the people, their clothes and the places consistent with it, but take the framing, camera angle and poses from this prompt, as this is a later moment' });
-          const sent = refs.slice(0, MAX_EDIT_IMAGES);
-          let prompt = withStyle(parsed.prompt.trim()) + (willAnimate.checked ? `\n\n${ANIMATE_NOTE}` : '');
-          if (sent.length) prompt += `\n\nUse the reference images for the looks of the people and things in the picture: ${sent.map((r, n) => `reference image ${n + 1} is ${r.name}`).join('; ')}.`;
-          const fields = {
-            model: imageModel, prompt,
-            size: str(imageSet, 'size'), aspect_ratio: str(imageSet, 'aspect_ratio'),
-            resolution: str(imageSet, 'resolution'), quality: str(imageSet, 'quality'),
-          };
-          const kind = sent.length ? 'imageEdit' : 'image';
-          const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
-          const drawShot = async () => {
-            series.update(i, { busy: true, status: 'Drawing…', prompt: parsed.prompt });
-            const { resp: img, request } = await send(kind, input, { signal: seriesForm._abort?.signal });
-            const details = JSON.stringify({ references: sent.map((r) => r.name), request, response: img.ok ? undefined : img.data }, null, 2);
-            const first = img.ok ? read(kind, img).images?.[0] : undefined;
-            const file = first && await imageToFile(first, 'scene');
-            if (!file) throw Object.assign(new Error(img.ok ? 'No picture came back that the page can read.' : `The image model failed: ${img.status} ${JSON.stringify(img.data?.error || img.data).slice(0, 200)}`), { details });
-            series.update(i, { busy: false, file, details, error: '', retry: () => runStep(seriesForm, seriesOut, async () => { try { await drawShot(); } catch (err) { series.update(i, { busy: false, error: err.message, details: err.details }); } }) });
-            return file;
-          };
-          previous = await drawShot();
+          previous = await runShot(i, shot, previous, signal);
           done += 1;
         } catch (err) {
           if (err?.name === 'AbortError') { series.update(i, { busy: false, error: 'Cancelled.' }); break; }

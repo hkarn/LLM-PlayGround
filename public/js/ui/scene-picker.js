@@ -170,7 +170,7 @@ export function scenePicker({ chatForm, getText, budget, onPick, onMarks = () =>
     if (custom) list.append(row('custom', 'Your range', `¶${pick.start}–¶${pick.end}`, short(parts.paras[pick.start], 120), pick));
     for (const s of [...scenes].reverse()) {
       const meta = [`¶${s.start}–¶${s.end}`, s.place, s.time, s.who.join(', ')].filter(Boolean).join(' · ');
-      list.append(row(String(s.start), s.title, meta, s.summary, { start: s.start, end: s.end }));
+      list.append(row(String(s.start), s.title, meta, s.summary, { start: s.start, end: s.end, from: s.start }));
     }
   }
 
@@ -189,7 +189,7 @@ export function scenePicker({ chatForm, getText, budget, onPick, onMarks = () =>
     const starts = new Map(scenes.map((s) => [s.start, s]));
     parts.paras.forEach((p, i) => {
       const s = starts.get(i);
-      if (s) body.append(el('button', { type: 'button', class: 'scene-divider', title: 'Pick this suggested scene', text: `${s.title}${s.place ? ` · ${s.place}` : ''}`, onclick: () => set({ start: s.start, end: s.end }) }));
+      if (s) body.append(el('button', { type: 'button', class: 'scene-divider', title: 'Pick this suggested scene', text: `${s.title}${s.place ? ` · ${s.place}` : ''}`, onclick: () => set({ start: s.start, end: s.end, from: s.start }) }));
       const text = el('span', { class: 'scene-para-text', text: short(p, 280), title: 'Click to show it all' });
       text.addEventListener('click', () => { text.textContent = text.textContent.endsWith('…') ? p : short(p, 280); });
       const line = el('div', { class: 'scene-para' },
@@ -272,6 +272,7 @@ export function scenePicker({ chatForm, getText, budget, onPick, onMarks = () =>
       if (!found.length) throw new Error('The reply had no scene list. Try again, or another chat model.');
       scenes = found;
       marks = new Set();
+      onMarks(0); // the old ticks are gone with the old split
       const last = scenes.at(-1);
       pick = { start: last.start, end: last.end };
       apply();
@@ -301,11 +302,12 @@ export function scenePicker({ chatForm, getText, budget, onPick, onMarks = () =>
     },
     // The scenes ticked for a series, in story order: { start, end, title, place, time, summary,
     // text } where `text` is the export composed for that scene (as a pick would make it). A ticked
-    // scene that is also the picked one, moved with Adjust, uses the moved range.
+    // scene whose pick was moved with Adjust uses the moved range.
     marked() {
       if (!parts) return [];
       return scenes.filter((x) => marks.has(x.start)).map((x) => {
-        const moved = pick && pick.start >= x.start && pick.start <= x.end && !(pick.start === x.start && pick.end === x.end) ? pick : null;
+        // The pick says which suggested scene it was moved from (`from`), wherever its new ends are.
+        const moved = pick && pick.from === x.start && !(pick.start === x.start && pick.end === x.end) ? pick : null;
         const range = moved || { start: x.start, end: x.end };
         return { ...x, ...range, text: composeScene(getText(), range, budget()) };
       });

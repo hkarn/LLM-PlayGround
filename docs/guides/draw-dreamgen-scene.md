@@ -4,6 +4,8 @@ Turn the last scene of a [DreamGen](https://dreamgen.com/) role-play into a pict
 
 Open it: **Tools → Draw the DreamGen Scene**, or <https://arnoldson.dev/LLM-PlayGround/#tools/dreamgen-scene>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
+The tool keeps its state while the page is open: switching to Animate the DreamGen Scene or another tool or tab and back finds it as you left it, with the loaded export, the scene list from Find scenes, the prompt, the portraits and the pictures. A reload starts it fresh (typed text comes back; a loaded file and results don't).
+
 ## Before you start
 
 - An API key, loaded in the connection panel at the top. See [the main README](../../README.md#1-get-an-api-key).

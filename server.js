@@ -184,7 +184,10 @@ async function proxy(req, res) {
       return;
     }
     console.error('%s failed:', `${req.method} ${target}`, err);
-    sendError(res, 502, `Proxy could not reach ${target}: ${err.message}`);
+    // fetch's own message is only "fetch failed"; the reason (a DNS failure, a refused or dropped
+    // connection, "other side closed" when the upstream gives up on a slow request) is its cause.
+    const cause = err.cause?.message || err.cause?.code;
+    sendError(res, 502, `Proxy could not reach ${target}: ${err.message}${cause ? ` (${cause})` : ''}`);
   }
 }
 

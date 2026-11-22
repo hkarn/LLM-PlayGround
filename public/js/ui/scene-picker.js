@@ -4,7 +4,7 @@
    tool sends: the Session cut after the scene's end, with SCENE_MARK where the scene starts, so the
    prompts treat it as the last scene. The suggested split is kept in this tab (sessionStorage),
    keyed to the session, so loading the same export again costs nothing. */
-import { read, send } from '../adapter.js';
+import { read, send, spec } from '../adapter.js';
 import { num, parseJsonLoose } from '../core/helpers.js';
 import { CHARS_PER_TOKEN, SCENE_MARK, TRIM_MARK, tokensFor } from './dreamgen-export.js';
 import { chosenModel } from './model-picker.js';
@@ -29,10 +29,17 @@ A continuous stretch in one place and time, with the same people present, that w
 - A long journey or montage that covers days in a few paragraphs is one scene.
 - Every paragraph belongs to exactly one scene: the first scene starts at ¶0, and each scene runs until the next one starts.
 
+- Keep the list short. A stretch of only a few paragraphs belongs to the scene around it unless the place or time really changes. A long game usually has 10 to 40 scenes.
+
 ## Reply
-JSON only, in this shape, scenes in story order:
-{"scenes": [{"start": 0, "title": "three to six words", "place": "where, in a few words", "time": "when, as the story says it, or empty", "who": ["names of the characters present"], "summary": "one sentence: what happens"}]}
-"start" is the ¶ number of the scene's first paragraph.`;
+One line per scene, in story order, and nothing else:
+¶start | title | place, time | what happens
+- start: the ¶ number of the scene's first paragraph. The first scene starts at ¶0.
+- title: three to five words.
+- place, time: a few words; the time as the story gives it, or leave it out.
+- what happens: at most twelve words.
+For example:
+¶0 | Arrival at the gate | North gate, dusk | The travellers are stopped and questioned by the guard.`;
 
 // The export split at its last "## Session" heading: `head` is everything up to and including
 // that line, `paras` the Session's paragraphs (blank-line separated, the same unit as trimming).
@@ -56,6 +63,22 @@ export function composeScene(text, { start, end }, maxTokens) {
   let from = start;
   while (from > 0 && budget - paras[from - 1].length - 2 >= 0) { from -= 1; budget -= paras[from].length + 2; }
   return [head.trimEnd(), ...(from > 0 ? [TRIM_MARK] : []), ...paras.slice(from, start), SCENE_MARK, ...scene].join('\n\n');
+}
+
+// Reads the reply: one "¶start | title | place, time | what happens" line per scene (the format
+// asked for, short so a long game's list is written quickly), or a JSON {"scenes": [...]} from an
+// edited system prompt.
+export function parseSceneReply(text) {
+  // Some models run every scene together on one line: a "¶N |" inside a line starts a new one too.
+  const lines = String(text || '').replace(/\s+(?=¶\s*\d+\s*\|)/g, '\n').split(/\r?\n/).map((l) => l.trim().replace(/^[-*]\s*/, '').replace(/^`+|`+$/g, ''))
+    .map((l) => l.match(/^¶?\s*(\d+)\s*[|:.)-]\s*(.*)$/)).filter(Boolean);
+  if (lines.length) {
+    return lines.map(([, start, rest]) => {
+      const [title = '', where = '', ...summary] = rest.split('|').map((x) => x.trim());
+      return { start: Number(start), title, place: where, time: '', who: [], summary: summary.join(' | ') };
+    });
+  }
+  return parseJsonLoose(String(text || ''))?.scenes || [];
 }
 
 // Cleans the model's list: whole numbers in range, in order, no repeats, the first at ¶0; each
@@ -200,12 +223,37 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const user = parts.paras.map((p, i) => `¶${i} ${p}`).join('\n\n');
       const t0 = Date.now();
-      const { resp } = await send('chat', {
+      // Little thinking: a reasoning model otherwise spends most of its time reasoning about the
+      // boundaries, and on a long game runs past the provider's time limit. The provider file says
+      // how to ask (chat.lowReasoning: a list to try in order, such as thinking off, then low); a
+      // model that refuses one (a 4xx answer) gets the next, and finally the request without any.
+      const low = spec('chat').lowReasoning;
+      const tries = [...(Array.isArray(low) ? low : [low]).filter(Boolean), undefined];
+      const ask = (extra) => send('chat', {
         model, messages: [{ role: 'system', content: SPLIT_SYSTEM_PROMPT }, { role: 'user', content: user }],
-        max_tokens: num(chatForm, 'max_tokens'),
+        max_tokens: num(chatForm, 'max_tokens'), extra,
       }, { signal: form._abort?.signal, stream: true }); // streamed: a long game's split can take minutes
-      if (!resp.ok) throw new Error(`The split failed: ${resp.status} ${typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data?.error || resp.data).slice(0, 300)}`);
-      const found = readScenes(parseJsonLoose(read('chat', resp).text || '')?.scenes, parts.paras.length);
+      let resp;
+      // Only a refusal of the setting itself moves on to the next one: a 400 or 422 whose message
+      // says so ("does not support reasoning"; LLM Gateway's "No available provider could be found"
+      // when no route takes the setting). A bad key, a rate limit or any other error is shown as it is.
+      const refusedSetting = (r) => [400, 422].includes(r.status)
+        && /reasoning|effort|thinking|not support|unsupported|unrecognized|unknown (field|param)|extra (inputs|fields)|no available provider/i.test(JSON.stringify(r.data || ''));
+      for (const [n, extra] of tries.entries()) {
+        ({ resp } = await ask(extra));
+        if (resp.ok || n === tries.length - 1 || !extra || !refusedSetting(resp)) break;
+      }
+      if (!resp.ok) {
+        const detail = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data?.error || resp.data).slice(0, 300);
+        // The provider (or a proxy before it) cut the connection while the model was still writing:
+        // a long game with a slow model can run past its time limit (LLM Gateway: about 2-3 minutes).
+        // Only the proxy's own message (fetch's cause) counts; a provider's 502 or 504 is its own error.
+        const dropped = /fetch failed|other side closed|UND_ERR_SOCKET|ECONNRESET|terminated/i.test(detail);
+        throw new Error(dropped
+          ? `The split failed after ${Math.round((Date.now() - t0) / 1000)} s: the provider closed the connection before ${model} finished. A long game takes a slow model too long. Try a faster chat model (on LLM Gateway, Claude Haiku 5.5 and GPT-5.6 Luna took 8–30 s on 1,500-paragraph games), or try again. (${resp.status} ${detail})`
+          : `The split failed: ${resp.status} ${detail}`);
+      }
+      const found = readScenes(parseSceneReply(read('chat', resp).text), parts.paras.length);
       if (!found.length) throw new Error('The reply had no scene list. Try again, or another chat model.');
       scenes = found;
       const last = scenes.at(-1);

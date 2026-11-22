@@ -272,23 +272,18 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
 
   root.addEventListener('change', (e) => { if (e.target.type !== 'radio' && !e.target.closest('.vg-other')) { touched = true; update(); } });
   frames?.addEventListener('change', () => update());
-  // A tool is drawn again each time it is opened, so an earlier copy of these settings can be left
-  // behind. Once it has been on the page and is gone, it stops listening: otherwise a model reload
-  // or provider switch would make it save its old choice over the shared one.
-  let shown = false;
-  const onOuterChange = () => {
-    if (root.isConnected) { shown = true; refresh(); return; }
-    if (!shown) return; // not on the page yet
-    document.removeEventListener('models-changed', onOuterChange);
-    $('#provider')?.removeEventListener('change', onProvider);
-  };
-  const onProvider = () => setTimeout(onOuterChange);
+  // Both video tools have a copy of these settings, and a tool's view is kept while another is open
+  // (hubs.js). Only the copy on the page follows a model reload or provider switch, so a hidden one
+  // never saves its older choice over the shared one; it reads the shared choice again when shown.
+  // On the page means in the open tab too: a hub keeps its open app in the DOM while another top tab
+  // is shown (only the panel is hidden), and that copy must not refresh and save either.
+  const onScreen = () => root.isConnected && Boolean(root.closest('.panel.active') || !root.closest('.panel'));
+  const onOuterChange = () => { if (onScreen()) refresh(); };
   document.addEventListener('models-changed', onOuterChange);
   // A provider switch clears the list without that event when there is no key to load with.
-  $('#provider')?.addEventListener('change', onProvider);
+  $('#provider')?.addEventListener('change', () => setTimeout(onOuterChange));
+  document.addEventListener('app-shown', (e) => { if (e.detail?.contains(root)) { loadSaved(); refresh(); } });
   refresh();
-  // The tool appends the settings after this returns: from then on they count as shown.
-  setTimeout(() => { if (root.isConnected) shown = true; });
   return {
     // blocked(): why there is no model to use here (the shared choice doesn't suit this tool), or ''.
     root, frames, price, refresh, read, model, priceNow, blocked,

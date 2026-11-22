@@ -170,12 +170,17 @@ export function setupHubs() {
             app.status ? el('span', { class: 'tag', text: app.status }) : null)),
           el('div', { class: 'app-card soon' }, el('strong', { text: 'More to come' }), el('span', { class: 'small', text: 'New ideas land here.' }))));
     };
+    // Each app's view is drawn once and kept: going to another app and back finds it as it was
+    // (a loaded export, a scene list, a prompt, a picture), for as long as the page is open.
+    const views = new Map();
     const openApp = (app) => {
       store.set(`app_${hub}`, app.id);
       setHash(`${hub}/${app.id}`);
       if (panel._app === app.id) return; // already open: keep its state
       panel._app = app.id;
-      const body = el('div', { class: 'app-view' });
+      const kept = views.get(app.id);
+      const body = kept || el('div', { class: 'app-view' });
+      views.set(app.id, body);
       const head = el('div', { class: 'hub-head app-head' },
         // On a phone the back button shrinks to its arrow (the label stays for screen readers).
         el('button', { type: 'button', class: 'secondary app-back', title: `All ${HUBS[hub].title.toLowerCase()}`, 'aria-label': `All ${HUBS[hub].title.toLowerCase()}`, onclick: showLauncher },
@@ -187,7 +192,12 @@ export function setupHubs() {
       // The switcher's outside-click listener goes when the panel is drawn again.
       const switcher = head.querySelector('.app-switch-wrap');
       panel._disposeHead = () => { switcher?.dispose?.(); };
-      app.render(body);
+      if (!kept) { app.render(body); return; }
+      // Back on the page: its model lists may have changed meanwhile (a provider switch, a model
+      // reload), and parts of it refresh themselves on "app-shown" (video settings and jobs, the
+      // scene handoff in Animate the DreamGen Scene).
+      $$('.model-picker', body).forEach((p) => p._fill?.());
+      document.dispatchEvent(new CustomEvent('app-shown', { detail: body }));
     };
     // Route to "#hub" (launcher) or "#hub/app-id" (that app).
     panel._show = (appId) => {
@@ -219,7 +229,14 @@ export function showTab(tab) {
   const btn = tabButton(tab);
   if (!btn) return false;
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+  const wasActive = new Set($$('.panel.active'));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
+  // A hub panel coming back into view shows its open app again: its model lists may have changed
+  // meanwhile, and parts of it refresh on "app-shown" (as when switching apps within the hub).
+  for (const p of $$('.panel.active')) {
+    const view = wasActive.has(p) ? null : p.querySelector(':scope > .app-view');
+    if (view) { $$('.model-picker', view).forEach((x) => x._fill?.()); document.dispatchEvent(new CustomEvent('app-shown', { detail: view })); }
+  }
   // A hidden panel keeps its content (a hub keeps its open app), and a hidden video or audio would
   // go on playing, sound and all: pause them. Nothing starts again by itself on return.
   $$('.panel:not(.active) video, .panel:not(.active) audio').forEach((m) => { if (!m.paused) m.pause(); });

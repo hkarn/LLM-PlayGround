@@ -1,6 +1,6 @@
 # Animate the DreamGen Scene
 
-Turn a scene picture into a short video clip of what happens next. A chat model reads the same DreamGen session and writes a motion prompt, then a video model brings the picture to life for a few seconds.
+Turn a scene picture into a short video clip that carries the moment on. A chat model reads the same DreamGen session and writes a motion prompt, then a video model brings the picture to life for a few seconds.
 
 Open it: **Tools → Animate the DreamGen Scene**, or <https://arnoldson.dev/LLM-PlayGround/#tools/dreamgen-video>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
@@ -41,7 +41,7 @@ A video model can only keep a face it sees in that frame, so a character with th
 
 1. Give it the session: **Use the session from Draw the DreamGen Scene**, or **load an export**, or paste one. **Keep only the last 10k tokens of the Session** saves tokens.
 2. **What the picture shows** is filled in from Draw the DreamGen Scene, so the model knows what's in the frame. You can edit it.
-3. Press **Write motion prompt**. It uses the chat model from the settings panel. The model writes one or two sentences about what moves in the next few seconds: people, wind, water, light, and how the camera moves.
+3. Press **Write motion prompt**. It uses the chat model from the settings panel. The model writes one to three sentences that play out the moment the picture holds: what each person is in the middle of finishes, and the next beat the story set up begins, without going past where the session ends. It names people by how they look, since the video model doesn't know the story, then adds what else moves (wind, water, light) and how the camera moves.
 
 Edit the **Motion prompt** as you like; that is what the video model gets.
 

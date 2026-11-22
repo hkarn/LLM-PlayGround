@@ -17,6 +17,7 @@ import { rememberModel } from '../ui/remember.js';
 import { answerFacts, renderResult } from '../ui/result.js';
 import { runStep } from '../ui/run-step.js';
 import { scenePicture } from '../ui/scene-handoff.js';
+import { scenePicker } from '../ui/scene-picker.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 import { priceTag } from '../ui/video-job.js';
@@ -34,6 +35,7 @@ ${EXPORT_GUIDE}
 ## What the clip shows
 The picture is the end of the Session. The clip carries that moment on for five seconds: the action each person is in the middle of plays through, and the next beat the last turns set up begins, such as a knock landing and the man outside leaning in, or a head turning towards whoever just spoke. Go no further than that beat: no answers, decisions or events the Session has not reached, no new characters, no cuts or scene changes.
 - If the last turn is the player's and nobody has answered it, the clip shows that action happening.
+- If the user message says the picture shows the first moment of the last scene, the clip plays that scene out instead: its main physical action, in story order, condensed into the clip, and ending where the Session ends.
 - The people must visibly move. Never write that someone stays still, holds their position or remains motionless: even a quiet moment has a breath, a shift of weight, a turn of the head, a hand that moves.
 
 ## The motion prompt
@@ -56,10 +58,16 @@ export function renderDreamGenVideo(root) {
   const posed = el('input', { type: 'checkbox' });
   const posedRow = el('label', { class: 'inline small', title: 'Starts the motion prompt with the characters turning from the camera into the scene. Ticked by itself when the picture was drawn with Will animate.' },
     posed, 'Faces posed for the camera: turn them back into the scene at the start');
+  // Ticked when the picture shows the first moment of the last (or picked) scene: Draw the DreamGen
+  // Scene with Will animate draws that. The motion prompt then plays the scene out from there.
+  const opening = el('input', { type: 'checkbox' });
+  const openingRow = el('label', { class: 'inline small', title: 'The motion prompt plays the scene out from its start, instead of carrying the final moment on. Ticked by itself when the picture was drawn with Will animate.' },
+    opening, 'The picture shows the scene’s first moment: play the scene out');
   // Pictures embedded in a JSON export (a location, a character): any can be the first frame.
   const pictures = exportPictures({ actions: [{ label: 'Use as first frame', onclick: (i) => setFrame(i.file, `From the export: ${i.name || i.kind}.`) }] });
-  function setFrame(file, note = '', facesPosed = false) {
+  function setFrame(file, note = '', facesPosed = false, sceneStart = false) {
     posed.checked = !!facesPosed;
+    opening.checked = !!sceneStart;
     if (st.frameUrl) URL.revokeObjectURL(st.frameUrl);
     st.frame = file;
     st.frameUrl = file ? URL.createObjectURL(file) : null;
@@ -82,9 +90,16 @@ export function renderDreamGenVideo(root) {
     rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, MOTION_SYSTEM_PROMPT),
       el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = MOTION_SYSTEM_PROMPT; } })), 'system_prompt'));
+  // Pick the scene, as in Draw the DreamGen Scene: works on the whole export as loaded (st.full), and
+  // shares its kept split, so a scene picked there is picked here too for the same session.
+  const picker = scenePicker({
+    chatForm, getText: () => st.full || '', budget: () => 10000,
+    onPick: (text) => { if (st.full) { exportBox.value = text ?? st.full; countExport(); } },
+  });
   const motionForm = el('form', { class: 'tool-form' },
     el('div', { class: 'row' }, useSession, el('label', { class: 'inline' }, 'or load an export ', exportFile)),
     sessionNote,
+    el('details', { class: 'scene-pick-fold' }, el('summary', { text: 'Pick the scene (optional)' }), picker.node),
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'row' },
       el('button', { type: 'button', class: 'secondary', text: 'Keep only the last 10k tokens of the Session', onclick: () => {
@@ -122,7 +137,7 @@ export function renderDreamGenVideo(root) {
         'As with Draw the DreamGen Scene: nothing is sent to us or to any third party except your own requests, with your own key, to the provider you chose. ',
         'The picture and the session stay in this browser; the picture is passed between the two tools in memory and is gone after a reload.')),
     el('section', { class: 'tool-step' }, el('h3', { text: '1. Scene picture' }),
-      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, posedRow, pictures.node),
+      preview, el('div', { class: 'row' }, useLast, el('label', { class: 'inline' }, 'or upload ', upload)), pictureNote, posedRow, openingRow, pictures.node),
     // As in Draw the DreamGen Scene: the details of the last run sit under its button, and the text it
     // wrote is in the box below, which may have been edited since.
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Motion prompt' }), motionForm, motionOut,
@@ -154,6 +169,7 @@ export function renderDreamGenVideo(root) {
   style.sync();
   keepDrafts(root, 'dgvideo', { skip: ['generate_audio', 'video-model', 'style_custom', 'max_tokens'] });
   countExport();
+  picker.reset();
 
   // The handoff from Draw the DreamGen Scene: offered when there is one, and taken at once when
   // the tool opens with nothing chosen yet.
@@ -166,21 +182,30 @@ export function renderDreamGenVideo(root) {
   const takeHandoff = () => {
     const s = scenePicture();
     if (!s) return;
-    setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed);
-    if (s.exportText) { exportBox.value = s.exportText; countExport(); sessionNote.textContent = 'The session as it was sent for that picture.'; }
+    setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed, s.opening);
+    takeSession(s);
     if (s.prompt) imagePrompt.value = s.prompt;
     if (s.pictures?.length) pictures.set(s.pictures);
   };
-  useLast.addEventListener('click', () => { const s = scenePicture(); if (s) setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed); });
+  useLast.addEventListener('click', () => { const s = scenePicture(); if (s) setFrame(s.file, `From Draw the DreamGen Scene${s.title ? `: ${s.title}` : ''}.`, s.posed, s.opening); });
   useSession.addEventListener('click', () => {
     const s = scenePicture();
     if (!s?.exportText) return;
-    exportBox.value = s.exportText;
-    countExport();
+    takeSession(s);
     if (s.prompt) imagePrompt.value = s.prompt;
     if (s.pictures?.length) pictures.set(s.pictures);
     sessionNote.textContent = 'The session as it was sent for the last drawn picture.';
   });
+  // The session from Draw: the text it sent (cut to its picked scene, if any), and the whole export
+  // for picking another scene here.
+  function takeSession(s) {
+    if (!s.exportText) return;
+    st.full = s.fullText || s.exportText;
+    picker.reset();
+    exportBox.value = s.exportText;
+    countExport();
+    sessionNote.textContent = 'The session as it was sent for that picture.';
+  }
   document.addEventListener('scene-picture', syncHandoff);
   syncHandoff();
   if (scenePicture() && !st.frame) takeHandoff();
@@ -193,7 +218,9 @@ export function renderDreamGenVideo(root) {
       const text = await f.text();
       const isJson = /\.json$/i.test(f.name) || /^\s*[{[]/.test(text);
       const s = isJson ? dreamGenJsonToMarkdown(JSON.parse(text)) : readDreamGenMarkdown(text, f.name);
+      st.full = s.text;
       exportBox.value = s.text;
+      picker.reset();
       countExport();
       sessionNote.textContent = `${s.title} · ${s.format} · ${s.turns.toLocaleString()} turns.`;
       pictures.set(s.images);
@@ -211,7 +238,7 @@ export function renderDreamGenVideo(root) {
       const model = chosenModel(chatForm);
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const seen = imagePrompt.value.trim();
-      const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}${posed.checked ? 'The picture was posed with every face turned to the camera, so the video model can keep the faces. A line before your prompt already has them turn away from the camera at the start; describe what they do once they have turned.\n\n' : ''}Write the motion prompt for the moment the picture holds: the final moment of the last scene.`;
+      const text = `${exported}\n\n---\n\n${seen ? `The picture the clip starts from was drawn from this prompt:\n${seen}\n\n` : ''}${posed.checked ? 'The picture was posed with every face turned to the camera, so the video model can keep the faces. A line before your prompt already has them turn away from the camera at the start; describe what they do once they have turned.\n\n' : ''}${opening.checked ? 'The picture shows the first moment of the last scene. Write the motion prompt that plays the scene out from there.' : 'Write the motion prompt for the moment the picture holds: the final moment of the last scene.'}`;
       const system = chatForm.elements.system.value.trim();
       const t0 = Date.now();
       const { resp, request: body } = await send('chat', {

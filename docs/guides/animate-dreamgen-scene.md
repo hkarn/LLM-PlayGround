@@ -29,9 +29,10 @@ The models are shared between the tools: a chat, image or video model chosen in 
 ### 1. Scene picture
 
 The picture becomes the clip's first frame.
-A video model can only keep a face it sees in that frame, so a character with their back turned can come out as someone else. When you draw the picture for a clip, tick **Will animate** under step 4 of Draw the DreamGen Scene to ask for every face turned to the camera.
+A video model can only keep a face it sees in that frame, so a character with their back turned can come out as someone else. When you draw the picture for a clip, tick **Will animate** in step 2 of Draw the DreamGen Scene: it draws the scene's first moment, with every face turned to the camera.
 
 - **Faces posed for the camera** is ticked by itself when the picture comes from Draw the DreamGen Scene drawn with Will animate (and cleared when you pick another picture). It puts a line at the start of the motion prompt sent to the video model, saying the characters face the camera at first and turn away into the action within the first second, and tells the chat model writing the motion prompt to describe what they do after that. Tick it yourself for an uploaded picture posed the same way.
+- **The picture shows the scene's first moment** is ticked by itself together with it. The motion prompt then plays the scene out from that moment, its main physical action in order, condensed into the clip and ending where the session ends, instead of carrying a final moment on. Untick it for a picture of the scene's last moment.
 
 - **Use the last drawn scene** takes the latest picture from Draw the DreamGen Scene. It is passed in memory, so it is gone after a reload.
 - **Pictures in the export** appears when you load a JSON export with images (in step 2, or one loaded in Draw the DreamGen Scene before pressing **Animate this picture →**). Open it to see every picture with its DreamGen caption (characters, locations, objects, the cover) and press **Use as first frame** on one, for example a location. Each picture also has **Download** (as it is, usually WebP) and **JPEG** buttons. Loading sends nothing.
@@ -40,6 +41,7 @@ A video model can only keep a face it sees in that frame, so a character with th
 ### 2. Motion prompt
 
 1. Give it the session: **Use the session from Draw the DreamGen Scene**, or **load an export**, or paste one. **Keep only the last 10k tokens of the Session** saves tokens.
+   - **Pick the scene (optional)** works as in Draw the DreamGen Scene: it suggests the scenes, lists them with the last picked, and lets you adjust the start and end in the transcript. A scene picked in Draw for the same session is picked here too, without a new request.
 2. **What the picture shows** is filled in from Draw the DreamGen Scene, so the model knows what's in the frame. You can edit it.
 3. Press **Write motion prompt**. It uses the chat model from the settings panel. The model writes one to three sentences that play out the moment the picture holds: what each person is in the middle of finishes, and the next beat the story set up begins, without going past where the session ends. It names people by how they look, since the video model doesn't know the story, then adds what else moves (wind, water, light) and how the camera moves.
 

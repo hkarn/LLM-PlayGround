@@ -28,6 +28,7 @@ ${EXPORT_GUIDE}
 ## The picture
 - Draw the last scene's final moment: where everyone is and what they are doing after the last turn. People who left during the scene are gone and people who arrived are there. Someone reached by phone, letter, message or magic from a distance is not in the room.
 - If the last turn is the player's and nobody has answered it, show that action as it begins.
+- If the user message asks for the first moment of the last scene instead, draw that: everyone where they are as the scene opens, about to start what the scene goes on to show.
 
 ## Reply
 Reply with JSON only, in this shape:
@@ -68,6 +69,12 @@ export function renderDreamGenScene(root) {
     rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
       el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })), 'system_prompt'));
+  // For a picture that will be animated: it shows the first moment of the last (or picked) scene,
+  // so the clip can play the scene out, and asks for every face turned to the camera, since a video
+  // model can only keep a face it can see in the first frame. Remembered in this browser.
+  const willAnimate = el('input', { type: 'checkbox' });
+  willAnimate.checked = store.get('dgscene_animate') === '1';
+  willAnimate.addEventListener('change', () => store.set('dgscene_animate', willAnimate.checked ? '1' : '0'));
   const promptForm = el('form', { class: 'tool-form' },
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
@@ -81,6 +88,8 @@ export function renderDreamGenScene(root) {
       undoBtn,
       el('button', { type: 'button', class: 'secondary', text: 'Restore the full export', onclick: () => { if (st.session) setExport(st.session.text); } })),
     trimNote,
+    el('label', { class: 'inline', title: 'The prompt describes the first moment of the scene instead of its last, and asks for every face turned to the camera, so Animate the DreamGen Scene can play the scene out from this picture.' },
+      willAnimate, 'Will animate: draw the scene’s first moment, every face to the camera'),
     el('label', {}, 'Note for this picture (optional)', el('input', { name: 'focus', placeholder: 'e.g. focus on the moment she opens the letter; wide shot' })),
     el('button', { type: 'submit', class: 'primary', text: 'Write image prompt' }));
   const promptOut = el('div', { class: 'result' });
@@ -139,14 +148,7 @@ export function renderDreamGenScene(root) {
         ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
       el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
         ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))));
-  // For a picture that will be animated: a video model can only keep a face it can see in the
-  // first frame, so this asks for every face turned to the camera. Remembered in this browser.
-  const willAnimate = el('input', { type: 'checkbox' });
-  willAnimate.checked = store.get('dgscene_animate') === '1';
-  willAnimate.addEventListener('change', () => store.set('dgscene_animate', willAnimate.checked ? '1' : '0'));
   const imageForm = el('form', { class: 'tool-form' },
-    el('label', { class: 'inline', title: 'Adds an instruction to the image prompt to show every face to the camera. A video model cannot keep a face it does not see in the first frame.' },
-      willAnimate, 'Will animate: show every face to the camera'),
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
@@ -238,7 +240,7 @@ export function renderDreamGenScene(root) {
       const model = chosenModel(chatForm);
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const focus = promptForm.elements.focus.value.trim();
-      const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
+      const text = `${exported}\n\n---\n\n${willAnimate.checked ? 'Write the prompt for the first moment of the last scene: this picture is the first frame of a video clip that plays the scene out.' : 'Write the prompt for the final moment of the last scene.'}${focus ? `\n\nNote from the user about the picture: ${focus}` : ''}`;
       const system = chatForm.elements.system.value.trim();
       const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
@@ -323,7 +325,7 @@ export function renderDreamGenScene(root) {
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
-      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images, posed: willAnimate.checked });
+      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images, posed: willAnimate.checked, opening: willAnimate.checked, fullText: st.session?.text });
     });
   });
 

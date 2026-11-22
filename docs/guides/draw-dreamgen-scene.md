@@ -39,6 +39,7 @@ Load the export file. The tool shows its title, how many turns it has, the playe
    - **Undo** puts back what was cut; **Restore the full export** starts over.
    - Above the Session, you can delete what the picture doesn't need, such as Examples, Openings and game rules.
 2. Optionally add a **Note for this picture**, such as "focus on the moment she opens the letter; wide shot".
+   - **Will animate: draw the scene's first moment, every face to the camera:** tick it before writing the prompt when the picture will become a clip. The prompt then describes the first moment of the last scene (or of the scene you picked) instead of its last, so the clip can play the scene out from there, and step 4 adds an instruction to show every character's face clearly to the camera, because a video model can only keep a face it sees in the first frame. The choice is remembered in this browser. **Animate this picture →** passes this on: the clip turns them back into the scene and plays it out (see **Faces posed for the camera** and **The picture shows the scene's first moment** in that guide).
 3. Press **Write image prompt**. It uses the chat model from the settings panel.
 
 The model's prompt appears in step 3. It names and describes each visible character, so it works even without portraits.
@@ -58,7 +59,6 @@ Press **Draw the scene**. It uses the image model and options from the settings 
 
 - With portraits, the picture is made as an image edit, so the model can use their faces and looks.
 - Without portraits, it is a plain image generation.
-- **Will animate: show every face to the camera:** tick it when the picture will become a clip. It adds an instruction to the prompt to show every character's face clearly to the camera, not from behind, turned away, covered or in deep shadow, because a video model can only keep a face it sees in the first frame. The choice is remembered in this browser. Animate this picture → then turns them back into the scene at the start of the clip (see **Faces posed for the camera** in that guide).
 
 When the picture is done, **Animate this picture →** opens [Animate the DreamGen Scene](animate-dreamgen-scene.md) with this picture and this session.
 

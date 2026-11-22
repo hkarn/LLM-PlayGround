@@ -750,3 +750,37 @@ a.button-link:hover { filter: brightness(1.08); }
 .model-picker .model-facts > summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 .model-picker .model-facts p { margin: 6px 0 0; }
 .tip-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+
+/* Pick the scene (ui/scene-picker.js): the suggested scenes as a list of choices, newest first, and
+   the pop-out that moves the picked scene's first and last paragraph in the transcript. */
+.scene-pick-fold { margin-top: 10px; }
+.scene-pick-fold > summary { cursor: pointer; font-weight: 600; }
+.scene-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.scene-list { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.scene-row { display: flex; flex-direction: row; font-weight: normal; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.scene-row:hover { border-color: var(--accent); }
+.scene-row.on { border-color: var(--accent); background: var(--highlight); }
+.scene-row input { margin-top: 3px; }
+.scene-row-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scene-row-body .small-btn { align-self: flex-start; margin-top: 4px; }
+.scene-picked:empty { display: none; }
+.scene-edit { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .55); display: flex; padding: 3vh 3vw; }
+.scene-edit-panel { background: var(--surface); color: var(--text); border-radius: 10px; flex: 1; display: flex; flex-direction: column; min-height: 0; max-width: 1100px; margin: 0 auto; padding: 12px 14px; gap: 6px; }
+.scene-edit-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.scene-edit-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.scene-edit-body { overflow-y: auto; flex: 1; min-height: 0; border-top: 1px solid var(--border); padding-top: 6px; }
+.scene-para { display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: start; padding: 4px 6px; border-left: 3px solid transparent; }
+.scene-para.in { background: var(--highlight); border-left-color: var(--accent); }
+.scene-para.first { border-top: 2px solid var(--accent); }
+.scene-para.last { border-bottom: 2px solid var(--accent); }
+.scene-para-text { cursor: pointer; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.scene-para-btns { display: flex; gap: 4px; opacity: .35; }
+.scene-para:hover .scene-para-btns, .scene-para:focus-within .scene-para-btns, .scene-para.first .scene-para-btns, .scene-para.last .scene-para-btns { opacity: 1; }
+@media (hover: none) { .scene-para-btns { opacity: 1; } }
+.scene-divider { display: block; width: 100%; text-align: left; margin: 10px 0 2px; padding: 4px 8px; border: 0; border-radius: 6px; background: var(--code-bg); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.scene-divider:hover { color: var(--text); }
+@media (max-width: 640px) {
+  .scene-edit { padding: 0; }
+  .scene-edit-panel { border-radius: 0; }
+  .scene-para { grid-template-columns: 1fr; }
+}

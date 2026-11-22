@@ -18,6 +18,7 @@ import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
+import { scenePicker } from '../ui/scene-picker.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
@@ -103,6 +104,12 @@ export function renderDreamGenScene(root) {
     trimNote.textContent = `Cut ${cut.toLocaleString()} paragraphs from the start of the Session. Check where it now begins; Undo puts them back.`;
   }
   exportBox.addEventListener('input', countExport);
+  // Pick the scene: a suggested split of the Session; the pick becomes the text above (cut after the
+  // scene's end, marked where it starts). "Whole session" puts the export back as loaded.
+  const picker = scenePicker({
+    chatForm, getText: () => st.session?.text || '', budget: () => Number(promptForm.elements.trim_tokens.value),
+    onPick: (text) => { if (st.session) setExport(text ?? st.session.text); },
+  });
 
   // 3. Prompt, characters and reference portraits
   const sceneLine = el('div', { class: 'muted small' });
@@ -158,7 +165,8 @@ export function renderDreamGenScene(root) {
         'What reaches a third party is what you send with your own key to the provider you chose, and what that provider and its models do with it is between you and them. ',
         'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage, and what you type in session storage (this tab only) so a reload does not clear it.'),
       el('p', { class: 'small' }, el('strong', { text: 'Feedback. ' }), 'Send ideas and problems with this tool to Zorander on the DreamGen Discord.')),
-    el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
+    el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary,
+      el('details', { class: 'scene-pick-fold' }, el('summary', { text: 'Pick the scene (optional)' }), picker.node)),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
       sceneLine,
@@ -192,9 +200,10 @@ export function renderDreamGenScene(root) {
   rememberModel(chatForm, 'chat', ['max_tokens']);
   rememberModel(imageSet, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
   layout.refresh();
+  picker.reset();
   const trimSelect = promptForm.elements.trim_tokens;
   if ([...trimSelect.options].some((o) => o.value === store.get('dgscene_trim'))) trimSelect.value = store.get('dgscene_trim');
-  trimSelect.addEventListener('change', () => store.set('dgscene_trim', trimSelect.value));
+  trimSelect.addEventListener('change', () => { store.set('dgscene_trim', trimSelect.value); picker.refresh(); });
 
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -210,11 +219,13 @@ export function renderDreamGenScene(root) {
           s.images.length ? ` · ${s.images.length} pictures embedded` : ''));
       undo.length = 0;
       setExport(s.text, { keepUndo: true });
+      picker.reset();
       // Every embedded picture is listed in step 3, unticked; the ones for the characters the
       // model puts in the scene are ticked when the prompt is written. Nothing is sent by loading.
       portraits.set(s.images.map((i) => ({ name: i.name, file: i.file, kind: i.kind, send: false, fromExport: true, index: i.index, caption: i.name, alias: i.alias })));
     } catch (err) {
       st.session = null;
+      picker.reset();
       summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
     }
   });

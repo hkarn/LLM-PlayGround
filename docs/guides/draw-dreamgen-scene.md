@@ -25,6 +25,13 @@ The models are shared between the tools: a chat, image or video model chosen in 
 
 Load the export file. The tool shows its title, how many turns it has, the player's character, and how many pictures are embedded in it (JSON exports with images carry them: characters, personas, locations, objects, the narrator and the cover).
 
+**Pick the scene (optional).** By default the picture is of the last scene. To draw an earlier one, open **Pick the scene** and press **Find scenes**: the chat model from the settings panel reads the whole Session and suggests where each scene starts (one paid request; the line next to the button says how many tokens it sends). The scenes are listed newest first, each with its paragraph range, place, time, who is there and what happens, and the last one is picked.
+
+- Pick another scene in the list, or **Whole session** to go back to the export as loaded.
+- The split is a suggestion and often rough. **Adjust start and end** opens the transcript with the picked scene highlighted: press **Start** or **End** on any paragraph to move the scene's first or last paragraph, click a paragraph's text to read all of it, or click a scene heading to pick that suggested scene. **Use this scene** keeps your range.
+- The pick changes the session text in step 2: it ends with the picked scene, a line `=== THE PICKED SCENE STARTS HERE ===` marks where it starts, and earlier paragraphs fill up to the **Keep the last** size. The prompt writer then treats the picked scene as the last one.
+- The suggested scenes and your pick are kept in this tab, so loading the same export again after a reload brings them back without a new request.
+
 ### 2. Write the image prompt
 
 1. Check the **Session to send**. The whole export is sent, and a long game costs many tokens, so you can edit it down first:

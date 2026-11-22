@@ -25,6 +25,13 @@ The models are shared between the tools: a chat, image or video model chosen in 
 
 Load the export file. The tool shows its title, how many turns it has, the player's character, and how many pictures are embedded in it (JSON exports with images carry them: characters, personas, locations, objects, the narrator and the cover).
 
+**Pick the scene (optional).** By default the picture is of the last scene. To draw an earlier one, open **Pick the scene** and press **Find scenes**: the chat model from the settings panel reads the whole Session and suggests where each scene starts (one paid request; the line next to the button says how many tokens it sends). The scenes are listed newest first, each with its paragraph range, place, time, who is there and what happens, and the last one is picked.
+
+- Pick another scene in the list, or **Whole session** to go back to the export as loaded.
+- The split is a suggestion and often rough. **Adjust start and end** opens the transcript with the picked scene highlighted: press **Start** or **End** on any paragraph to move the scene's first or last paragraph, click a paragraph's text to read all of it, or click a scene heading to pick that suggested scene. **Use this scene** keeps your range.
+- The pick changes the session text in step 2: it ends with the picked scene, a line `=== THE PICKED SCENE STARTS HERE ===` marks where it starts, and earlier paragraphs fill up to the **Keep the last** size. The prompt writer then treats the picked scene as the last one.
+- The suggested scenes and your pick are kept in this tab, so loading the same export again after a reload brings them back without a new request.
+
 ### 2. Write the image prompt
 
 1. Check the **Session to send**. The whole export is sent, and a long game costs many tokens, so you can edit it down first:
@@ -32,6 +39,7 @@ Load the export file. The tool shows its title, how many turns it has, the playe
    - **Undo** puts back what was cut; **Restore the full export** starts over.
    - Above the Session, you can delete what the picture doesn't need, such as Examples, Openings and game rules.
 2. Optionally add a **Note for this picture**, such as "focus on the moment she opens the letter; wide shot".
+   - **Will animate: draw the scene's first moment, every face to the camera:** tick it before writing the prompt when the picture will become a clip. The prompt then describes the first moment of the last scene (or of the scene you picked) instead of its last, so the clip can play the scene out from there, and step 4 adds an instruction to show every character's face clearly to the camera, because a video model can only keep a face it sees in the first frame. The choice is remembered in this browser. **Animate this picture →** passes this on: the clip turns them back into the scene and plays it out (see **Faces posed for the camera** and **The picture shows the scene's first moment** in that guide).
 3. Press **Write image prompt**. It uses the chat model from the settings panel.
 
 The model's prompt appears in step 3. It names and describes each visible character, so it works even without portraits.
@@ -51,7 +59,6 @@ Press **Draw the scene**. It uses the image model and options from the settings 
 
 - With portraits, the picture is made as an image edit, so the model can use their faces and looks.
 - Without portraits, it is a plain image generation.
-- **Will animate: show every face to the camera:** tick it when the picture will become a clip. It adds an instruction to the prompt to show every character's face clearly to the camera, not from behind, turned away, covered or in deep shadow, because a video model can only keep a face it sees in the first frame. The choice is remembered in this browser. Animate this picture → then turns them back into the scene at the start of the clip (see **Faces posed for the camera** in that guide).
 
 When the picture is done, **Animate this picture →** opens [Animate the DreamGen Scene](animate-dreamgen-scene.md) with this picture and this session.
 

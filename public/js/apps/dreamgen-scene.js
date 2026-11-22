@@ -18,6 +18,7 @@ import { asJpeg } from '../ui/frame-image.js';
 import { imageToFile, setScenePicture } from '../ui/scene-handoff.js';
 import { sceneStylePicker } from '../ui/scene-styles.js';
 import { runStep } from '../ui/run-step.js';
+import { SCENE_MARK, scenePicker } from '../ui/scene-picker.js';
 import { aboutBox, panelSection, toolLayout } from '../ui/tool-layout.js';
 
 export const SCENE_SYSTEM_PROMPT = `You read an exported DreamGen role-play game and write one prompt for an image model: a single still picture of the final moment of the last scene.
@@ -27,6 +28,7 @@ ${EXPORT_GUIDE}
 ## The picture
 - Draw the last scene's final moment: where everyone is and what they are doing after the last turn. People who left during the scene are gone and people who arrived are there. Someone reached by phone, letter, message or magic from a distance is not in the room.
 - If the last turn is the player's and nobody has answered it, show that action as it begins.
+- If the user message asks for the first moment of the last scene instead, draw that: everyone where they are as the scene opens, about to start what the scene goes on to show.
 
 ## Reply
 Reply with JSON only, in this shape:
@@ -67,6 +69,12 @@ export function renderDreamGenScene(root) {
     rememberFold(el('details', {}, el('summary', { text: 'System prompt' }),
       el('textarea', { name: 'system', rows: 12 }, SCENE_SYSTEM_PROMPT),
       el('button', { type: 'button', class: 'secondary small-btn', text: 'Reset to default', onclick: () => { chatForm.elements.system.value = SCENE_SYSTEM_PROMPT; } })), 'system_prompt'));
+  // For a picture that will be animated: it shows the first moment of the last (or picked) scene,
+  // so the clip can play the scene out, and asks for every face turned to the camera, since a video
+  // model can only keep a face it can see in the first frame. Remembered in this browser.
+  const willAnimate = el('input', { type: 'checkbox' });
+  willAnimate.checked = store.get('dgscene_animate') === '1';
+  willAnimate.addEventListener('change', () => store.set('dgscene_animate', willAnimate.checked ? '1' : '0'));
   const promptForm = el('form', { class: 'tool-form' },
     el('label', {}, el('span', {}, 'Session to send ', exportCount), exportBox),
     el('div', { class: 'notice small' },
@@ -80,6 +88,8 @@ export function renderDreamGenScene(root) {
       undoBtn,
       el('button', { type: 'button', class: 'secondary', text: 'Restore the full export', onclick: () => { if (st.session) setExport(st.session.text); } })),
     trimNote,
+    el('label', { class: 'inline', title: 'The prompt describes the first moment of the scene instead of its last, and asks for every face turned to the camera, so Animate the DreamGen Scene can play the scene out from this picture.' },
+      willAnimate, 'Will animate: draw the scene’s first moment, every face to the camera'),
     el('label', {}, 'Note for this picture (optional)', el('input', { name: 'focus', placeholder: 'e.g. focus on the moment she opens the letter; wide shot' })),
     el('button', { type: 'submit', class: 'primary', text: 'Write image prompt' }));
   const promptOut = el('div', { class: 'result' });
@@ -94,6 +104,7 @@ export function renderDreamGenScene(root) {
     exportBox.value = text;
     trimNote.textContent = '';
     countExport();
+    picker.sync(text); // a restore, trim or undo that drops the scene's marker un-picks it
   }
   function trimSession() {
     const { text, cut, error } = trimSessionTo(exportBox.value, Number(promptForm.elements.trim_tokens.value));
@@ -102,7 +113,22 @@ export function renderDreamGenScene(root) {
     setExport(text);
     trimNote.textContent = `Cut ${cut.toLocaleString()} paragraphs from the start of the Session. Check where it now begins; Undo puts them back.`;
   }
-  exportBox.addEventListener('input', countExport);
+  exportBox.addEventListener('input', () => { countExport(); picker.sync(exportBox.value); pastedChanged(); });
+  // An export pasted into the box (no file loaded) is what the scenes are found in. Checked after a
+  // pause in typing, and at start-up for a box restored after a reload.
+  let pasteTimer;
+  const pastedChanged = () => {
+    if (st.session || exportBox.value.includes(SCENE_MARK)) return;
+    clearTimeout(pasteTimer);
+    pasteTimer = setTimeout(() => { st.pasted = exportBox.value; picker.reset(); }, 600);
+  };
+  const sourceText = () => st.session?.text || st.pasted || '';
+  // Pick the scene: a suggested split of the Session; the pick becomes the text above (cut after the
+  // scene's end, marked where it starts). "Whole session" puts the export back as loaded.
+  const picker = scenePicker({
+    chatForm, getText: sourceText, budget: () => Number(promptForm.elements.trim_tokens.value),
+    onPick: (text) => { if (sourceText()) setExport(text ?? sourceText()); },
+  });
 
   // 3. Prompt, characters and reference portraits
   const sceneLine = el('div', { class: 'muted small' });
@@ -132,14 +158,7 @@ export function renderDreamGenScene(root) {
         ...['1K', '2K', '4K'].map((v) => el('option', { text: v })))),
       el('label', {}, 'Quality', el('select', { name: 'quality' }, el('option', { value: '', text: 'default' }),
         ...['auto', 'low', 'medium', 'high'].map((v) => el('option', { text: v }))))));
-  // For a picture that will be animated: a video model can only keep a face it can see in the
-  // first frame, so this asks for every face turned to the camera. Remembered in this browser.
-  const willAnimate = el('input', { type: 'checkbox' });
-  willAnimate.checked = store.get('dgscene_animate') === '1';
-  willAnimate.addEventListener('change', () => store.set('dgscene_animate', willAnimate.checked ? '1' : '0'));
   const imageForm = el('form', { class: 'tool-form' },
-    el('label', { class: 'inline', title: 'Adds an instruction to the image prompt to show every face to the camera. A video model cannot keep a face it does not see in the first frame.' },
-      willAnimate, 'Will animate: show every face to the camera'),
     el('button', { type: 'submit', class: 'primary', text: 'Draw the scene' }));
   const imageOut = el('div', { class: 'result' });
 
@@ -158,7 +177,8 @@ export function renderDreamGenScene(root) {
         'What reaches a third party is what you send with your own key to the provider you chose, and what that provider and its models do with it is between you and them. ',
         'The browser keeps your settings, your chosen models and, if you tick Remember, your key in its own local storage, and what you type in session storage (this tab only) so a reload does not clear it.'),
       el('p', { class: 'small' }, el('strong', { text: 'Feedback. ' }), 'Send ideas and problems with this tool to Zorander on the DreamGen Discord.')),
-    el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary),
+    el('section', { class: 'tool-step' }, el('h3', { text: '1. Session export' }), fileInput, summary,
+      el('details', { class: 'scene-pick-fold' }, el('summary', { text: 'Pick the scene (optional)' }), picker.node)),
     el('section', { class: 'tool-step' }, el('h3', { text: '2. Write the image prompt' }), promptForm, promptOut),
     el('section', { class: 'tool-step' }, el('h3', { text: '3. Prompt and reference portraits' }),
       sceneLine,
@@ -192,9 +212,11 @@ export function renderDreamGenScene(root) {
   rememberModel(chatForm, 'chat', ['max_tokens']);
   rememberModel(imageSet, 'image', ['size', 'aspect_ratio', 'resolution', 'quality']);
   layout.refresh();
+  st.pasted = exportBox.value.includes(SCENE_MARK) ? '' : exportBox.value; // restored after a reload
+  picker.reset();
   const trimSelect = promptForm.elements.trim_tokens;
   if ([...trimSelect.options].some((o) => o.value === store.get('dgscene_trim'))) trimSelect.value = store.get('dgscene_trim');
-  trimSelect.addEventListener('change', () => store.set('dgscene_trim', trimSelect.value));
+  trimSelect.addEventListener('change', () => { store.set('dgscene_trim', trimSelect.value); picker.refresh(); });
 
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -210,11 +232,13 @@ export function renderDreamGenScene(root) {
           s.images.length ? ` · ${s.images.length} pictures embedded` : ''));
       undo.length = 0;
       setExport(s.text, { keepUndo: true });
+      picker.reset();
       // Every embedded picture is listed in step 3, unticked; the ones for the characters the
       // model puts in the scene are ticked when the prompt is written. Nothing is sent by loading.
       portraits.set(s.images.map((i) => ({ name: i.name, file: i.file, kind: i.kind, send: false, fromExport: true, index: i.index, caption: i.name, alias: i.alias })));
     } catch (err) {
       st.session = null;
+      picker.reset();
       summary.replaceChildren(el('div', { class: 'output error', text: `Could not read ${f.name}: ${err.message}` }));
     }
   });
@@ -227,7 +251,7 @@ export function renderDreamGenScene(root) {
       const model = chosenModel(chatForm);
       if (!model) throw new Error('Pick or type a chat model first (Settings).');
       const focus = promptForm.elements.focus.value.trim();
-      const text = `${exported}\n\n---\n\n${focus ? `Note from the user about the picture: ${focus}` : 'Write the prompt for the final moment of the last scene.'}`;
+      const text = `${exported}\n\n---\n\n${willAnimate.checked ? 'Write the prompt for the first moment of the last scene: this picture is the first frame of a video clip that plays the scene out.' : 'Write the prompt for the final moment of the last scene.'}${focus ? `\n\nNote from the user about the picture: ${focus}` : ''}`;
       const system = chatForm.elements.system.value.trim();
       const t0 = Date.now();
       const { resp, request: body } = await send('chat', {
@@ -312,7 +336,7 @@ export function renderDreamGenScene(root) {
       // References go as JPEG, the one format every tested image model takes (DreamGen saves AVIF,
       // and JSON exports embed WebP).
       const input = kind === 'imageEdit' ? { ...fields, images: await Promise.all(sent.map((r) => asJpeg(r.file))) } : fields;
-      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images, posed: willAnimate.checked });
+      await draw(kind, input, { prompt: promptBox.value.trim(), exportText: exportBox.value, title: st.session?.title, pictures: st.session?.images, posed: willAnimate.checked, opening: willAnimate.checked, fullText: st.session?.text });
     });
   });
 

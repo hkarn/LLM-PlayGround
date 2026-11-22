@@ -292,6 +292,18 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   return {
     // blocked(): why there is no model to use here (the shared choice doesn't suit this tool), or ''.
     root, frames, price, refresh, read, model, priceNow, blocked,
+    // A copy of the Duration choice to show elsewhere in the tool (Animate's motion prompt step): it
+    // keeps the model's options and the value in step with the one in the panel, both ways.
+    durationMirror() {
+      const main = $('select', duration);
+      const copy = el('select', { 'aria-label': 'Clip length (s)' });
+      const sync = () => { copy.replaceChildren(...[...main.options].map((o) => el('option', { value: o.value, text: o.text }))); copy.value = main.value; copy.disabled = main.disabled || !main.options.length; };
+      new MutationObserver(sync).observe(main, { childList: true });
+      main.addEventListener('change', sync);
+      copy.addEventListener('change', () => { main.value = copy.value; main.dispatchEvent(new Event('change', { bubbles: true })); });
+      sync();
+      return copy;
+    },
     // Frames the tool supplies itself (Animate the DreamGen Scene's scene picture) count in the price.
     setFrameCount(n) { externalFrames = n; update(); },
   };

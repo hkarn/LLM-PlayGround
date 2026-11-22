@@ -117,6 +117,9 @@ export function trimSessionTo(text, maxTokens) {
   return { text: `${head}\n\n${TRIM_MARK}\n\n${paras.slice(start).join('\n\n')}\n`, cut: start };
 }
 
+// The line a picked scene starts with (ui/scene-picker.js); the export text then ends with that scene.
+export const SCENE_MARK = '=== THE PICKED SCENE STARTS HERE ===';
+
 // How to read an export and find its last scene: the shared part of the system prompts of Draw the
 // DreamGen Scene (the picture) and Animate the DreamGen Scene (the motion prompt).
 export const EXPORT_GUIDE = `## How to read the export
@@ -133,9 +136,10 @@ Inside the Session:
 - "[Name]: text" is a turn by that character. Plain paragraphs are narration, or continue the turn above them.
 - The player's character has their own name in "[Name]:" turns, usually written in the first person ("I open the door"). Narration may call them "you" or use their name. All of these are the same person.
 - "[Instruction]: text" is the player speaking out of character to the AI. It is not story; ignore it.
+- A line "${SCENE_MARK}" means the user picked the scene to work on: the last scene starts at that line, and the Session ends where the picked scene ends.
 - <hidden>...</hidden> blocks are the game's private tracking: who is nearby or elsewhere and what they are doing, faction moves, a clock. Use them only to check who is where and when. Never put something in the picture only because a hidden block mentions it, and never put anyone there whom it places somewhere else.
 - Time and place lines open scenes and in some games repeat on later turns: "Day 2 · 06:10 · North gate", "[Day 0 · 22:54 · The workshop]", "Tuesday 3 November, night."
 
 ## Finding the last scene
-- The last scene runs from the most recent change of place or jump in time to the end of the Session. A change is travel, a new location in a time line, sleep, "later", or a new day. Time lines that repeat the same place minutes apart are the same scene.
+- If the Session has the line "${SCENE_MARK}", the last scene starts there. Otherwise the last scene runs from the most recent change of place or jump in time to the end of the Session. A change is travel, a new location in a time line, sleep, "later", or a new day. Time lines that repeat the same place minutes apart are the same scene.
 - A character is present if they speak or act in the last scene or narration places them there. The player's character is present unless the story says otherwise.`;

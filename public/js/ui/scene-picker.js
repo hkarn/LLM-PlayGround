@@ -234,15 +234,21 @@ export function scenePicker({ chatForm, getText, budget, onPick }) {
         max_tokens: num(chatForm, 'max_tokens'), extra,
       }, { signal: form._abort?.signal });
       let resp;
-      for (const extra of tries) {
+      // Only a refusal of the setting itself moves on to the next one: a 400 or 422 whose message
+      // says so ("does not support reasoning"; LLM Gateway's "No available provider could be found"
+      // when no route takes the setting). A bad key, a rate limit or any other error is shown as it is.
+      const refusedSetting = (r) => [400, 422].includes(r.status)
+        && /reasoning|effort|thinking|not support|unsupported|unrecognized|unknown (field|param)|extra (inputs|fields)|no available provider/i.test(JSON.stringify(r.data || ''));
+      for (const [n, extra] of tries.entries()) {
         ({ resp } = await ask(extra));
-        if (resp.ok || resp.status < 400 || resp.status >= 500) break;
+        if (resp.ok || n === tries.length - 1 || !extra || !refusedSetting(resp)) break;
       }
       if (!resp.ok) {
         const detail = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data?.error || resp.data).slice(0, 300);
         // The provider (or a proxy before it) cut the connection while the model was still writing:
         // a long game with a slow model can run past its time limit (LLM Gateway: about 2-3 minutes).
-        const dropped = /fetch failed|other side closed|socket|timed? ?out|ECONNRESET|terminated/i.test(detail) || [502, 504, 524].includes(resp.status);
+        // Only the proxy's own message (fetch's cause) counts; a provider's 502 or 504 is its own error.
+        const dropped = /fetch failed|other side closed|UND_ERR_SOCKET|ECONNRESET|terminated/i.test(detail);
         throw new Error(dropped
           ? `The split failed after ${Math.round((Date.now() - t0) / 1000)} s: the provider closed the connection before ${model} finished. A long game takes a slow model too long. Try a faster chat model (on LLM Gateway, Claude Haiku 5.5 and GPT-5.6 Luna took 8–30 s on 1,500-paragraph games), or try again. (${resp.status} ${detail})`
           : `The split failed: ${resp.status} ${detail}`);

@@ -69,3 +69,4 @@ Decision models are on OpenRouter and Requesty. On OpenRouter, in one test where
 - The characters, settings and chat are saved in your browser, so they're still there next time. To keep several chats, move one to another browser, or share a cast, use **Export** and **Import** in Chat settings.
 - Model names differ between providers. When you import a chat made on another provider, a System message says so: check each character's model (and the default and decision models) before the next round.
 - Every answer is a separate request with the whole chat so far, so long chats cost more tokens per answer.
+- **Replies are streamed.** Each character's reply arrives piece by piece while the model writes, so a slow model isn't cut off by a VPN or proxy that drops quiet connections. Stopping the round stops the reply at the provider too.

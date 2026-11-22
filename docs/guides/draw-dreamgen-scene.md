@@ -70,6 +70,7 @@ When the picture is done, **Animate this picture →** opens [Animate the DreamG
 - Each step's answer shows first. **Request details** holds the status, the request, the raw response and a cURL command, for when something goes wrong.
 - The picture has a bar under it: **Request details** on the left, and on the right **↻ Retry** (draw the same prompt again, at the same price) and the **download** icon (saved as `scene-<date>-<time>.png`). Click the picture to see it larger; Esc or a click outside closes it. Right-click works as usual.
 - What you type is kept if the page reloads (this tab only).
+- **Long answers keep going.** The chat model's answer is streamed: it arrives piece by piece while the model writes, so a slow model or a long export isn't cut off by a VPN or proxy that drops quiet connections (some do after about a minute). **Cancel** stops it at any point, also at the provider. Request details show the whole answer once it is complete.
 
 ## Privacy
 

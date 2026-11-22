@@ -55,6 +55,10 @@ Check the **Price** line, then press **Make video**. It uses the video model and
 
 The job is sent to the provider and runs in the background, so you can make the next clip while it runs. It takes about 15 seconds to a couple of minutes. When it's done, the clip plays here, with the time taken and the price billed. The bar under it has **Request details** on the left, and **↻ Retry** (a new job with the same picture and motion, paid again) and the **download** icon on the right. Every job, from this tool and the Video Generator, is also listed under **Video jobs** in the settings panel, where it carries on after a reload; see [Video jobs](video-generator.md#video-jobs) in the Video Generator guide. The clip pause when you go to another tab or tool, and stay paused when you come back: press play to go on.
 
+## Long answers
+
+The chat model's answer is streamed: it arrives piece by piece while the model writes, so a slow model or a long export isn't cut off by a VPN or proxy that drops quiet connections (some do after about a minute). **Cancel** stops it at any point, also at the provider. Request details show the whole answer once it is complete.
+
 ## If a model refuses
 
 A refusal mentioning guidelines, policy or safety usually means the model won't take this picture, often because of a realistic face. Pick a model with a filled face mark (it **kept the face**), rather than rewording the prompt.

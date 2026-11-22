@@ -135,11 +135,16 @@ async function proxy(req, res) {
 
   const hasBody = !['GET', 'HEAD'].includes(req.method);
   const started = Date.now();
+  // If the page goes away (Cancel, a closed tab) before the answer is done, the upstream request is
+  // aborted too, whether it is still waiting for headers or already streaming the body.
+  const upstreamAbort = new AbortController();
+  res.on('close', () => { if (!res.writableFinished) upstreamAbort.abort(); });
   try {
     const upstream = await fetch(target, {
       method: req.method,
       headers,
       body: hasBody ? await readBody(req) : undefined,
+      signal: upstreamAbort.signal,
     });
     const outHeaders = {};
     upstream.headers.forEach((v, k) => {
@@ -149,19 +154,23 @@ async function proxy(req, res) {
     outHeaders['x-tester-upstream-ms'] = String(Date.now() - started);
     // Passed on as it arrives, not buffered: a streamed answer (text/event-stream) then keeps the
     // page's connection busy too, so a VPN or proxy that drops silent connections (NordVPN: after
-    // about 60 s) never sees one. If the page goes away first, the upstream request is cancelled.
+    // about 60 s) never sees one. When the page reads slower than the provider sends, reading
+    // pauses until the response drains, so a long answer is never piled up in memory.
     res.writeHead(upstream.status, outHeaders);
-    res.on('close', () => { if (!res.writableFinished) upstream.body?.cancel().catch(() => {}); });
     if (upstream.body) {
       for await (const chunk of upstream.body) {
         if (res.destroyed) break;
-        res.write(chunk);
+        if (!res.write(chunk)) {
+          await new Promise((resolve) => { res.once('drain', resolve); res.once('close', resolve); });
+        }
       }
     }
     res.end();
     // The target holds text from the page: logged through '%s', so a % in it is never read as formatting.
     console.log('%s', `${req.method} ${target} -> ${upstream.status} (${Date.now() - started} ms)`);
   } catch (err) {
+    // The page went away first: nothing to answer.
+    if (upstreamAbort.signal.aborted) { console.log('%s', `${req.method} ${target} cancelled by the page (${Date.now() - started} ms)`); return; }
     // Failed partway through a body already being sent: the status is out, so end the connection.
     if (res.headersSent) {
       console.error('%s failed while streaming:', `${req.method} ${target}`, err?.cause?.message || err?.message || err);

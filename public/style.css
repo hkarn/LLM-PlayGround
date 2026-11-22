@@ -784,3 +784,24 @@ a.button-link:hover { filter: brightness(1.08); }
   .scene-edit-panel { border-radius: 0; }
   .scene-para { grid-template-columns: 1fr; }
 }
+
+/* Pick the scene: a scene row is the pick (radio, title, details) and its Series box. */
+.scene-row { justify-content: space-between; }
+.scene-row-main { display: flex; flex-direction: row; gap: 8px; align-items: flex-start; font-weight: normal; font-size: inherit; cursor: pointer; flex: 1; min-width: 0; }
+.scene-row-main input { margin-top: 3px; }
+.scene-row.marked { box-shadow: inset 3px 0 0 var(--accent); }
+.scene-mark { flex: none; align-self: flex-start; white-space: nowrap; }
+.scene-mark-bar { align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+
+/* The series in Draw the DreamGen Scene: its settings, then one card per picture. */
+.series-box { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.series-form h4 { margin: 0; }
+.series { display: flex; flex-direction: column; gap: 8px; }
+.series-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.series-card { margin: 0; border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.series-card.busy { border-color: var(--accent); }
+.series-card.failed { border-color: color-mix(in srgb, var(--err) 60%, transparent); }
+.series-card figcaption { display: flex; flex-direction: column; gap: 2px; }
+.series-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; cursor: zoom-in; background: var(--code-bg); }
+.series-empty { aspect-ratio: 16 / 9; border-radius: 6px; background: var(--code-bg); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+.series-prompt summary { cursor: pointer; font-size: 13px; }

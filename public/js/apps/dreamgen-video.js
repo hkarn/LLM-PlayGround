@@ -49,19 +49,26 @@ A video model shows about one clear action every three seconds. Size the motion 
 
 ## The motion prompt
 One paragraph in the present tense that a video model can follow shot by shot:
-1. One sentence that sets the frame: where it is, the light, and who and what is where. The video model sees the picture, but naming what is in it tells it what each thing is.
-2. The action, beat by beat in story order, each with a clear start and end: who or what moves, how (speed, force, weight, direction), and what changes.
+1. One sentence that sets the frame as the image prompt describes it: where it is, the light, and who and what is where. Keep to what is in the picture: the video model starts from it.
+2. The action, beat by beat in story order, each with a clear start and end.
 3. Everything else that moves: weather, water, smoke, fire, sparks, debris, light flickering or shifting, crowds, ships and engines.
 4. The camera: framing and movement (static wide shot, slow push in, handheld tracking, orbit), and the lighting and mood held through the clip.
 
-## Naming
-- Call people and things what they are in the story's world, as a fan would: "a Cylon Basestar", "a Colonial Viper", "an ornithopter", "a Mord-Sith in red leather", "the Zocalo". Never shrink a specific thing to a generic word such as "ship", "creature", "building" or "weapon". Video models know well-known worlds and draw them better by name.
-- The first time something appears, add a few words of what it looks like ("a Cylon Basestar, a vast grey warship of six star-shaped arms"), so the clip still works if the video model doesn't know the name.
+## Spell out every action
+A video model fills any gap with a guess, and a short verb invites the wrong one: "Ares opens fire" can become a man drawing a pistol and shooting the screen, when the story means a commander ordering a warship's guns to fire. So for every action write out:
+- Who does it, and with what: their hands, a tool, a console, a weapon they already hold, or the ship, vehicle or creature itself.
+- How the body moves, in plain physical steps: "raises his right hand and gives a short nod", "presses a glowing key on the console", "pulls the lever back with both hands".
+- Where the effect happens and how it is seen: outside the ship, on a display screen, through a window, across the room. An order is given by voice or gesture, and the people carry it out; what happens far away is seen only on a screen or through a window.
+- What it is not, when a likely misreading would spoil the clip: "nobody draws a weapon; the shots come from the warship's own guns, seen on the display".
+
+## Naming and describing
+- Call people and things what they are in the story's world, as a fan would: "a Cylon Basestar", "a Colonial Viper", "an ornithopter", "a Mord-Sith in red leather", "the Zocalo". Never shrink a specific thing to a generic word such as "ship", "creature", "building" or "weapon".
+- A name alone is not enough: the video model may not know it. The first time a person or thing appears, describe it in full: shape, size, colour, material, parts, how it moves. Take the look from the export (character, location and object cards, the Setting, the Session) or the image prompt where they describe it, and keep to the story's world where they don't. For example, "a Cylon Basestar, a vast grey warship shaped like two three-armed stars joined at the centre, its armoured arms ribbed and lit along the edges".
 - People: a well-known character of the world by name and look ("Kara 'Starbuck' Thrace, a blonde pilot in an orange flight suit"); anyone else, the player's character included, by how they look in the picture ("the grey-haired man in the oilskin coat").
 - Only what can be seen: no dialogue, sounds, thoughts or backstory.
 
 ## Length
-About 60 to 90 words for a clip of up to 6 seconds, 90 to 130 for 7 to 10 seconds, and 120 to 180 for longer clips. Spend the words on detail, not on more action: how the beats that fit the clip's length look and move, what is around them and the camera. The number of beats and of people who act stays as set above. Reply with the motion prompt only.`;
+About 80 to 120 words for a clip of up to 6 seconds, 120 to 170 for 7 to 10 seconds, and 160 to 230 for longer clips. Spend the words on detail, not on more action: how the beats that fit the clip's length are done, what the people and things look like, what is around them and the camera. The number of beats and of people who act stays as set above. Reply with the motion prompt only.`;
 
 export function renderDreamGenVideo(root) {
   const st = { frame: null, frameUrl: null }; // the frame's object URL is freed when replaced

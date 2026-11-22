@@ -4,6 +4,8 @@ Make short video clips from a prompt, and optionally from a first and last pictu
 
 Open it: **Tools → Video Generator**, or <https://arnoldson.dev/LLM-PlayGround/#tools/video-generator>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
+The tool keeps its state while the page is open: switching to another tool or tab and back finds the prompt, frames and the last clip as you left them. The video model choice is shared with Animate the DreamGen Scene, and the one on screen is the one that counts. A reload starts it fresh, apart from typed text and the Video jobs list.
+
 ## Before you start
 
 You need an API key for a provider with video models, loaded in the connection panel at the top. OpenRouter is the one we have tested, with its tested models first. **LLM Gateway** works too, through your own server (Docker or `node server.js`): its video models are listed as untested, with their own durations and sizes but no price. Requesty has no video. Video costs real money per clip, so start with the cheapest settings.

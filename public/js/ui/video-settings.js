@@ -275,7 +275,10 @@ export function videoSettings({ firstFrameOnly = false } = {}) {
   // Both video tools have a copy of these settings, and a tool's view is kept while another is open
   // (hubs.js). Only the copy on the page follows a model reload or provider switch, so a hidden one
   // never saves its older choice over the shared one; it reads the shared choice again when shown.
-  const onOuterChange = () => { if (root.isConnected) refresh(); };
+  // On the page means in the open tab too: a hub keeps its open app in the DOM while another top tab
+  // is shown (only the panel is hidden), and that copy must not refresh and save either.
+  const onScreen = () => root.isConnected && Boolean(root.closest('.panel.active') || !root.closest('.panel'));
+  const onOuterChange = () => { if (onScreen()) refresh(); };
   document.addEventListener('models-changed', onOuterChange);
   // A provider switch clears the list without that event when there is no key to load with.
   $('#provider')?.addEventListener('change', () => setTimeout(onOuterChange));

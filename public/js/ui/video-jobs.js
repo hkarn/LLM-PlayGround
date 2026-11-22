@@ -194,7 +194,7 @@ export function videoJobsList() {
   };
   // A tool's view is kept while another is open (hubs.js): the list draws only while on the page,
   // and again when its tool is shown.
-  document.addEventListener('video-jobs', () => { if (root.isConnected) draw(); });
+  document.addEventListener('video-jobs', () => { if (root.isConnected && (root.closest('.panel.active') || !root.closest('.panel'))) draw(); });
   document.addEventListener('app-shown', (e) => { if (e.detail?.contains(root)) draw(); });
   // Opening the folded settings panel (narrow screen) shows the list: draw it then, which also marks
   // finished clips as seen.

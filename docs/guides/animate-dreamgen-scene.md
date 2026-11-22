@@ -4,6 +4,8 @@ Turn a scene picture into a short video clip that carries the moment on. A chat 
 
 Open it: **Tools → Animate the DreamGen Scene**, or <https://arnoldson.dev/LLM-PlayGround/#tools/dreamgen-video>. Clicking **Tools** in the top bar goes to the tool you used last (or the list); while you are in Tools, clicking it opens a menu of every tool, so you can switch straight from it; inside a tool, its title is a drop-down that does the same, and **←** goes back to the list.
 
+The tool keeps its state while the page is open: switching to another tool or tab and back finds it as you left it. When you come back after drawing a new picture in Draw the DreamGen Scene, it takes that picture, unless you chose a frame here after it was drawn. A reload starts it fresh.
+
 ## Before you start
 
 - An API key for a provider with video models. OpenRouter is the one we have tested. **LLM Gateway** works too, through your own server (Docker or `node server.js`): its video models are listed as untested, with their own durations and sizes but no price. Requesty has no video. Only models that say they take a starting picture are offered (on LLM Gateway: Veo, Grok Imagine, Kling, MiniMax, FLUX 3 Max and VEED Fabric, not Seedance).

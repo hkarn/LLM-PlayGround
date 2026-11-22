@@ -229,7 +229,14 @@ export function showTab(tab) {
   const btn = tabButton(tab);
   if (!btn) return false;
   $$('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+  const wasActive = new Set($$('.panel.active'));
   $$('.panel').forEach((x) => x.classList.toggle('active', x.dataset.panel === tab));
+  // A hub panel coming back into view shows its open app again: its model lists may have changed
+  // meanwhile, and parts of it refresh on "app-shown" (as when switching apps within the hub).
+  for (const p of $$('.panel.active')) {
+    const view = wasActive.has(p) ? null : p.querySelector(':scope > .app-view');
+    if (view) { $$('.model-picker', view).forEach((x) => x._fill?.()); document.dispatchEvent(new CustomEvent('app-shown', { detail: view })); }
+  }
   // A hidden panel keeps its content (a hub keeps its open app), and a hidden video or audio would
   // go on playing, sound and all: pause them. Nothing starts again by itself on return.
   $$('.panel:not(.active) video, .panel:not(.active) audio').forEach((m) => { if (!m.paused) m.pause(); });
